@@ -15,6 +15,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import PDFDocument from 'pdfkit';
 
 dotenv.config();
 
@@ -60,6 +61,13 @@ const DISCOVERY_ENGINES = (process.env.DISCOVERY_ENGINES || 'chatgpt,gemini,perp
 // вебхук, чи в будь-яку CRM з прийомом вебхуків).
 const LEAD_WEBHOOK_URL = process.env.LEAD_WEBHOOK_URL || '';
 const LEADS_FILE = path.join(process.cwd(), 'leads.jsonl');
+
+// Пошта для PDF-звіту. Resend — простий email-API (POST-запит з JSON,
+// без SMTP-налаштувань). Безкоштовний акаунт на resend.com,
+// FROM-адреса має бути з домену, підтвердженого у Resend (або тестова
+// onboarding@resend.dev — працює одразу, але лише для швидкого старту).
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'AI-Visibility <onboarding@resend.dev>';
 
 // ---------- Допоміжне ----------
 
@@ -314,16 +322,126 @@ app.post('/api/scan', async (req, res) => {
 });
 
 // Приймає контакт, залишений за розблокування повного звіту.
+
+// Формує PDF-звіт із даних скану, які прислав фронтенд (той самий скан,
+// що вже показаний на сторінці — тут нічого заново не рахується).
+function buildReportPdf(data) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 50, size: 'A4' });
+      const chunks = [];
+      doc.on('data', (c) => chunks.push(c));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      doc.fontSize(20).fillColor('#14181d').text('AI-Видимість — детальний звіт', { align: 'left' });
+      doc.moveDown(0.3);
+      doc.fontSize(10).fillColor('#888').text('Top Marketing · topmarketing.com.ua');
+      doc.moveDown();
+
+      doc.fontSize(11).fillColor('#333');
+      doc.text(`Бренд: ${data.brand || '—'}`);
+      if (data.niche) doc.text(`Ніша / місто: ${data.niche}`);
+      doc.text(`Дата перевірки: ${new Date().toLocaleDateString('uk-UA')}`);
+      doc.moveDown();
+
+      doc.fontSize(16).fillColor('#14181d').text(`Загальний бал: ${data.score ?? '—'} / 100`);
+      doc.moveDown();
+
+      doc.fontSize(14).fillColor('#14181d').text('Результати по AI-системах');
+      doc.moveDown(0.3);
+      (data.engines || []).forEach(e => {
+        const verdict = e.error ? 'недоступно під час перевірки' : (e.hit ? 'ЗГАДУЄ бренд' : 'НЕ ЗГАДУЄ бренд');
+        doc.fontSize(11).fillColor('#14181d').text(`${e.label}: ${verdict}`);
+        if (e.snippet) doc.fontSize(10).fillColor('#666').text(`   «${e.snippet}»`);
+        doc.moveDown(0.2);
+      });
+      doc.moveDown(0.5);
+
+      if ((data.zoneOfInvisibility || []).length) {
+        doc.fontSize(14).fillColor('#14181d').text('Зона невидимості — реальні гравці ринку по запитах');
+        doc.moveDown(0.3);
+        data.zoneOfInvisibility.forEach((zq, i) => {
+          doc.fontSize(11).fillColor('#14181d').text(`${i + 1}. ${zq.query}`);
+          const comp = (zq.competitors || []).join(', ');
+          doc.fontSize(10).fillColor('#666').text(comp ? `    Знайдені гравці: ${comp}` : '    Явних гравців пошук не знайшов — полиця відносно вільна.');
+          doc.moveDown(0.2);
+        });
+        doc.moveDown(0.5);
+      }
+
+      if ((data.issues || []).length) {
+        doc.fontSize(14).fillColor('#14181d').text('Що знижує сигнал просто зараз');
+        doc.moveDown(0.3);
+        data.issues.forEach(txt => {
+          doc.fontSize(11).fillColor('#14181d').text(`•  ${txt}`);
+        });
+        doc.moveDown(0.5);
+      }
+
+      doc.moveDown();
+      doc.fontSize(11).fillColor('#333').text(
+        'Наступний крок: команда Top Marketing допоможе перетворити ці дані на послідовний план ' +
+        'підвищення AI-видимості вашого бренду. Ми звʼяжемось з вами найближчим часом.'
+      );
+
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+async function sendReportEmail(toEmail, pdfBuffer, meta) {
+  if (!RESEND_API_KEY) return { sent: false, error: 'RESEND_API_KEY не налаштовано' };
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: RESEND_FROM_EMAIL,
+        to: [toEmail],
+        subject: `AI-Видимість: детальний звіт для ${meta.brand || 'вашого бренду'}`,
+        html: `<p>Вітаємо!</p><p>У вкладенні — детальний звіт AI-видимості для <b>${meta.brand || ''}</b>.</p>` +
+          `<p>Команда Top Marketing зв'яжеться з вами найближчим часом щодо консультації.</p>`,
+        attachments: [
+          {
+            filename: 'ai-visibility-report.pdf',
+            content: pdfBuffer.toString('base64')
+          }
+        ]
+      })
+    });
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => '');
+      console.error(`sendReportEmail: Resend HTTP ${res.status} — ${bodyText}`);
+      return { sent: false, error: `Resend HTTP ${res.status}` };
+    }
+    return { sent: true };
+  } catch (err) {
+    console.error('sendReportEmail: виняток', err);
+    return { sent: false, error: String(err) };
+  }
+}
+
 app.post('/api/lead', async (req, res) => {
   try {
-    const { name, contact, brand, niche, score } = req.body || {};
-    if (!contact || typeof contact !== 'string' || !contact.trim()) {
-      return res.status(400).json({ error: 'Поле "contact" обовʼязкове' });
+    const { name, phone, email, brand, niche, score, engines, zoneOfInvisibility, issues } = req.body || {};
+
+    if (!email || typeof email !== 'string' || !email.trim()) {
+      return res.status(400).json({ error: 'Поле "email" обовʼязкове' });
+    }
+    if (!phone || typeof phone !== 'string' || !phone.trim()) {
+      return res.status(400).json({ error: 'Поле "phone" обовʼязкове' });
     }
 
     const lead = {
       name: (name || '').trim(),
-      contact: contact.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
       brand: (brand || '').trim(),
       niche: (niche || '').trim(),
       score: typeof score === 'number' ? score : null,
@@ -344,7 +462,18 @@ app.post('/api/lead', async (req, res) => {
       }).catch(e => console.warn('Помилка відправки на LEAD_WEBHOOK_URL:', e));
     }
 
-    res.json({ ok: true });
+    let emailResult = { sent: false, error: 'RESEND_API_KEY не налаштовано' };
+    try {
+      const pdfBuffer = await buildReportPdf({
+        brand: lead.brand, niche: lead.niche, score: lead.score, engines, zoneOfInvisibility, issues
+      });
+      emailResult = await sendReportEmail(lead.email, pdfBuffer, lead);
+    } catch (err) {
+      console.error('Генерація/відправка PDF-звіту не вдалась:', err);
+      emailResult = { sent: false, error: String(err) };
+    }
+
+    res.json({ ok: true, emailSent: emailResult.sent, emailError: emailResult.error || null });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Внутрішня помилка сервера' });

@@ -30,7 +30,8 @@ function doPost(e) {
     sheet.appendRow([
       data.ts || new Date().toISOString(),
       data.name || '',
-      data.contact || '',
+      data.phone || data.contact || '',
+      data.email || '',
       data.brand || '',
       data.niche || '',
       (data.score === undefined || data.score === null) ? '' : data.score
@@ -59,7 +60,7 @@ function getOrCreateSheet_() {
   let sheet = ss.getSheetByName('Ліди');
   if (!sheet) {
     sheet = ss.insertSheet('Ліди');
-    sheet.appendRow(['Час', "Ім'я", 'Контакт', 'Бренд', 'Ніша', 'Бал']);
+    sheet.appendRow(['Час', "Ім'я", 'Телефон', 'Email', 'Бренд', 'Ніша', 'Бал']);
     sheet.setFrozenRows(1);
   }
   return sheet;

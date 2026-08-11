@@ -436,7 +436,8 @@
       <div class="unlock-teaser" id="unlockTeaserText">🔒 Розблокуйте, щоб побачити деталі</div>
       <form id="unlockForm" class="unlock-form">
         <input type="text" id="leadName" placeholder="Ваше ім'я">
-        <input type="text" id="leadContact" placeholder="Email або Telegram" required>
+        <input type="tel" id="leadPhone" placeholder="Телефон" required>
+        <input type="email" id="leadEmail" placeholder="Email (сюди прийде PDF-звіт)" required style="grid-column:1/-1;">
         <button type="submit" id="unlockBtn" class="btn-scan">Отримати повний звіт і консультацію →</button>
       </form>
       <div class="mode-note">Без спаму — надішлемо звіт і, за потреби, зв'яжемось щодо консультації Top Marketing.</div>
@@ -450,189 +451,13 @@
   <section class="cta" id="ctaBlock" hidden>
     <h2>Ці цифри — ручний вимір. Систему — будуємо разом.</h2>
     <p>Покажіть цей звіт своїм клієнтам як точку А. Далі — кроки, які піднімають бал, і система, яка робить так, щоб AI рекомендував саме вас.</p>
-    <a href="#pricing" class="btn-cta">Отримати консультацію Top Marketing →</a>
+    <a href="#" class="btn-cta">Отримати консультацію Top Marketing →</a>
     <div class="fine">[МІСЦЕ ДЛЯ ПОСИЛАННЯ НА ВАШУ ПОСЛУГУ / КУРС]</div>
-  </section>
-
-  <!-- ===================== ТОЧКА СТАРТУ ===================== -->
-  <section class="section">
-    <div class="section-eyebrow">Точка старту</div>
-    <h2>Чому це не питання «пізніше»</h2>
-    <p class="section-lede">Клієнти вже питають AI, кого порадити, — і отримують короткий список із трьох-пʼяти імен. Немає вас у списку — клієнт іде до того, хто там є.</p>
-
-    <div class="stat-grid">
-      <div class="stat-card"><div class="stat-num placeholder">[XX%]</div><div class="stat-label">користувачів вже використовують AI під час пошуку рішень</div></div>
-      <div class="stat-card"><div class="stat-num placeholder">[X з X]</div><div class="stat-label">кажуть, що відповіді AI зручніші за класичний пошук</div></div>
-      <div class="stat-card"><div class="stat-num placeholder">[XX%]</div><div class="stat-label">лідерів пошукової видачі не зʼявляються у відповідях AI</div></div>
-      <div class="stat-card"><div class="stat-num placeholder">[XX%]</div><div class="stat-label">бізнесів у вашій ніші ще не займаються AI-видимістю</div></div>
-    </div>
-    <div class="mode-note" style="margin-bottom:22px;">Цифри вище — плейсхолдери. Вставте перевірені дані зі своїх або публічних джерел (індустріальні звіти, власна аналітика клієнтів) і залиште посилання на джерело поруч.</div>
-
-    <div class="news-grid">
-      <div class="news-card bad">
-        <span class="news-tag">Погана новина</span>
-        <p><b>AI працює не як звичний пошук.</b> Хороша позиція в Google не гарантує появи у відповіді ChatGPT чи Gemini — там інша логіка відбору джерел.</p>
-      </div>
-      <div class="news-card good">
-        <span class="news-tag">Добра новина</span>
-        <p><b>Більшість місць у видачі AI ще вільні.</b> Поки конкуренти цим не займаються — вікно можливості відкрите.</p>
-      </div>
-    </div>
-
-    <div class="timeline">
-      <div class="timeline-step"><b>Початок 2000-х</b><span>Раннє SEO. Хто зайшов першим — зібрав ринок.</span></div>
-      <div class="timeline-step"><b>2010-ті</b><span>Ранній SMM. Та сама історія у соцмережах.</span></div>
-      <div class="timeline-step now"><b>Зараз — AI-видача</b><span>Ви тут. Більшість місць у рекомендаціях вільні.</span></div>
-      <div class="timeline-step"><b>Далі</b><span>Вікно зачиниться — місця займуть конкуренти.</span></div>
-    </div>
-  </section>
-
-  <!-- ===================== МІФИ ===================== -->
-  <section class="section">
-    <div class="section-eyebrow">Перш ніж почати</div>
-    <h2>Спершу зламаємо поширені міфи</h2>
-    <p class="section-lede">Не варто платити за те, що вам продають під виглядом «AI-SEO», поки не перевірили ці три речі.</p>
-
-    <div class="myth-card">
-      <div class="myth-body">
-        <span class="myth-tag">Міф 1</span>
-        <h3>«Треба просто добре ранжуватись у Google»</h3>
-        <p>AI-системи формують відповідь інакше, ніж класична пошукова видача — джерела, які цитує ChatGPT, часто взагалі не входять у топ Google.</p>
-      </div>
-      <div class="myth-stat"><div class="n placeholder">[X%]</div><div class="l">цитат ChatGPT поза топ-100 Google</div></div>
-    </div>
-
-    <div class="myth-card">
-      <div class="myth-body">
-        <span class="myth-tag">Міф 2</span>
-        <h3>«Досить впровадити llms.txt»</h3>
-        <p>Це модна послуга зараз, але за даними по великій вибірці доменів AI-боти цей файл практично не запитують — ефект близький до нуля.</p>
-      </div>
-      <div class="myth-stat"><div class="n placeholder">~0</div><div class="l">вимірюваний ефект llms.txt</div></div>
-    </div>
-
-    <div class="myth-card">
-      <div class="myth-body">
-        <span class="myth-tag">Міф 3</span>
-        <h3>«Головне — посилання, як у старому SEO»</h3>
-        <p>Згадки бренду (навіть без посилання) передбачають появу у відповідях AI помітно краще, ніж класичні беклінки.</p>
-      </div>
-      <div class="myth-stat"><div class="n placeholder">[X]×</div><div class="l">згадки vs посилання</div></div>
-    </div>
-  </section>
-
-  <!-- ===================== ФОРМУЛА СИГНАЛУ ===================== -->
-  <section class="section">
-    <div class="section-eyebrow">Каркас методу</div>
-    <h2>Формула сигналу: Збір · Широта · Глибина</h2>
-    <p class="section-lede">AI рекомендує не того, у кого «гарний сайт» — а того, кого впізнає як авторитет за трьома ознаками одночасно.</p>
-
-    <div class="framework">
-      <div class="t-bar">ШИРОТА — ЗГАДКИ НА ЧУЖИХ МАЙДАНЧИКАХ</div>
-      <div class="t-stem"></div>
-      <div class="t-core">ТОЧКА<br>ЗБОРУ</div>
-    </div>
-
-    <div class="framework-legend">
-      <div>
-        <span class="fl-tag">Точка збору</span>
-        <p>Одне місце, де інформація про бренд викладена правильно й однаково — назва, опис, факти. Без неї сигнали розмазуються по різних «сутностях».</p>
-      </div>
-      <div>
-        <span class="fl-tag">Широта</span>
-        <p>Згадки на зовнішніх майданчиках — каталоги, рейтинги, форуми, відгуки, чужі статті. AI довіряє не вам, а тим, хто говорить про вас.</p>
-      </div>
-      <div>
-        <span class="fl-tag">Глибина</span>
-        <p>Контент із конкретними цифрами, цитатами і джерелами — те, що AI може процитувати фрагментом, а не переказати загальними словами.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===================== КРОКИ ===================== -->
-  <section class="section">
-    <div class="section-eyebrow">Що зробити</div>
-    <h2>Пʼять кроків, які піднімають сигнал</h2>
-    <p class="section-lede">Кожен крок можна почати сьогодні. Порядок не випадковий — починаємо з основи.</p>
-
-    <div class="step-row">
-      <div class="step-num">01</div>
-      <div><h3>Зберіть бренд в одну сутність</h3><p>Один канонічний опис — хто ви, що робите, для кого, з одним перевірюваним фактом. Вставте його дослівно скрізь: сайт, каталоги, соцмережі.</p></div>
-    </div>
-    <div class="step-row">
-      <div class="step-num">02</div>
-      <div><h3>Потрапте до чужих списків</h3><p>Знайдіть нішеві рейтинги й добірки «найкращі X у [ніша/місто]», де є конкуренти, а вас немає — і подайте заявку на включення.</p></div>
-    </div>
-    <div class="step-row">
-      <div class="step-num">03</div>
-      <div><h3>Зайдіть у живі обговорення</h3><p>Профільні форуми, спільноти, Q&A-майданчики. Розгорнуті корисні відповіді під власним іменем + змістовні відгуки клієнтів.</p></div>
-    </div>
-    <div class="step-row">
-      <div class="step-num">04</div>
-      <div><h3>Підсильте контент цифрами та джерелами</h3><p>Конкретна статистика, цитати з посиланням на ім'я, вказані джерела — те, що робить фрагмент цитованим для AI.</p></div>
-    </div>
-    <div class="step-row">
-      <div class="step-num">05</div>
-      <div><h3>Закрийте реальне питання клієнта</h3><p>Формат «питання → пряма відповідь у першому абзаці». Свіжа дата. Оновлюйте ключові матеріали регулярно.</p></div>
-    </div>
-  </section>
-
-  <!-- ===================== БОНУС ===================== -->
-  <section class="section">
-    <div class="section-eyebrow">Бонус-підказка</div>
-    <h2>Не забувайте про Bing</h2>
-    <div class="bonus-box">
-      <p>Пошуковик, про який часто забувають, — помітне джерело для пошукового режиму ChatGPT: збіг цитат із органічною видачею Bing вищий, ніж із Google, а конкуренція в Bing на порядки нижча. Зареєструвати сайт у <b>Bing Webmaster Tools</b> — 15 хвилин, безкоштовно, і це один із небагатьох «швидких» важелів у цій темі.</p>
-    </div>
-  </section>
-
-  <!-- ===================== ТАРИФИ ===================== -->
-  <section class="section" id="pricing">
-    <div class="section-eyebrow">Живий формат · Top Marketing</div>
-    <h2>Ми показуємо точку А. Систему будуємо разом.</h2>
-    <p class="section-lede">Скан вище — ваша точка А. Далі — послідовна робота над AI-видимістю бренду разом з командою Top Marketing.</p>
-
-    <div class="pricing-grid">
-      <div class="price-card">
-        <div class="p-name">Базовий</div>
-        <div class="p-price placeholder">[XXX] ₴/€</div>
-        <ul>
-          <li>Аудит поточної AI-видимості</li>
-          <li>Один канонічний опис бренду</li>
-          <li>Список 5–10 цільових майданчиків</li>
-        </ul>
-        <a href="#" class="p-cta">Дізнатись більше</a>
-      </div>
-      <div class="price-card featured">
-        <div class="p-name">Оптимальний</div>
-        <div class="p-price placeholder">[XXX] ₴/€</div>
-        <ul>
-          <li>Все з тарифу «Базовий»</li>
-          <li>Розміщення в нішевих рейтингах</li>
-          <li>Підсилення ключового контенту</li>
-          <li>Повторний скан через 2–4 тижні</li>
-        </ul>
-        <a href="#" class="p-cta">Дізнатись більше</a>
-      </div>
-      <div class="price-card">
-        <div class="p-name">Повний супровід</div>
-        <div class="p-price placeholder">[XXX] ₴/€</div>
-        <ul>
-          <li>Все з тарифу «Оптимальний»</li>
-          <li>Щомісячний моніторинг сигналу</li>
-          <li>Особистий розбір кейсу</li>
-          <li>Пріоритетна підтримка</li>
-        </ul>
-        <a href="#" class="p-cta">Дізнатись більше</a>
-      </div>
-    </div>
-    <div class="mode-note" style="margin-top:14px;">Ціни — плейсхолдери, впишіть свої.</div>
   </section>
 
   <footer>
     Осі "Широта / Глибина / Точка збору" — ілюстративна оцінка. Блок ChatGPT/Gemini/Perplexity/Claude вище показує
-    результат реального запиту, коли підключено бекенд — інакше працює демо-режим із симуляцією. Статистика в
-    інформаційних блоках нижче — плейсхолдери під ваші джерела.<br>
+    результат реального запиту, коли підключено бекенд — інакше працює демо-режим із симуляцією.<br>
     Прилад · AI-Видимість · Top Marketing
   </footer>
 
@@ -690,6 +515,8 @@ const ctaBlock = document.getElementById('ctaBlock');
 let lastZoneCompetitors = []; // масив масивів назв конкурентів, по одному на запит зони невидимості
 let lastPickedIssues = [];
 let lastScanMeta = { brand:'', niche:'', score:null };
+let lastEngines = []; // повний знімок відповідей систем — для PDF-звіту
+let lastZoneOfInvisibility = []; // повний знімок зони невидимості — для PDF-звіту
 
 async function fetchRealScan(brand, niche){
   const res = await fetch(API_URL, {
@@ -777,7 +604,8 @@ form.addEventListener('submit', async function(e){
     document.getElementById('unlockGate').hidden = false;
     document.getElementById('unlockedNote').hidden = true;
     document.getElementById('leadName').value = '';
-    document.getElementById('leadContact').value = '';
+    document.getElementById('leadPhone').value = '';
+    document.getElementById('leadEmail').value = '';
     const unlockBtnReset = document.getElementById('unlockBtn');
     unlockBtnReset.disabled = false;
     unlockBtnReset.textContent = 'Отримати повний звіт і консультацію →';
@@ -856,6 +684,8 @@ form.addEventListener('submit', async function(e){
       issuesList.innerHTML = '';
       lastPickedIssues = pickedIssues;
       lastScanMeta = { brand: name, niche, score: overall };
+      lastEngines = engines.map(e => ({ label: e.label, hit: !!e.hit, snippet: e.snippet || '', error: e.error || null }));
+      lastZoneOfInvisibility = zoneOfInvisibility;
 
       const zoneListEl = document.getElementById('zoneList');
       zoneListEl.innerHTML = '';
@@ -902,7 +732,7 @@ form.addEventListener('submit', async function(e){
   }, usedReal ? 200 : 1400);
 });
 
-function revealLocked(){
+function revealLocked(emailSent){
   document.querySelectorAll('.locked-inline').forEach(el => {
     const card = el.closest('.zone-card');
     const idx = Number(card.dataset.zoneIndex);
@@ -922,39 +752,54 @@ function revealLocked(){
   });
 
   document.getElementById('unlockGate').hidden = true;
-  document.getElementById('unlockedNote').hidden = false;
+  const note = document.getElementById('unlockedNote');
+  note.hidden = false;
+  note.textContent = emailSent
+    ? '✓ Звіт розблоковано. PDF з детальним аналізом надіслано на вашу пошту.'
+    : '✓ Звіт розблоковано. Ми зв\'яжемось з вами найближчим часом.';
 }
 
 document.getElementById('unlockForm').addEventListener('submit', async function(e){
   e.preventDefault();
   const leadName = document.getElementById('leadName').value.trim();
-  const leadContact = document.getElementById('leadContact').value.trim();
-  if(!leadContact) return;
+  const leadPhone = document.getElementById('leadPhone').value.trim();
+  const leadEmail = document.getElementById('leadEmail').value.trim();
+  if(!leadPhone || !leadEmail) return;
 
   const unlockBtn = document.getElementById('unlockBtn');
   unlockBtn.disabled = true;
   unlockBtn.textContent = 'Розблоковую...';
 
+  let emailSent = false;
+  let emailError = null;
+
   if(API_URL){
     try{
       const leadUrl = API_URL.replace(/\/api\/scan$/, '/api/lead');
-      await fetch(leadUrl, {
+      const leadRes = await fetch(leadUrl, {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({
           name: leadName,
-          contact: leadContact,
+          phone: leadPhone,
+          email: leadEmail,
           brand: lastScanMeta.brand,
           niche: lastScanMeta.niche,
-          score: lastScanMeta.score
+          score: lastScanMeta.score,
+          engines: lastEngines,
+          zoneOfInvisibility: lastZoneOfInvisibility,
+          issues: lastPickedIssues
         })
       });
+      const leadData = await leadRes.json().catch(() => ({}));
+      emailSent = !!leadData.emailSent;
+      emailError = leadData.emailError || null;
     } catch(err){
       console.warn('Не вдалось відправити лід на бекенд:', err);
     }
   }
 
-  revealLocked();
+  revealLocked(emailSent);
 });
 </script>
 </body>
