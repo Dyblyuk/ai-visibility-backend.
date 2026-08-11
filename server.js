@@ -22,6 +22,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  res.json({
+    ok: true,
+    service: 'AI-Visibility Scanner backend',
+    note: 'Це бекенд без власного інтерфейсу. Перевірка стану: /api/health. Сам сканер працює на окремій сторінці (ai-visibility-scanner.html), яка звертається сюди.',
+    endpoints: ['GET /api/health', 'POST /api/scan', 'POST /api/lead', 'GET /api/leads']
+  });
+});
+
 const PORT = process.env.PORT || 8787;
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -172,35 +181,50 @@ const ENGINE_CALLERS = {
   claude: askClaude
 };
 
-// Просить Claude витягти зі "сирої" відповіді іншого AI список згаданих
-// компаній/брендів у форматі JSON. Якщо Claude не налаштовано — грубий
-// фолбек на регулярку (менш точний, але не залишає секцію порожньою).
-async function extractCompetitors(text, brand) {
-  if (!text) return [];
-  if (!ANTHROPIC_API_KEY) {
-    const matches = text.match(/[A-ZА-ЯЁІЇЄҐ][a-zа-яёіїєґ'’\-]{2,}(?:\.[a-zа-яёіїєґ]{2,4})?/g) || [];
-    const uniq = [...new Set(matches)].filter(w => w.toLowerCase() !== brand.toLowerCase());
-    return uniq.slice(0, 6);
-  }
-  const prompt = `Ось відповідь AI-асистента на запит користувача, який шукав компанію чи бренд. ` +
-    `Випиши ЛИШЕ назви компаній/брендів/сайтів, які там згадуються, у форматі JSON-масиву рядків — ` +
-    `без будь-яких пояснень до чи після, лише масив. Якщо назв немає — поверни [].\n\n` +
-    `Відповідь AI:\n"""${text}"""`;
-  const res = await askClaude(prompt);
-  if (res.error || !res.text) return [];
+// Просить Claude знайти РЕАЛЬНИХ гравців ринку через вбудований інструмент
+// веб-пошуку — це вже не здогадка з чужої відповіді, а фактичний пошук
+// в інтернеті на момент сканування.
+async function findRealCompetitors(query, brand) {
+  if (!ANTHROPIC_API_KEY) return { competitors: [], error: 'ANTHROPIC_API_KEY не налаштовано' };
+
+  const prompt = `Використай пошук в інтернеті, щоб знайти реальних, актуальних гравців ринку, ` +
+    `які підходять під запит клієнта: "${query}". Перевір через пошук, а не з памʼяті. ` +
+    `Поверни ЛИШЕ JSON-масив назв компаній чи брендів (до 8 штук), без будь-яких пояснень до чи ` +
+    `після масиву. Виключи бренд "${brand}", якщо він там зустрічається.`;
+
   try {
-    const jsonMatch = res.text.match(/\[[\s\S]*\]/);
-    const arr = JSON.parse(jsonMatch ? jsonMatch[0] : res.text);
-    return arr
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: CLAUDE_MODEL,
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }],
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }]
+      })
+    });
+    if (!res.ok) return { competitors: [], error: `Claude+search HTTP ${res.status}` };
+    const data = await res.json();
+    const text = (data?.content || []).filter(b => b.type === 'text').map(b => b.text).join(' ');
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    const arr = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+    const competitors = arr
       .filter(n => typeof n === 'string' && n.trim() && n.toLowerCase() !== brand.toLowerCase())
       .slice(0, 8);
-  } catch {
-    return [];
+    return { competitors };
+  } catch (err) {
+    return { competitors: [], error: String(err) };
   }
 }
 
 async function runDiscoveryQuery(query, brand) {
   const engineResults = {};
+  const rawTexts = [];
+
   await Promise.all(DISCOVERY_ENGINES.map(async (key) => {
     const caller = ENGINE_CALLERS[key];
     if (!caller) return;
@@ -210,10 +234,25 @@ async function runDiscoveryQuery(query, brand) {
       return;
     }
     const mentionedBrand = resp.text.toLowerCase().includes(brand.toLowerCase());
-    const competitors = mentionedBrand ? [] : await extractCompetitors(resp.text, brand);
-    engineResults[key] = { mentionedBrand, competitors };
+    engineResults[key] = { mentionedBrand };
+    rawTexts.push(resp.text);
   }));
-  return { query, engines: engineResults };
+
+  let competitors = [];
+  let competitorsSource = 'search';
+  const searchResult = await findRealCompetitors(query, brand);
+
+  if (searchResult.competitors.length) {
+    competitors = searchResult.competitors;
+  } else if (searchResult.error) {
+    // Фолбек, якщо пошук недоступний (немає ключа, ліміт і т.д.) —
+    // груба евристика по капіталізованих словах із сирих відповідей.
+    competitorsSource = 'fallback';
+    const matches = rawTexts.join(' ').match(/[A-ZА-ЯЁІЇЄҐ][a-zа-яёіїєґ'’\-]{2,}(?:\.[a-zа-яёіїєґ]{2,4})?/g) || [];
+    competitors = [...new Set(matches)].filter(w => w.toLowerCase() !== brand.toLowerCase()).slice(0, 6);
+  }
+
+  return { query, engines: engineResults, competitors, competitorsSource };
 }
 
 app.post('/api/scan', async (req, res) => {

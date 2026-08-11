@@ -424,7 +424,7 @@
   </section>
 
   <section class="issues" id="issues" hidden>
-    <h3>Зона невидимості — так питають клієнти, і ось кого називають замість вас</h3>
+    <h3>Зона невидимості — так питають клієнти, і ось кого реально знаходить пошук замість вас</h3>
     <div class="zone-list" id="zoneList"></div>
   </section>
 
@@ -642,7 +642,7 @@
 // ЩОБ УВІМКНУТИ РЕАЛЬНУ ПЕРЕВІРКУ: впишіть сюди URL задеплоєного бекенду
 // (див. /ai-visibility-backend/README.md). Поки що тут порожньо — тому
 // сканер працює в демо-режимі із симульованими даними.
-const API_URL = 'https://ai-visibility-backend.onrender.com/api/scan'; // напр. 'https://ваш-сервіс.onrender.com/api/scan'
+const API_URL = ''; // напр. 'https://ваш-сервіс.onrender.com/api/scan'
 
 const modeNote = document.getElementById('modeNote');
 if(API_URL){
@@ -751,12 +751,10 @@ form.addEventListener('submit', async function(e){
     zoneOfInvisibility = demoQueries.map(q => {
       const engineResults = {};
       engineDefs.forEach(e => {
-        const mentionedBrand = rand() > 0.65;
-        const competitors = mentionedBrand ? [] :
-          [...FAKE_COMPETITORS].sort(() => rand() - 0.5).slice(0, 2 + Math.floor(rand()*2));
-        engineResults[e.key] = { mentionedBrand, competitors };
+        engineResults[e.key] = { mentionedBrand: rand() > 0.65 };
       });
-      return { query: q, engines: engineResults };
+      const competitors = [...FAKE_COMPETITORS].sort(() => rand() - 0.5).slice(0, 2 + Math.floor(rand()*3));
+      return { query: q, engines: engineResults, competitors, competitorsSource: 'demo' };
     });
   }
 
@@ -876,13 +874,14 @@ form.addEventListener('submit', async function(e){
             const text = val.mentionedBrand ? `${label}: згадав вас` : `${label}: не згадав`;
             return `<span class="zone-badge ${cls}"><i class="zdot"></i>${text}</span>`;
           }).join('');
-          const allCompetitors = [...new Set(
-            Object.values(zq.engines).flatMap(v => v.competitors || [])
-          )];
+          const allCompetitors = zq.competitors || [];
           lastZoneCompetitors[idx] = allCompetitors;
+          const sourceNote = zq.competitorsSource === 'fallback'
+            ? ' <span style="opacity:.6">(грубий підбір, пошук був недоступний)</span>'
+            : '';
           const competitorsHtml = allCompetitors.length
-            ? `<span class="locked-inline">🔒 ${allCompetitors.length} конкурент${allCompetitors.length===1?'':'и/ів'} у відповідях — розблокуйте звіт нижче, щоб побачити назви</span>`
-            : `<span class="none">Конкурентів у відповідях не виявлено — полиця відносно вільна.</span>`;
+            ? `<span class="locked-inline">🔒 ${allCompetitors.length} реальн${allCompetitors.length===1?'ий гравець':'их гравці/ів'} ринку знайдено пошуком — розблокуйте звіт нижче, щоб побачити назви${sourceNote}</span>`
+            : `<span class="none">За цим запитом пошук не знайшов явних гравців — полиця відносно вільна.</span>`;
           card.innerHTML = `
             <div class="zone-query">${zq.query}</div>
             <div class="zone-engines">${badges}</div>
