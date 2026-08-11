@@ -40,6 +40,9 @@ const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 // Модель Claude. Актуальні назви моделей дивіться в docs.claude.com —
 // на момент написання: claude-sonnet-5 (баланс), claude-haiku-4-5-20251001 (дешевше/швидше).
 const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-5';
+// Gemini API models get deprecated/shut down fairly often — gemini-1.5-flash
+// no longer exists as of 2026. Override via GEMINI_MODEL if this goes stale too.
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 
 // "Зона невидимості" — скільки нішевих запитів ставити і яким системам.
 // Кожен запит іде в кожен обраний engine, і якщо бренд не згадано —
@@ -112,14 +115,18 @@ async function askChatGPT(query) {
       max_tokens: 500
     })
   });
-  if (!res.ok) return { error: `OpenAI HTTP ${res.status}` };
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => '');
+    console.error(`askChatGPT: HTTP ${res.status} — ${bodyText}`);
+    return { error: `OpenAI HTTP ${res.status}`, detail: bodyText.slice(0, 300) };
+  }
   const data = await res.json();
   return { text: data?.choices?.[0]?.message?.content || '' };
 }
 
 async function askGemini(query) {
   if (!GEMINI_API_KEY) return { error: 'GEMINI_API_KEY не налаштовано' };
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -127,7 +134,11 @@ async function askGemini(query) {
       contents: [{ parts: [{ text: query }] }]
     })
   });
-  if (!res.ok) return { error: `Gemini HTTP ${res.status}` };
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => '');
+    console.error(`askGemini: HTTP ${res.status} — ${bodyText}`);
+    return { error: `Gemini HTTP ${res.status}`, detail: bodyText.slice(0, 300) };
+  }
   const data = await res.json();
   const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join(' ') || '';
   return { text };
