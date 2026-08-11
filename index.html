@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Top Marketing · AI-Видимість · Сканер сигналу бренду</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14181d;
+    --bg-alt:#0e1114;
+    --panel:#191e24;
+    --panel-2:#1e2530;
+    --ink:#eef1f4;
+    --ink-dim:#8b97a6;
+    --ink-faint:#5b6570;
+    --orange:#ff6a1a;
+    --orange-dim:#c9531a;
+    --cyan:#4fd1c5;
+    --red:#ff5a5f;
+    --border:rgba(255,255,255,.10);
+    --border-strong:rgba(255,106,26,.45);
+    --font-mono:'JetBrains Mono', ui-monospace, monospace;
+    --font-body:'Manrope', -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{background:var(--bg); color:var(--ink); font-family:var(--font-body); overflow-x:hidden;}
+  body{
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-attachment: fixed;
+  }
+  .page{max-width:920px; margin:0 auto; padding:0 24px 80px;}
+  a{color:inherit;}
+
+  /* ---------- TOPBAR / LOGO ---------- */
+  .topbar{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:22px 0; border-bottom:1px solid var(--border);
+  }
+  .logo{display:flex; align-items:center; gap:10px;}
+  .logo-badge{
+    width:34px; height:34px; background:var(--orange); color:#14181d;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-mono); font-weight:800; font-size:14px; border-radius:3px;
+  }
+  .logo-text{font-family:var(--font-mono); font-size:14px; letter-spacing:.04em; line-height:1.15;}
+  .logo-text b{color:var(--orange);}
+  .logo-text span{display:block; font-size:9px; color:var(--ink-faint); letter-spacing:.14em; margin-top:2px;}
+  .engines-nav{display:flex; gap:18px; font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; color:var(--ink-dim);}
+  .engines-nav span{display:flex; align-items:center; gap:6px;}
+  .dot{width:6px; height:6px; border-radius:50%; background:var(--ink-faint); display:inline-block;}
+  .dot.on{background:var(--cyan); box-shadow:0 0 6px var(--cyan);}
+
+  /* ---------- HERO ---------- */
+  .hero{padding:56px 0 40px;}
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.14em; color:var(--orange);
+    border:1px solid var(--border-strong); padding:6px 12px; border-radius:2px;
+    text-transform:uppercase;
+  }
+  .eyebrow::before{content:"●"; font-size:8px; animation:blink 1.6s infinite;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
+  h1{
+    font-size:clamp(28px, 4.4vw, 46px); line-height:1.12; letter-spacing:-.01em;
+    margin:20px 0 16px; font-weight:800; max-width:17ch;
+  }
+  h1 .accent{color:var(--orange);}
+  .lede{color:var(--ink-dim); font-size:16px; line-height:1.6; max-width:56ch; margin-bottom:36px;}
+
+  .scan-form{
+    display:grid; grid-template-columns:1fr 1fr; gap:14px;
+    background:var(--panel); border:1px solid var(--border); padding:22px;
+    position:relative;
+  }
+  .scan-form::before, .scan-form::after,
+  .instrument-panel::before, .instrument-panel::after{
+    content:""; position:absolute; width:10px; height:10px;
+    border-color:var(--orange); border-style:solid; opacity:.6;
+  }
+  .scan-form::before{top:-1px; left:-1px; border-width:2px 0 0 2px;}
+  .scan-form::after{bottom:-1px; right:-1px; border-width:0 2px 2px 0;}
+  .scan-form label{
+    display:flex; flex-direction:column; gap:6px;
+    font-family:var(--font-mono); font-size:10px; letter-spacing:.1em; color:var(--ink-dim); text-transform:uppercase;
+  }
+  .scan-form input{
+    background:var(--bg-alt); border:1px solid var(--border); color:var(--ink);
+    padding:12px 12px; font-family:var(--font-body); font-size:14px; border-radius:2px;
+    outline:none;
+  }
+  .scan-form input:focus{border-color:var(--orange);}
+  .btn-scan{
+    grid-column:1/-1; margin-top:6px;
+    background:var(--orange); color:#14181d; border:none; padding:14px;
+    font-family:var(--font-mono); font-weight:700; letter-spacing:.08em; font-size:13px;
+    cursor:pointer; text-transform:uppercase; border-radius:2px;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-scan:hover{transform:translateY(-1px); box-shadow:0 6px 18px rgba(255,106,26,.28);}
+  .btn-scan:disabled{opacity:.5; cursor:progress;}
+
+  .mode-note{
+    font-family:var(--font-mono); font-size:10px; color:var(--ink-faint);
+    margin-top:10px; letter-spacing:.03em;
+  }
+  .mode-note b{color:var(--orange);}
+
+  /* ---------- INSTRUMENT PANEL (results) ---------- */
+  .instrument-panel{
+    margin-top:28px; background:var(--panel); border:1px solid var(--border); padding:26px;
+    position:relative; animation:fadeUp .5s ease both;
+  }
+  .instrument-panel::before{top:-1px; left:-1px; border-width:2px 0 0 2px;}
+  .instrument-panel::after{bottom:-1px; right:-1px; border-width:0 2px 2px 0;}
+  @keyframes fadeUp{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
+
+  .panel-head{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; color:var(--ink-dim);
+    text-transform:uppercase; border-bottom:1px solid var(--border); padding-bottom:14px; margin-bottom:20px;
+  }
+  .panel-brand{color:var(--ink); font-size:13px; font-weight:700;}
+
+  .track{margin-bottom:16px;}
+  .track-label{
+    display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:11px;
+    color:var(--ink-dim); margin-bottom:6px; text-transform:uppercase; letter-spacing:.06em;
+  }
+  .track-label .verdict{font-weight:700;}
+  .track-label .verdict.hit{color:var(--cyan);}
+  .track-label .verdict.miss{color:var(--red);}
+  .track-label .verdict.err{color:var(--ink-faint);}
+  .track-bar{
+    position:relative; height:26px; background:var(--bg-alt); border:1px solid var(--border); overflow:hidden;
+  }
+  .track-bar .sweep{
+    position:absolute; top:0; left:0; height:100%; width:0%;
+    background:linear-gradient(90deg, transparent, rgba(255,106,26,.35));
+    transition:width 1.1s cubic-bezier(.2,.7,.2,1);
+  }
+  .track-bar .blip{
+    position:absolute; top:50%; width:8px; height:8px; border-radius:50%;
+    transform:translate(-50%,-50%) scale(0); opacity:0;
+    transition:transform .3s ease, opacity .3s ease;
+  }
+  .track-bar .blip.hit{background:var(--cyan); box-shadow:0 0 10px var(--cyan);}
+  .track-bar .blip.miss{background:var(--red); box-shadow:0 0 10px var(--red);}
+  .track-bar .blip.show{transform:translate(-50%,-50%) scale(1); opacity:1;}
+  .track-snippet{
+    font-family:var(--font-mono); font-size:11px; color:var(--ink-faint);
+    margin-top:6px; line-height:1.5; font-style:italic;
+  }
+
+  .score-block{
+    display:flex; align-items:center; gap:26px; margin-top:26px; padding-top:22px; border-top:1px solid var(--border);
+  }
+  .score-dial{position:relative; width:120px; height:120px; flex:none;}
+  .score-dial svg{width:100%; height:100%; transform:rotate(-90deg);}
+  .score-dial circle{fill:none; stroke-width:8;}
+  .score-dial .bg{stroke:var(--border);}
+  .score-dial .fg{stroke:var(--orange); stroke-linecap:round; stroke-dasharray:326.7; stroke-dashoffset:326.7; transition:stroke-dashoffset 1.4s cubic-bezier(.2,.8,.2,1);}
+  .score-num{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-mono); font-size:26px; font-weight:800;
+  }
+  .score-text{font-family:var(--font-mono); font-size:10px; color:var(--ink-faint); text-align:center; margin-top:4px;}
+  .score-label{font-size:15px; line-height:1.5;}
+  .score-label b{color:var(--orange); font-family:var(--font-mono);}
+
+  /* ---------- AXES ---------- */
+  .axes{margin-top:24px; display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; animation:fadeUp .5s ease .1s both;}
+  .axes-note{
+    grid-column:1/-1; font-family:var(--font-mono); font-size:10px; color:var(--ink-faint);
+    margin-bottom:-2px;
+  }
+
+  /* ---------- ZONE OF INVISIBILITY ---------- */
+  .zone-list{display:flex; flex-direction:column; gap:14px;}
+  .zone-card{background:var(--panel); border:1px solid var(--border); padding:18px;}
+  .zone-query{font-size:14px; color:var(--ink); margin-bottom:12px; line-height:1.5;}
+  .zone-query::before{content:"«"; color:var(--ink-faint);}
+  .zone-query::after{content:"»"; color:var(--ink-faint);}
+  .zone-engines{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;}
+  .zone-badge{
+    font-family:var(--font-mono); font-size:10px; letter-spacing:.04em; padding:5px 9px;
+    border:1px solid var(--border); border-radius:2px; display:flex; align-items:center; gap:6px;
+  }
+  .zone-badge .zdot{width:6px; height:6px; border-radius:50%;}
+  .zone-badge.hit{color:var(--cyan); border-color:rgba(79,209,197,.4);}
+  .zone-badge.hit .zdot{background:var(--cyan); box-shadow:0 0 5px var(--cyan);}
+  .zone-badge.miss{color:var(--ink-dim); border-color:var(--border);}
+  .zone-badge.miss .zdot{background:var(--ink-faint);}
+  .zone-badge.err{color:var(--ink-faint); border-color:var(--border);}
+  .zone-competitors{font-size:12px; color:var(--ink-dim); line-height:1.6;}
+  .zone-competitors b{color:var(--red); font-weight:600;}
+  .zone-competitors .none{color:var(--cyan);}
+  .locked-inline{
+    color:var(--ink-faint); font-style:italic; display:inline-flex; align-items:center; gap:6px;
+  }
+
+  /* ---------- LEAD GATE ---------- */
+  .lock-intro{font-size:13px; color:var(--ink-dim); margin:-6px 0 18px; line-height:1.6;}
+  .unlock-teaser{
+    background:var(--bg-alt); border:1px dashed var(--border-strong); padding:16px;
+    font-size:14px; color:var(--ink); margin-bottom:16px; line-height:1.6;
+  }
+  .unlock-teaser b{color:var(--orange); font-family:var(--font-mono);}
+  .unlock-form{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .unlock-form input{
+    background:var(--bg-alt); border:1px solid var(--border); color:var(--ink);
+    padding:12px; font-family:var(--font-body); font-size:14px; border-radius:2px; outline:none;
+  }
+  .unlock-form input:focus{border-color:var(--orange);}
+  .unlock-form button{grid-column:1/-1;}
+  .unlocked-badge{
+    background:rgba(79,209,197,.1); border:1px solid rgba(79,209,197,.4); color:var(--cyan);
+    padding:14px; font-family:var(--font-mono); font-size:12px; margin-bottom:16px;
+  }
+  @media(max-width:640px){ .unlock-form{grid-template-columns:1fr;} }
+  .axis-card{background:var(--panel); border:1px solid var(--border); padding:18px; position:relative;}
+  .axis-card .eyebrow-sm{font-family:var(--font-mono); font-size:10px; color:var(--ink-dim); letter-spacing:.1em; text-transform:uppercase;}
+  .axis-card h3{font-size:16px; margin:8px 0 12px;}
+  .axis-bar{height:6px; background:var(--bg-alt); border:1px solid var(--border); overflow:hidden;}
+  .axis-bar .fill{height:100%; width:0%; background:var(--cyan); transition:width 1.2s cubic-bezier(.2,.8,.2,1);}
+  .axis-pct{font-family:var(--font-mono); font-size:20px; margin-top:10px; font-weight:700;}
+  .axis-desc{font-size:12px; color:var(--ink-dim); margin-top:6px; line-height:1.5;}
+
+  /* ---------- ISSUES ---------- */
+  .issues{margin-top:24px; background:var(--panel); border:1px solid var(--border); padding:22px; animation:fadeUp .5s ease .2s both;}
+  .issues h3{font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; color:var(--red); text-transform:uppercase; margin-bottom:14px;}
+  .issue-row{display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--border); font-size:14px; color:var(--ink); line-height:1.5;}
+  .issue-row:first-of-type{border-top:none;}
+  .issue-row .mark{color:var(--red); font-family:var(--font-mono); flex:none;}
+
+  /* ---------- CTA ---------- */
+  .cta{
+    margin-top:36px; padding:32px; background:linear-gradient(135deg, var(--panel-2), var(--panel));
+    border:1px solid var(--border-strong); text-align:center; animation:fadeUp .5s ease .3s both;
+  }
+  .cta h2{font-size:22px; margin-bottom:10px; max-width:32ch; margin-inline:auto;}
+  .cta p{color:var(--ink-dim); font-size:14px; max-width:48ch; margin:0 auto 20px; line-height:1.6;}
+  .cta .btn-cta{
+    display:inline-block; background:var(--orange); color:#14181d; padding:14px 28px;
+    font-family:var(--font-mono); font-weight:700; letter-spacing:.06em; text-decoration:none;
+    font-size:13px; text-transform:uppercase; border-radius:2px;
+  }
+  .cta .fine{font-family:var(--font-mono); font-size:10px; color:var(--ink-faint); margin-top:14px;}
+
+  /* ---------- SECTION SHELL ---------- */
+  .section{margin-top:64px;}
+  .section-eyebrow{font-family:var(--font-mono); font-size:11px; letter-spacing:.14em; color:var(--ink-faint); text-transform:uppercase;}
+  .section h2{font-size:clamp(22px,3vw,30px); margin:10px 0 14px; max-width:26ch;}
+  .section .section-lede{color:var(--ink-dim); font-size:15px; max-width:60ch; line-height:1.6; margin-bottom:28px;}
+  .placeholder{color:var(--orange); font-family:var(--font-mono); font-size:.92em;}
+
+  /* ---------- STAT GRID ---------- */
+  .stat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px;}
+  .stat-card{background:var(--panel); border:1px solid var(--border); padding:18px; text-align:center;}
+  .stat-num{font-family:var(--font-mono); font-size:26px; font-weight:800; color:var(--orange);}
+  .stat-label{font-size:11px; color:var(--ink-dim); margin-top:8px; line-height:1.5;}
+
+  .news-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:22px;}
+  .news-card{padding:18px; border-left:3px solid; background:var(--panel);}
+  .news-card.bad{border-color:var(--red);}
+  .news-card.good{border-color:var(--cyan);}
+  .news-card .news-tag{font-family:var(--font-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; margin-bottom:8px; display:block;}
+  .news-card.bad .news-tag{color:var(--red);}
+  .news-card.good .news-tag{color:var(--cyan);}
+  .news-card p{font-size:14px; line-height:1.6; color:var(--ink-dim);}
+  .news-card b{color:var(--ink);}
+
+  .timeline{display:flex; justify-content:space-between; gap:8px; background:var(--panel); border:1px solid var(--border); padding:20px;}
+  .timeline-step{flex:1; text-align:center; position:relative; padding-top:18px;}
+  .timeline-step::before{content:""; position:absolute; top:0; left:50%; transform:translateX(-50%); width:9px; height:9px; border-radius:50%; background:var(--ink-faint);}
+  .timeline-step.now::before{background:var(--orange); box-shadow:0 0 8px var(--orange);}
+  .timeline-step b{display:block; font-size:13px; margin-bottom:4px;}
+  .timeline-step span{font-size:11px; color:var(--ink-dim); line-height:1.4;}
+  .timeline-step.now b{color:var(--orange);}
+
+  /* ---------- MYTHS ---------- */
+  .myth-card{background:var(--panel); border:1px solid var(--border); padding:20px; margin-bottom:14px; display:flex; justify-content:space-between; gap:20px; align-items:center;}
+  .myth-body{flex:1;}
+  .myth-tag{font-family:var(--font-mono); font-size:10px; letter-spacing:.1em; color:var(--red); text-transform:uppercase; margin-bottom:8px; display:block;}
+  .myth-card h3{font-size:16px; margin-bottom:8px;}
+  .myth-card p{font-size:13px; color:var(--ink-dim); line-height:1.6;}
+  .myth-stat{flex:none; text-align:center; font-family:var(--font-mono); min-width:100px;}
+  .myth-stat .n{font-size:24px; font-weight:800; color:var(--orange);}
+  .myth-stat .l{font-size:9px; color:var(--ink-faint); margin-top:4px;}
+
+  /* ---------- FRAMEWORK ---------- */
+  .framework{background:var(--panel); border:1px solid var(--border); padding:32px; text-align:center; margin-bottom:22px;}
+  .framework .t-bar{background:var(--orange); color:#14181d; font-family:var(--font-mono); font-weight:800; font-size:13px; letter-spacing:.08em; padding:14px; max-width:420px; margin:0 auto;}
+  .framework .t-stem{width:6px; height:60px; background:var(--panel-2); border:1px solid var(--orange); margin:0 auto;}
+  .framework .t-core{width:110px; height:110px; border:2px solid var(--cyan); border-radius:50%; margin:-2px auto 0; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; color:var(--cyan); text-align:center; padding:10px;}
+  .framework-legend{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; text-align:left;}
+  .framework-legend div{background:var(--bg-alt); border:1px solid var(--border); padding:14px;}
+  .framework-legend .fl-tag{font-family:var(--font-mono); font-size:10px; color:var(--orange); letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px; display:block;}
+  .framework-legend p{font-size:12px; color:var(--ink-dim); line-height:1.6;}
+
+  /* ---------- STEPS ---------- */
+  .step-row{display:grid; grid-template-columns:44px 1fr; gap:16px; padding:18px 0; border-top:1px solid var(--border);}
+  .step-row:first-of-type{border-top:none;}
+  .step-num{font-family:var(--font-mono); font-size:20px; font-weight:800; color:var(--ink-faint);}
+  .step-row h3{font-size:16px; margin-bottom:6px;}
+  .step-row p{font-size:13px; color:var(--ink-dim); line-height:1.6;}
+
+  /* ---------- BONUS ---------- */
+  .bonus-box{background:var(--panel); border:1px solid var(--border-strong); padding:22px; margin-top:8px;}
+  .bonus-box p{font-size:14px; color:var(--ink-dim); line-height:1.7; margin-bottom:14px;}
+  .bonus-box b{color:var(--ink);}
+
+  /* ---------- PRICING ---------- */
+  .pricing-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:8px;}
+  .price-card{background:var(--panel); border:1px solid var(--border); padding:22px; display:flex; flex-direction:column;}
+  .price-card.featured{border-color:var(--border-strong); background:var(--panel-2);}
+  .price-card .p-name{font-family:var(--font-mono); font-size:12px; letter-spacing:.08em; color:var(--ink-dim); text-transform:uppercase; margin-bottom:10px;}
+  .price-card .p-price{font-family:var(--font-mono); font-size:26px; font-weight:800; color:var(--orange); margin-bottom:16px;}
+  .price-card ul{list-style:none; margin-bottom:18px; flex:1;}
+  .price-card li{font-size:12px; color:var(--ink-dim); padding:6px 0; border-top:1px solid var(--border); line-height:1.5;}
+  .price-card li:first-child{border-top:none;}
+  .price-card .p-cta{display:block; text-align:center; background:var(--orange); color:#14181d; padding:12px; text-decoration:none; font-family:var(--font-mono); font-size:12px; font-weight:700; text-transform:uppercase; border-radius:2px;}
+
+  footer{margin-top:40px; padding-top:20px; border-top:1px solid var(--border); font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); line-height:1.7;}
+
+  @media(max-width:640px){
+    .stat-grid{grid-template-columns:1fr 1fr;}
+    .news-grid, .framework-legend, .pricing-grid{grid-template-columns:1fr;}
+    .timeline{flex-direction:column; gap:18px;}
+    .myth-card{flex-direction:column; align-items:flex-start;}
+  }
+
+  [hidden]{display:none !important;}
+
+  @media(max-width:640px){
+    .scan-form{grid-template-columns:1fr;}
+    .axes{grid-template-columns:1fr;}
+    .score-block{flex-direction:column; align-items:flex-start;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-badge">TM</div>
+      <div class="logo-text"><b>TOP</b> MARKETING<span>DIGITAL PERFORMANCE AGENCY</span></div>
+    </div>
+    <div class="engines-nav">
+      <span><i class="dot" id="dotG"></i>ChatGPT</span>
+      <span><i class="dot" id="dotM"></i>Gemini</span>
+      <span><i class="dot" id="dotP"></i>Perplexity</span>
+      <span><i class="dot" id="dotC"></i>Claude</span>
+    </div>
+  </div>
+
+  <section class="hero">
+    <span class="eyebrow">Прилад Top Marketing · перевірка сигналу бренду в AI</span>
+    <h1>Скільки з 5 запитів клієнта <span class="accent">ChatGPT</span> спрямовує повз вас?</h1>
+    <p class="lede">Введіть бренд або ім'я експерта. Прилад пройде по трьох AI-системах і покаже, наскільки чітко вони зараз бачать вас — і чого саме не вистачає для сигналу.</p>
+
+    <form class="scan-form" id="scanForm">
+      <label>Назва бренду або експерта
+        <input type="text" id="brandName" placeholder="Напр. Top Marketing" required>
+      </label>
+      <label>Ніша / місто
+        <input type="text" id="brandNiche" placeholder="Напр. performance-маркетинг, Київ">
+      </label>
+      <button type="submit" class="btn-scan" id="scanBtn">Запустити скан →</button>
+    </form>
+    <div class="mode-note" id="modeNote">Перевірка режиму підключення...</div>
+  </section>
+
+  <section class="instrument-panel" id="panel" hidden>
+    <div class="panel-head">
+      <span>Сигнал зафіксовано для</span>
+      <span class="panel-brand" id="panelBrandName">—</span>
+    </div>
+    <div id="tracks"></div>
+
+    <div class="score-block">
+      <div class="score-dial">
+        <svg viewBox="0 0 120 120">
+          <circle class="bg" cx="60" cy="60" r="52"></circle>
+          <circle class="fg" id="scoreCircle" cx="60" cy="60" r="52"></circle>
+        </svg>
+        <div class="score-num" id="scoreNum">0</div>
+      </div>
+      <div>
+        <div class="score-label" id="scoreLabel">—</div>
+        <div class="score-text" id="scoreFootnote">попередня оцінка · зафіксовано зараз</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="axes" id="axes" hidden>
+    <div class="axes-note">Оціночні осі нижче — ілюстративна методика Т-моделі, не прямий вимір (потребує аналізу зовнішніх згадок).</div>
+    <div class="axis-card">
+      <div class="eyebrow-sm">Точка збору</div>
+      <h3>Єдина сутність</h3>
+      <div class="axis-bar"><div class="fill" id="fillCollect"></div></div>
+      <div class="axis-pct" id="pctCollect">0%</div>
+      <div class="axis-desc">Чи однаково описаний бренд на сайті, в каталогах і соцмережах.</div>
+    </div>
+    <div class="axis-card">
+      <div class="eyebrow-sm">Широта</div>
+      <h3>Згадки ззовні</h3>
+      <div class="axis-bar"><div class="fill" id="fillWidth"></div></div>
+      <div class="axis-pct" id="pctWidth">0%</div>
+      <div class="axis-desc">Чи є бренд у чужих списках, рейтингах, обговореннях і відгуках.</div>
+    </div>
+    <div class="axis-card">
+      <div class="eyebrow-sm">Глибина</div>
+      <h3>Цитований контент</h3>
+      <div class="axis-bar"><div class="fill" id="fillDepth"></div></div>
+      <div class="axis-pct" id="pctDepth">0%</div>
+      <div class="axis-desc">Чи є на сайті цифри, цитати й джерела, які AI може процитувати.</div>
+    </div>
+  </section>
+
+  <section class="issues" id="issues" hidden>
+    <h3>Зона невидимості — так питають клієнти, і ось кого реально знаходить пошук замість вас</h3>
+    <div class="zone-list" id="zoneList"></div>
+  </section>
+
+  <section class="issues" id="issuesOld" hidden>
+    <h3>🔒 Повний список конкурентів і що знижує сигнал</h3>
+    <p class="lock-intro">Тут — точні назви конкурентів з кожного запиту вище і конкретні проблеми, які прямо зараз знижують ваш бал.</p>
+
+    <div id="unlockGate">
+      <div class="unlock-teaser" id="unlockTeaserText">🔒 Розблокуйте, щоб побачити деталі</div>
+      <form id="unlockForm" class="unlock-form">
+        <input type="text" id="leadName" placeholder="Ваше ім'я">
+        <input type="text" id="leadContact" placeholder="Email або Telegram" required>
+        <button type="submit" id="unlockBtn" class="btn-scan">Отримати повний звіт і консультацію →</button>
+      </form>
+      <div class="mode-note">Без спаму — надішлемо звіт і, за потреби, зв'яжемось щодо консультації Top Marketing.</div>
+    </div>
+
+    <div class="unlocked-badge" id="unlockedNote" hidden>✓ Звіт розблоковано. Ми зв'яжемось з вами найближчим часом.</div>
+
+    <div id="issuesList"></div>
+  </section>
+
+  <section class="cta" id="ctaBlock" hidden>
+    <h2>Ці цифри — ручний вимір. Систему — будуємо разом.</h2>
+    <p>Покажіть цей звіт своїм клієнтам як точку А. Далі — кроки, які піднімають бал, і система, яка робить так, щоб AI рекомендував саме вас.</p>
+    <a href="#pricing" class="btn-cta">Отримати консультацію Top Marketing →</a>
+    <div class="fine">[МІСЦЕ ДЛЯ ПОСИЛАННЯ НА ВАШУ ПОСЛУГУ / КУРС]</div>
+  </section>
+
+  <!-- ===================== ТОЧКА СТАРТУ ===================== -->
+  <section class="section">
+    <div class="section-eyebrow">Точка старту</div>
+    <h2>Чому це не питання «пізніше»</h2>
+    <p class="section-lede">Клієнти вже питають AI, кого порадити, — і отримують короткий список із трьох-пʼяти імен. Немає вас у списку — клієнт іде до того, хто там є.</p>
+
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-num placeholder">[XX%]</div><div class="stat-label">користувачів вже використовують AI під час пошуку рішень</div></div>
+      <div class="stat-card"><div class="stat-num placeholder">[X з X]</div><div class="stat-label">кажуть, що відповіді AI зручніші за класичний пошук</div></div>
+      <div class="stat-card"><div class="stat-num placeholder">[XX%]</div><div class="stat-label">лідерів пошукової видачі не зʼявляються у відповідях AI</div></div>
+      <div class="stat-card"><div class="stat-num placeholder">[XX%]</div><div class="stat-label">бізнесів у вашій ніші ще не займаються AI-видимістю</div></div>
+    </div>
+    <div class="mode-note" style="margin-bottom:22px;">Цифри вище — плейсхолдери. Вставте перевірені дані зі своїх або публічних джерел (індустріальні звіти, власна аналітика клієнтів) і залиште посилання на джерело поруч.</div>
+
+    <div class="news-grid">
+      <div class="news-card bad">
+        <span class="news-tag">Погана новина</span>
+        <p><b>AI працює не як звичний пошук.</b> Хороша позиція в Google не гарантує появи у відповіді ChatGPT чи Gemini — там інша логіка відбору джерел.</p>
+      </div>
+      <div class="news-card good">
+        <span class="news-tag">Добра новина</span>
+        <p><b>Більшість місць у видачі AI ще вільні.</b> Поки конкуренти цим не займаються — вікно можливості відкрите.</p>
+      </div>
+    </div>
+
+    <div class="timeline">
+      <div class="timeline-step"><b>Початок 2000-х</b><span>Раннє SEO. Хто зайшов першим — зібрав ринок.</span></div>
+      <div class="timeline-step"><b>2010-ті</b><span>Ранній SMM. Та сама історія у соцмережах.</span></div>
+      <div class="timeline-step now"><b>Зараз — AI-видача</b><span>Ви тут. Більшість місць у рекомендаціях вільні.</span></div>
+      <div class="timeline-step"><b>Далі</b><span>Вікно зачиниться — місця займуть конкуренти.</span></div>
+    </div>
+  </section>
+
+  <!-- ===================== МІФИ ===================== -->
+  <section class="section">
+    <div class="section-eyebrow">Перш ніж почати</div>
+    <h2>Спершу зламаємо поширені міфи</h2>
+    <p class="section-lede">Не варто платити за те, що вам продають під виглядом «AI-SEO», поки не перевірили ці три речі.</p>
+
+    <div class="myth-card">
+      <div class="myth-body">
+        <span class="myth-tag">Міф 1</span>
+        <h3>«Треба просто добре ранжуватись у Google»</h3>
+        <p>AI-системи формують відповідь інакше, ніж класична пошукова видача — джерела, які цитує ChatGPT, часто взагалі не входять у топ Google.</p>
+      </div>
+      <div class="myth-stat"><div class="n placeholder">[X%]</div><div class="l">цитат ChatGPT поза топ-100 Google</div></div>
+    </div>
+
+    <div class="myth-card">
+      <div class="myth-body">
+        <span class="myth-tag">Міф 2</span>
+        <h3>«Досить впровадити llms.txt»</h3>
+        <p>Це модна послуга зараз, але за даними по великій вибірці доменів AI-боти цей файл практично не запитують — ефект близький до нуля.</p>
+      </div>
+      <div class="myth-stat"><div class="n placeholder">~0</div><div class="l">вимірюваний ефект llms.txt</div></div>
+    </div>
+
+    <div class="myth-card">
+      <div class="myth-body">
+        <span class="myth-tag">Міф 3</span>
+        <h3>«Головне — посилання, як у старому SEO»</h3>
+        <p>Згадки бренду (навіть без посилання) передбачають появу у відповідях AI помітно краще, ніж класичні беклінки.</p>
+      </div>
+      <div class="myth-stat"><div class="n placeholder">[X]×</div><div class="l">згадки vs посилання</div></div>
+    </div>
+  </section>
+
+  <!-- ===================== ФОРМУЛА СИГНАЛУ ===================== -->
+  <section class="section">
+    <div class="section-eyebrow">Каркас методу</div>
+    <h2>Формула сигналу: Збір · Широта · Глибина</h2>
+    <p class="section-lede">AI рекомендує не того, у кого «гарний сайт» — а того, кого впізнає як авторитет за трьома ознаками одночасно.</p>
+
+    <div class="framework">
+      <div class="t-bar">ШИРОТА — ЗГАДКИ НА ЧУЖИХ МАЙДАНЧИКАХ</div>
+      <div class="t-stem"></div>
+      <div class="t-core">ТОЧКА<br>ЗБОРУ</div>
+    </div>
+
+    <div class="framework-legend">
+      <div>
+        <span class="fl-tag">Точка збору</span>
+        <p>Одне місце, де інформація про бренд викладена правильно й однаково — назва, опис, факти. Без неї сигнали розмазуються по різних «сутностях».</p>
+      </div>
+      <div>
+        <span class="fl-tag">Широта</span>
+        <p>Згадки на зовнішніх майданчиках — каталоги, рейтинги, форуми, відгуки, чужі статті. AI довіряє не вам, а тим, хто говорить про вас.</p>
+      </div>
+      <div>
+        <span class="fl-tag">Глибина</span>
+        <p>Контент із конкретними цифрами, цитатами і джерелами — те, що AI може процитувати фрагментом, а не переказати загальними словами.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== КРОКИ ===================== -->
+  <section class="section">
+    <div class="section-eyebrow">Що зробити</div>
+    <h2>Пʼять кроків, які піднімають сигнал</h2>
+    <p class="section-lede">Кожен крок можна почати сьогодні. Порядок не випадковий — починаємо з основи.</p>
+
+    <div class="step-row">
+      <div class="step-num">01</div>
+      <div><h3>Зберіть бренд в одну сутність</h3><p>Один канонічний опис — хто ви, що робите, для кого, з одним перевірюваним фактом. Вставте його дослівно скрізь: сайт, каталоги, соцмережі.</p></div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">02</div>
+      <div><h3>Потрапте до чужих списків</h3><p>Знайдіть нішеві рейтинги й добірки «найкращі X у [ніша/місто]», де є конкуренти, а вас немає — і подайте заявку на включення.</p></div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">03</div>
+      <div><h3>Зайдіть у живі обговорення</h3><p>Профільні форуми, спільноти, Q&A-майданчики. Розгорнуті корисні відповіді під власним іменем + змістовні відгуки клієнтів.</p></div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">04</div>
+      <div><h3>Підсильте контент цифрами та джерелами</h3><p>Конкретна статистика, цитати з посиланням на ім'я, вказані джерела — те, що робить фрагмент цитованим для AI.</p></div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">05</div>
+      <div><h3>Закрийте реальне питання клієнта</h3><p>Формат «питання → пряма відповідь у першому абзаці». Свіжа дата. Оновлюйте ключові матеріали регулярно.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== БОНУС ===================== -->
+  <section class="section">
+    <div class="section-eyebrow">Бонус-підказка</div>
+    <h2>Не забувайте про Bing</h2>
+    <div class="bonus-box">
+      <p>Пошуковик, про який часто забувають, — помітне джерело для пошукового режиму ChatGPT: збіг цитат із органічною видачею Bing вищий, ніж із Google, а конкуренція в Bing на порядки нижча. Зареєструвати сайт у <b>Bing Webmaster Tools</b> — 15 хвилин, безкоштовно, і це один із небагатьох «швидких» важелів у цій темі.</p>
+    </div>
+  </section>
+
+  <!-- ===================== ТАРИФИ ===================== -->
+  <section class="section" id="pricing">
+    <div class="section-eyebrow">Живий формат · Top Marketing</div>
+    <h2>Ми показуємо точку А. Систему будуємо разом.</h2>
+    <p class="section-lede">Скан вище — ваша точка А. Далі — послідовна робота над AI-видимістю бренду разом з командою Top Marketing.</p>
+
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="p-name">Базовий</div>
+        <div class="p-price placeholder">[XXX] ₴/€</div>
+        <ul>
+          <li>Аудит поточної AI-видимості</li>
+          <li>Один канонічний опис бренду</li>
+          <li>Список 5–10 цільових майданчиків</li>
+        </ul>
+        <a href="#" class="p-cta">Дізнатись більше</a>
+      </div>
+      <div class="price-card featured">
+        <div class="p-name">Оптимальний</div>
+        <div class="p-price placeholder">[XXX] ₴/€</div>
+        <ul>
+          <li>Все з тарифу «Базовий»</li>
+          <li>Розміщення в нішевих рейтингах</li>
+          <li>Підсилення ключового контенту</li>
+          <li>Повторний скан через 2–4 тижні</li>
+        </ul>
+        <a href="#" class="p-cta">Дізнатись більше</a>
+      </div>
+      <div class="price-card">
+        <div class="p-name">Повний супровід</div>
+        <div class="p-price placeholder">[XXX] ₴/€</div>
+        <ul>
+          <li>Все з тарифу «Оптимальний»</li>
+          <li>Щомісячний моніторинг сигналу</li>
+          <li>Особистий розбір кейсу</li>
+          <li>Пріоритетна підтримка</li>
+        </ul>
+        <a href="#" class="p-cta">Дізнатись більше</a>
+      </div>
+    </div>
+    <div class="mode-note" style="margin-top:14px;">Ціни — плейсхолдери, впишіть свої.</div>
+  </section>
+
+  <footer>
+    Осі "Широта / Глибина / Точка збору" — ілюстративна оцінка. Блок ChatGPT/Gemini/Perplexity/Claude вище показує
+    результат реального запиту, коли підключено бекенд — інакше працює демо-режим із симуляцією. Статистика в
+    інформаційних блоках нижче — плейсхолдери під ваші джерела.<br>
+    Прилад · AI-Видимість · Top Marketing
+  </footer>
+
+</div>
+
+<script>
+// ЩОБ УВІМКНУТИ РЕАЛЬНУ ПЕРЕВІРКУ: впишіть сюди URL задеплоєного бекенду
+// (див. /ai-visibility-backend/README.md). Поки що тут порожньо — тому
+// сканер працює в демо-режимі із симульованими даними.
+const API_URL = 'https://ai-visibility-backend-ybg2.onrender.com/api/scan';
+
+const modeNote = document.getElementById('modeNote');
+if(API_URL){
+  modeNote.innerHTML = 'Режим: <b>реальна перевірка</b> через підключений бекенд';
+} else {
+  modeNote.innerHTML = 'Режим: <b>демо</b> (симульовані дані) — впишіть API_URL у коді, щоб увімкнути реальну перевірку';
+}
+
+function hashCode(str){
+  let h = 0;
+  for(let i=0;i<str.length;i++){ h = Math.imul(31,h) + str.charCodeAt(i) | 0; }
+  return h;
+}
+function mulberry32(seed){
+  return function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+
+const ENGINE_LABELS = { chatgpt: 'ChatGPT', gemini: 'Gemini', perplexity: 'Perplexity', claude: 'Claude' };
+
+const ISSUE_POOL = [
+  "Назва бренду написана по-різному на сайті, в LinkedIn і в каталогах",
+  "Немає жодної згадки у нішевих рейтингах чи добірках «найкращі X»",
+  "Останній великий експертний матеріал вийшов понад 3 роки тому",
+  "Відгуки клієнтів короткі й без деталей — AI нема що процитувати",
+  "Сайт не зареєстрований у Bing Webmaster Tools",
+  "На головній сторінці немає жодної перевірюваної цифри чи джерела",
+  "Бренд не бере участі в живих обговореннях на форумах і спільнотах ніші",
+  "Профілі на різних майданчиках ведуть на різні «головні» сторінки"
+];
+
+const form = document.getElementById('scanForm');
+const btn = document.getElementById('scanBtn');
+const panel = document.getElementById('panel');
+const axes = document.getElementById('axes');
+const issuesSection = document.getElementById('issues');
+const issuesOldSection = document.getElementById('issuesOld');
+const ctaBlock = document.getElementById('ctaBlock');
+
+// Дані поточного скану, потрібні для форми розблокування (лід-гейт).
+let lastZoneCompetitors = []; // масив масивів назв конкурентів, по одному на запит зони невидимості
+let lastPickedIssues = [];
+let lastScanMeta = { brand:'', niche:'', score:null };
+
+async function fetchRealScan(brand, niche){
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({brand, niche})
+  });
+  if(!res.ok) throw new Error('Backend HTTP ' + res.status);
+  return res.json();
+}
+
+form.addEventListener('submit', async function(e){
+  e.preventDefault();
+  const name = document.getElementById('brandName').value.trim();
+  const niche = document.getElementById('brandNiche').value.trim();
+  if(!name) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Сканування...';
+
+  const rand = mulberry32(hashCode(name + '::' + niche));
+
+  let engines;
+  let usedReal = false;
+  let zoneOfInvisibility = [];
+
+  if(API_URL){
+    try{
+      const data = await fetchRealScan(name, niche);
+      usedReal = true;
+      engines = [
+        {label:'ChatGPT', dotId:'dotG', ...data.engines.chatgpt},
+        {label:'Gemini', dotId:'dotM', ...data.engines.gemini},
+        {label:'Perplexity', dotId:'dotP', ...data.engines.perplexity},
+        {label:'Claude', dotId:'dotC', ...data.engines.claude}
+      ].map(e => ({...e, pos: 15 + rand()*70}));
+      zoneOfInvisibility = data.zoneOfInvisibility || [];
+    } catch(err){
+      console.warn('Бекенд недоступний, переходжу в демо-режим:', err);
+    }
+  }
+
+  if(!usedReal){
+    const engineDefs = [
+      {key:'chatgpt', label:'ChatGPT', threshold:0.55, dotId:'dotG'},
+      {key:'gemini', label:'Gemini', threshold:0.60, dotId:'dotM'},
+      {key:'perplexity', label:'Perplexity', threshold:0.45, dotId:'dotP'},
+      {key:'claude', label:'Claude', threshold:0.50, dotId:'dotC'}
+    ];
+    engines = engineDefs.map(e => ({...e, hit: rand() > e.threshold, snippet:'', pos: 15 + rand()*70}));
+
+    const nicheLabel = niche || 'вашій ніші';
+    const demoQueries = [
+      `Порадь кілька найкращих варіантів: ${nicheLabel}`,
+      `Де знайти або замовити ${nicheLabel}? Порадь 3-5 варіантів`,
+      `Хто топові гравці у сфері «${nicheLabel}»?`
+    ];
+    const FAKE_COMPETITORS = ['Конкурент А', 'Студія Б', 'Агенція В', 'Компанія Г', 'Бренд Д', 'Сервіс Е'];
+    zoneOfInvisibility = demoQueries.map(q => {
+      const engineResults = {};
+      engineDefs.forEach(e => {
+        engineResults[e.key] = { mentionedBrand: rand() > 0.65 };
+      });
+      const competitors = [...FAKE_COMPETITORS].sort(() => rand() - 0.5).slice(0, 2 + Math.floor(rand()*3));
+      return { query: q, engines: engineResults, competitors, competitorsSource: 'demo' };
+    });
+  }
+
+  const widthScore = Math.round(18 + rand()*72);
+  const depthScore = Math.round(18 + rand()*72);
+  const collectScore = Math.round(18 + rand()*72);
+  const hitCount = engines.filter(e => e.hit).length;
+  const overall = usedReal
+    ? Math.round((hitCount/engines.length)*100)
+    : Math.round(collectScore*0.4 + widthScore*0.35 + depthScore*0.25);
+
+  const shuffled = [...ISSUE_POOL];
+  for(let i=shuffled.length-1;i>0;i--){
+    const j = Math.floor(rand()*(i+1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  const pickedIssues = shuffled.slice(0,3);
+
+  setTimeout(() => {
+    document.getElementById('unlockGate').hidden = false;
+    document.getElementById('unlockedNote').hidden = true;
+    document.getElementById('leadName').value = '';
+    document.getElementById('leadContact').value = '';
+    const unlockBtnReset = document.getElementById('unlockBtn');
+    unlockBtnReset.disabled = false;
+    unlockBtnReset.textContent = 'Отримати повний звіт і консультацію →';
+
+    document.getElementById('panelBrandName').textContent = name.toUpperCase() + (niche ? ' · ' + niche.toUpperCase() : '');
+    document.getElementById('scoreFootnote').textContent = usedReal
+      ? 'реальний запит · зафіксовано зараз'
+      : 'демо-оцінка · зафіксовано зараз';
+
+    const tracksEl = document.getElementById('tracks');
+    tracksEl.innerHTML = '';
+    engines.forEach(eng => {
+      const track = document.createElement('div');
+      track.className = 'track';
+      const verdictClass = eng.error ? 'err' : (eng.hit ? 'hit' : 'miss');
+      const verdictText = eng.error ? 'НЕДОСТУПНО' : (eng.hit ? 'ЗГАДУЄ' : 'НЕ ЗГАДУЄ');
+      track.innerHTML = `
+        <div class="track-label">
+          <span>${eng.label}</span>
+          <span class="verdict ${verdictClass}">${verdictText}</span>
+        </div>
+        <div class="track-bar">
+          <div class="sweep"></div>
+          <div class="blip ${eng.hit ? 'hit' : 'miss'}" style="left:${eng.pos}%"></div>
+        </div>
+        ${eng.snippet ? `<div class="track-snippet">"${eng.snippet}"</div>` : ''}
+        ${eng.error ? `<div class="track-snippet">${eng.error}</div>` : ''}`;
+      tracksEl.appendChild(track);
+    });
+
+    panel.hidden = false;
+    axes.hidden = false;
+    issuesSection.hidden = false;
+    issuesOldSection.hidden = false;
+    ctaBlock.hidden = false;
+
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.track-bar .sweep').forEach(s => s.style.width = '100%');
+      document.querySelectorAll('.track-bar .blip').forEach((b,i) => {
+        setTimeout(() => b.classList.add('show'), 500 + i*250);
+      });
+      engines.forEach(eng => {
+        const dot = document.getElementById(eng.dotId);
+        if(dot) setTimeout(() => { if(eng.hit) dot.classList.add('on'); }, 500);
+      });
+
+      const circle = document.getElementById('scoreCircle');
+      const circumference = 326.7;
+      const offset = circumference - (overall/100)*circumference;
+      setTimeout(() => { circle.style.strokeDashoffset = offset; }, 300);
+
+      let current = 0;
+      const numEl = document.getElementById('scoreNum');
+      const timer = setInterval(() => {
+        current += Math.max(1, Math.round(overall/30));
+        if(current >= overall){ current = overall; clearInterval(timer); }
+        numEl.textContent = current;
+      }, 30);
+
+      let tier, tierText;
+      if(overall < 40){ tier = 'СЛАБКИЙ СИГНАЛ'; tierText = 'AI майже не бачить бренд — у більшості відповідей на його місці конкуренти.'; }
+      else if(overall < 70){ tier = 'ЧАСТКОВИЙ СИГНАЛ'; tierText = 'AI бачить бренд фрагментарно — сигнал є, але непослідовний.'; }
+      else { tier = 'СТІЙКИЙ СИГНАЛ'; tierText = 'Бренд впізнається — залишається закріпити перевагу.'; }
+      document.getElementById('scoreLabel').innerHTML = `<b>${tier}</b><br>${tierText}`;
+
+      setTimeout(() => {
+        document.getElementById('fillCollect').style.width = collectScore + '%';
+        document.getElementById('pctCollect').textContent = collectScore + '%';
+        document.getElementById('fillWidth').style.width = widthScore + '%';
+        document.getElementById('pctWidth').textContent = widthScore + '%';
+        document.getElementById('fillDepth').style.width = depthScore + '%';
+        document.getElementById('pctDepth').textContent = depthScore + '%';
+      }, 200);
+
+      const issuesList = document.getElementById('issuesList');
+      issuesList.innerHTML = '';
+      lastPickedIssues = pickedIssues;
+      lastScanMeta = { brand: name, niche, score: overall };
+
+      const zoneListEl = document.getElementById('zoneList');
+      zoneListEl.innerHTML = '';
+      lastZoneCompetitors = [];
+      if(zoneOfInvisibility.length === 0){
+        zoneListEl.innerHTML = `<div class="track-snippet">Вкажіть нішу/місто у формі вище, щоб побачити, кого AI називає замість вас за типовими запитами клієнтів.</div>`;
+      } else {
+        zoneOfInvisibility.forEach((zq, idx) => {
+          const card = document.createElement('div');
+          card.className = 'zone-card';
+          card.dataset.zoneIndex = idx;
+          const badges = Object.entries(zq.engines).map(([key, val]) => {
+            const label = ENGINE_LABELS[key] || key;
+            if(val.error) return `<span class="zone-badge err"><i class="zdot"></i>${label}</span>`;
+            const cls = val.mentionedBrand ? 'hit' : 'miss';
+            const text = val.mentionedBrand ? `${label}: згадав вас` : `${label}: не згадав`;
+            return `<span class="zone-badge ${cls}"><i class="zdot"></i>${text}</span>`;
+          }).join('');
+          const allCompetitors = zq.competitors || [];
+          lastZoneCompetitors[idx] = allCompetitors;
+          const sourceNote = zq.competitorsSource === 'fallback'
+            ? ' <span style="opacity:.6">(грубий підбір, пошук був недоступний)</span>'
+            : '';
+          const competitorsHtml = allCompetitors.length
+            ? `<span class="locked-inline">🔒 ${allCompetitors.length} реальн${allCompetitors.length===1?'ий гравець':'их гравці/ів'} ринку знайдено пошуком — розблокуйте звіт нижче, щоб побачити назви${sourceNote}</span>`
+            : `<span class="none">За цим запитом пошук не знайшов явних гравців — полиця відносно вільна.</span>`;
+          card.innerHTML = `
+            <div class="zone-query">${zq.query}</div>
+            <div class="zone-engines">${badges}</div>
+            <div class="zone-competitors">${competitorsHtml}</div>`;
+          zoneListEl.appendChild(card);
+        });
+      }
+
+      const totalCompetitors = lastZoneCompetitors.reduce((sum, arr) => sum + (arr ? arr.length : 0), 0);
+      document.getElementById('unlockTeaserText').innerHTML =
+        `🔒 Знайдено <b>${lastPickedIssues.length}</b> проблем${lastPickedIssues.length===1?'у':'и'}, які знижують сигнал, і <b>${totalCompetitors}</b> назв${totalCompetitors===1?'у':'и'} конкурентів по запитах вище.`;
+
+      panel.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'Запустити скан ще раз →';
+  }, usedReal ? 200 : 1400);
+});
+
+function revealLocked(){
+  document.querySelectorAll('.locked-inline').forEach(el => {
+    const card = el.closest('.zone-card');
+    const idx = Number(card.dataset.zoneIndex);
+    const names = lastZoneCompetitors[idx] || [];
+    el.outerHTML = names.length
+      ? `Замість вас називають: <b>${names.join(', ')}</b>`
+      : '';
+  });
+
+  const issuesList = document.getElementById('issuesList');
+  issuesList.innerHTML = '';
+  lastPickedIssues.forEach(txt => {
+    const row = document.createElement('div');
+    row.className = 'issue-row';
+    row.innerHTML = `<span class="mark">✕</span><span>${txt}</span>`;
+    issuesList.appendChild(row);
+  });
+
+  document.getElementById('unlockGate').hidden = true;
+  document.getElementById('unlockedNote').hidden = false;
+}
+
+document.getElementById('unlockForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const leadName = document.getElementById('leadName').value.trim();
+  const leadContact = document.getElementById('leadContact').value.trim();
+  if(!leadContact) return;
+
+  const unlockBtn = document.getElementById('unlockBtn');
+  unlockBtn.disabled = true;
+  unlockBtn.textContent = 'Розблоковую...';
+
+  if(API_URL){
+    try{
+      const leadUrl = API_URL.replace(/\/api\/scan$/, '/api/lead');
+      await fetch(leadUrl, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          name: leadName,
+          contact: leadContact,
+          brand: lastScanMeta.brand,
+          niche: lastScanMeta.niche,
+          score: lastScanMeta.score
+        })
+      });
+    } catch(err){
+      console.warn('Не вдалось відправити лід на бекенд:', err);
+    }
+  }
+
+  revealLocked();
+});
+</script>
+</body>
+</html>
