@@ -207,9 +207,16 @@ async function findRealCompetitors(query, brand) {
         tools: [{ type: 'web_search_20250305', name: 'web_search' }]
       })
     });
-    if (!res.ok) return { competitors: [], error: `Claude+search HTTP ${res.status}` };
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => '');
+      console.error(`findRealCompetitors: Claude HTTP ${res.status} — ${bodyText}`);
+      return { competitors: [], error: `Claude+search HTTP ${res.status}: ${bodyText.slice(0, 300)}` };
+    }
     const data = await res.json();
     const text = (data?.content || []).filter(b => b.type === 'text').map(b => b.text).join(' ');
+    if (!text) {
+      console.warn('findRealCompetitors: порожня текстова відповідь. Повний content:', JSON.stringify(data?.content));
+    }
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     const arr = JSON.parse(jsonMatch ? jsonMatch[0] : text);
     const competitors = arr
@@ -217,6 +224,7 @@ async function findRealCompetitors(query, brand) {
       .slice(0, 8);
     return { competitors };
   } catch (err) {
+    console.error('findRealCompetitors: виняток', err);
     return { competitors: [], error: String(err) };
   }
 }
@@ -344,6 +352,16 @@ app.get('/api/leads', (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Не вдалось прочитати ліди' });
   }
+});
+
+// Швидка перевірка веб-пошуку окремо від повного /api/scan.
+// Приклад: GET /api/debug-search?niche=performance-маркетинг,%20Київ&brand=Top%20Marketing
+app.get('/api/debug-search', async (req, res) => {
+  const niche = req.query.niche || 'performance-маркетинг, Київ';
+  const brand = req.query.brand || 'Тестовий Бренд';
+  const query = `Порадь кілька найкращих варіантів: ${niche}. Назви конкретні компанії чи бренди.`;
+  const result = await findRealCompetitors(query, brand);
+  res.json({ query, ...result });
 });
 
 app.get('/api/health', (req, res) => {
