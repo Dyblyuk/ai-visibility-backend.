@@ -168,33 +168,63 @@ function engineConfidenceScore(verdict, snippet) {
   return Math.min(100, base + bonus);
 }
 
+// Швидка й безкоштовна перевірка на типові фрази-відмови поруч зі
+// згадкою бренду ("не маю інформації", "don't have access" тощо) —
+// без виклику AI. Це дешевше й надійніше, ніж ганяти класифікатор на
+// КОЖНУ відповідь (а це, як з'ясувалось, б'є в ліміти швидкості
+// Anthropic API й через це псує решту перевірок за той самий скан).
+const DENIAL_PATTERNS = [
+  /не\s+ма[юєємо]+\s+(інформ|дан|доступ)/i,
+  /не\s+мож(у|емо|е)\s+(надати|знайти|підтвердити|розповісти)/i,
+  /немає\s+(доступу|інформації|даних)/i,
+  /не\s+чув(ла|ли|ав)?\s+(про|такого|такий|таку)/i,
+  /не\s+знаю\s+(про|такого|такий|таку|нічого)/i,
+  /не\s+володію\s+інформацією/i,
+  /відсутня\s+(інформація|інформаці)/i,
+  /no\s+information\s+(about|on|regarding)/i,
+  /don'?t\s+have\s+(access|information|data)/i,
+  /cannot\s+(provide|confirm|find|access)/i,
+  /unable\s+to\s+(find|provide|access|confirm)/i,
+  /i'?m\s+not\s+(familiar|aware)/i,
+  /не\s+знайомий\s+(з|із)/i
+];
+
+function containsDenial(text) {
+  return DENIAL_PATTERNS.some(re => re.test(text));
+}
+
 async function checkMention(text, brand) {
   if (!text || !brand) return { verdict: 'unknown', hit: false, snippet: '', score: 0 };
 
   const snippetFromText = findSnippet(text, brand);
 
-  // Класифікатор перевіряє КОЖНУ відповідь, навіть коли назва бренду є в
-  // тексті буквально — бо AI може просто процитувати назву з питання,
-  // одночасно прямо кажучи "не маю інформації". Проста перевірка підрядка
-  // сама по собі це не відрізняє.
-  const classification = await classifyMention(text, brand);
-  let verdict = classification.verdict;
-
-  if (!verdict) {
-    // Класифікатор недоступний (немає ключа, помилка API) — чесний
-    // фолбек на пряму текстову згадку.
-    verdict = snippetFromText ? 'know' : 'unknown';
-  } else if (verdict === 'know' && !snippetFromText) {
-    // Класифікатор каже "знає", але буквальної згадки бренду немає —
-    // це щонайбільше непряма/невиразна згадка, не повне "know".
-    verdict = 'confused';
+  if (snippetFromText) {
+    if (containsDenial(text)) {
+      // Назва є в тексті, але це, вочевидь, ехо з питання: AI прямо каже,
+      // що не має інформації — не "know", максимум непряма/невиразна згадка.
+      const snippet = text.trim().slice(0, 160) + (text.length > 160 ? '…' : '');
+      return { verdict: 'confused', hit: false, snippet, score: engineConfidenceScore('confused', snippet) };
+    }
+    // Пряма згадка без ознак відмови — найсильніший сигнал, довіряємо
+    // напряму, без додаткового виклику класифікатора.
+    return { verdict: 'know', hit: true, snippet: snippetFromText, score: engineConfidenceScore('know', snippetFromText) };
   }
 
-  const snippet = snippetFromText || (verdict !== 'unknown'
-    ? text.trim().slice(0, 160) + (text.length > 160 ? '…' : '')
-    : '');
+  // Прямої згадки немає — тут уже питаємо класифікатор, чи це "плутає"
+  // щось невиразне, чи справді "не чув" взагалі.
+  const classification = await classifyMention(text, brand);
+  let verdict = classification.verdict;
+  if (!verdict) {
+    verdict = 'unknown'; // класифікатор недоступний — чесний дефолт без прямої згадки
+  } else if (verdict === 'know') {
+    verdict = 'confused'; // без прямого підрядка повне "know" неможливе
+  }
 
-  return { verdict, hit: verdict === 'know', snippet, score: engineConfidenceScore(verdict, snippet), classifierError: classification.error || null };
+  const snippet = verdict !== 'unknown'
+    ? text.trim().slice(0, 160) + (text.length > 160 ? '…' : '')
+    : '';
+
+  return { verdict, hit: false, snippet, score: engineConfidenceScore(verdict, snippet), classifierError: classification.error || null };
 }
 
 // ---------- Виклики AI-систем ----------
@@ -745,6 +775,14 @@ app.get('/api/debug-mention', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
+});
+
+// Швидка перевірка автовизначення ніші окремо від повного скану.
+// Приклад: GET /api/debug-niche?brand=Webpromo
+app.get('/api/debug-niche', async (req, res) => {
+  const brand = req.query.brand || 'Тестовий Бренд';
+  const result = await inferNiche(brand);
+  res.json({ brand, ...result });
 });
 
 app.get('/api/health', (req, res) => {
