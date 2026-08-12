@@ -195,8 +195,10 @@
   /* ---------- LIVE SCAN STATUS ---------- */
   .scan-status{
     margin-top:24px; background:var(--panel); border:1px solid var(--border); border-top:3px solid var(--orange);
-    padding:22px; box-shadow:0 20px 44px -26px rgba(0,0,0,.6); animation:fadeUp .4s ease both;
+    padding:26px; box-shadow:0 20px 44px -26px rgba(0,0,0,.6); animation:fadeUp .4s ease both;
   }
+  .scan-status-title{font-size:20px; font-weight:700; margin-bottom:6px;}
+  .scan-status-sub{font-size:13px; color:var(--ink-dim); margin-bottom:20px;}
   .scan-status-head{
     font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; color:var(--ink-dim);
     text-transform:uppercase; margin-bottom:16px; display:flex; align-items:center; gap:8px;
@@ -277,6 +279,9 @@
   .track-snippet{
     font-family:var(--font-mono); font-size:11px; color:var(--ink-faint);
     margin-top:6px; line-height:1.5; font-style:italic;
+  }
+  .track-caption{
+    font-size:11px; color:var(--ink-dim); margin-top:4px;
   }
 
   .score-block{
@@ -458,6 +463,8 @@
   }
 
   [hidden]{display:none !important;}
+  body.scan-active .marketing-section{display:none !important;}
+  body.scan-active .hero{padding-bottom:0;}
 
   @media(max-width:640px){
     .scan-form{grid-template-columns:1fr;}
@@ -520,11 +527,12 @@
   </section>
 
   <section class="scan-status" id="scanStatus" hidden>
-    <div class="scan-status-head"><span class="spin"></span> Сканування триває...</div>
+    <div class="scan-status-title" id="scanStatusTitle">Питаю AI…</div>
+    <div class="scan-status-sub">Це займає хвилину. Не закривайте сторінку — далі найцікавіше.</div>
     <div id="statusList"></div>
   </section>
 
-  <section class="section">
+  <section class="section marketing-section">
     <div class="section-eyebrow">Як це працює</div>
     <h2>Три кроки, і все на екрані</h2>
     <div class="how-grid">
@@ -546,7 +554,7 @@
     </div>
   </section>
 
-  <section class="section">
+  <section class="section marketing-section">
     <div class="section-eyebrow">Поки ви це читаєте, клієнти вже питають AI</div>
     <h2>Це вже впливає на вашу вирву продажів</h2>
     <div class="stat-grid">
@@ -556,7 +564,7 @@
     </div>
   </section>
 
-  <section class="section">
+  <section class="section marketing-section">
     <div class="section-eyebrow">Що ви дізнаєтесь</div>
     <h2>Реальний звіт, а не загальні поради</h2>
     <div class="preview-grid">
@@ -585,7 +593,7 @@
     </div>
   </section>
 
-  <section class="section">
+  <section class="section marketing-section">
     <div class="section-eyebrow">Часті питання</div>
     <h2>FAQ</h2>
     <div>
@@ -823,14 +831,28 @@ async function fetchZoneQuery(brand, query){
 // запит, статус на екрані оновлюється в момент, коли крок дійсно
 // стартував/завершився, а не за вигаданим таймером.
 async function runLiveScan(name, niche){
-  const discoveryQueries = await fetchDiscoveryQueries(niche);
+  document.getElementById('scanStatusTitle').textContent = `Питаю AI про «${name}»`;
 
-  const statusRows = ENGINE_DEFS_LIVE.map(e => ({ id: 'st-' + e.key, label: e.label }))
-    .concat(discoveryQueries.map((q, i) => ({ id: 'st-zone-' + i, label: `Нішевий запит ${i+1}: «${q.length > 60 ? q.slice(0,60)+'…' : q}»` })));
+  const statusRows = [
+    { id: 'st-recognize', label: `Розпізнаю «${name}»: бізнес, ніша, місто…` },
+    { id: 'st-chatgpt', label: `Питаю ChatGPT, що він знає про «${name}»…` },
+    { id: 'st-claude', label: `Claude згадує, чи чув про «${name}»…` },
+    { id: 'st-gemini', label: `Gemini перевіряє свої знання про «${name}»…` },
+    { id: 'st-perplexity', label: `Perplexity шукає «${name}» в інтернеті…` },
+    { id: 'st-zone', label: `Генерую запити, якими вас шукають клієнти…` },
+    { id: 'st-score', label: `Рахую AI-Visibility Score…` },
+    { id: 'st-assemble', label: `Збираю все в один звіт…` }
+  ];
   renderStatusRows(statusRows);
   const scanStatusEl = document.getElementById('scanStatus');
   scanStatusEl.hidden = false;
   scanStatusEl.scrollIntoView({behavior:'smooth', block:'start'});
+
+  setRowActive('st-recognize');
+  await new Promise(r => setTimeout(r, 350));
+  setRowDone('st-recognize', 'done-hit', '');
+
+  const discoveryQueriesPromise = fetchDiscoveryQueries(niche);
 
   const enginePromises = ENGINE_DEFS_LIVE.map(async (e) => {
     const id = 'st-' + e.key;
@@ -852,16 +874,12 @@ async function runLiveScan(name, niche){
     }
   });
 
-  const zonePromises = discoveryQueries.map(async (q, i) => {
-    const id = 'st-zone-' + i;
-    setRowActive(id);
+  setRowActive('st-zone');
+  const discoveryQueries = await discoveryQueriesPromise;
+  const zonePromises = discoveryQueries.map(async (q) => {
     try{
-      const result = await fetchZoneQuery(name, q);
-      const hitAny = Object.values(result.engines || {}).some(v => v.mentionedBrand);
-      setRowDone(id, hitAny ? 'done-hit' : 'done-miss', hitAny ? 'вас згадують' : `${(result.competitors||[]).length} гравців`);
-      return result;
+      return await fetchZoneQuery(name, q);
     } catch(err){
-      setRowDone(id, 'done-err', 'недоступно');
       return { query: q, engines: {}, competitors: [], competitorsSource: 'error' };
     }
   });
@@ -870,6 +888,18 @@ async function runLiveScan(name, niche){
     Promise.all(enginePromises),
     Promise.all(zonePromises)
   ]);
+
+  const zoneMentionsCount = zoneOfInvisibility.filter(zq => Object.values(zq.engines || {}).some(v => v.mentionedBrand)).length;
+  setRowDone('st-zone', zoneMentionsCount > 0 ? 'done-hit' : 'done-miss',
+    zoneOfInvisibility.length ? `згадують у ${zoneMentionsCount} з ${zoneOfInvisibility.length}` : 'пропущено (нема ніші)');
+
+  setRowActive('st-score');
+  await new Promise(r => setTimeout(r, 300));
+  setRowDone('st-score', 'done-hit', '');
+
+  setRowActive('st-assemble');
+  await new Promise(r => setTimeout(r, 300));
+  setRowDone('st-assemble', 'done-hit', '');
 
   return { engines, zoneOfInvisibility };
 }
@@ -887,6 +917,7 @@ form.addEventListener('submit', async function(e){
 
   btn.disabled = true;
   btn.textContent = 'Сканування...';
+  document.body.classList.add('scan-active');
 
   const rand = mulberry32(hashCode(name + '::' + niche));
 
@@ -938,26 +969,45 @@ form.addEventListener('submit', async function(e){
     // за таймером, а не реальними мережевими відповідями.
     const stateMap = { know: 'done-hit', confused: 'done-mid', unknown: 'done-miss' };
     const labelMap = { know: 'знає', confused: 'плутає', unknown: 'не чув' };
-    const statusRows = engineDefs.map(e => ({ id: 'st-' + e.key, label: e.label }))
-      .concat(demoQueries.map((q, i) => ({ id: 'st-zone-' + i, label: `Нішевий запит ${i+1}: «${q}»` })));
+    document.getElementById('scanStatusTitle').textContent = `Питаю AI про «${name}»`;
+    const engineNarrative = {
+      chatgpt: `Питаю ChatGPT, що він знає про «${name}»…`,
+      claude: `Claude згадує, чи чув про «${name}»…`,
+      gemini: `Gemini перевіряє свої знання про «${name}»…`,
+      perplexity: `Perplexity шукає «${name}» в інтернеті…`
+    };
+    const statusRows = [
+      { id: 'st-recognize', label: `Розпізнаю «${name}»: бізнес, ніша, місто…` },
+      { id: 'st-chatgpt', label: engineNarrative.chatgpt },
+      { id: 'st-claude', label: engineNarrative.claude },
+      { id: 'st-gemini', label: engineNarrative.gemini },
+      { id: 'st-perplexity', label: engineNarrative.perplexity },
+      { id: 'st-zone', label: `Генерую запити, якими вас шукають клієнти…` },
+      { id: 'st-score', label: `Рахую AI-Visibility Score…` },
+      { id: 'st-assemble', label: `Збираю все в один звіт…` }
+    ];
     renderStatusRows(statusRows);
     const scanStatusElDemo = document.getElementById('scanStatus');
     scanStatusElDemo.hidden = false;
     scanStatusElDemo.scrollIntoView({behavior:'smooth', block:'start'});
 
+    const zoneMentionsCount = zoneOfInvisibility.filter(zq => Object.values(zq.engines).some(v=>v.mentionedBrand)).length;
+
     await new Promise(resolve => {
       let i = 0;
-      const allRows = engineDefs.map((e,idx) => ({id:'st-'+e.key, state: stateMap[engines[idx].verdict], label: labelMap[engines[idx].verdict]}))
-        .concat(zoneOfInvisibility.map((zq,idx) => {
-          const hitAny = Object.values(zq.engines).some(v=>v.mentionedBrand);
-          return {id:'st-zone-'+idx, state: hitAny ? 'done-hit' : 'done-miss', label: hitAny ? 'вас згадують' : `${(zq.competitors||[]).length} гравців`};
-        }));
+      const allRows = [
+        {id:'st-recognize', state:'done-hit', label:''},
+        ...engineDefs.map((e,idx) => ({id:'st-'+e.key, state: stateMap[engines[idx].verdict], label: labelMap[engines[idx].verdict]})),
+        {id:'st-zone', state: zoneMentionsCount > 0 ? 'done-hit' : 'done-miss', label: `згадують у ${zoneMentionsCount} з ${zoneOfInvisibility.length}`},
+        {id:'st-score', state:'done-hit', label:''},
+        {id:'st-assemble', state:'done-hit', label:''}
+      ];
       const timer = setInterval(() => {
         if(i > 0) setRowDone(allRows[i-1].id, allRows[i-1].state, allRows[i-1].label);
         if(i >= allRows.length){ clearInterval(timer); resolve(); return; }
         setRowActive(allRows[i].id);
         i++;
-      }, 260);
+      }, 320);
     });
   }
 
@@ -995,11 +1045,17 @@ form.addEventListener('submit', async function(e){
 
     const tracksEl = document.getElementById('tracks');
     tracksEl.innerHTML = '';
+    const captionMap = {
+      know: 'Знає і говорить по суті',
+      confused: 'Дає розмиту, невпевнену відповідь',
+      unknown: 'Не орієнтується — жодного натяку'
+    };
     engines.forEach(eng => {
       const track = document.createElement('div');
       track.className = 'track';
       const vClass = eng.error ? 'err' : (eng.verdict === 'know' ? 'hit' : (eng.verdict === 'confused' ? 'mid' : 'miss'));
       const vText = eng.error ? 'НЕДОСТУПНО' : (eng.verdict === 'know' ? 'ЗНАЄ' : (eng.verdict === 'confused' ? 'ПЛУТАЄ' : 'НЕ ЧУВ'));
+      const caption = eng.error ? '' : (captionMap[eng.verdict] || '');
       track.innerHTML = `
         <div class="track-label">
           <span>${eng.label}</span>
@@ -1010,6 +1066,7 @@ form.addEventListener('submit', async function(e){
           <div class="blip ${vClass}" style="left:${eng.pos}%"></div>
         </div>
         ${eng.snippet ? `<div class="track-snippet">"${eng.snippet}"</div>` : ''}
+        ${caption ? `<div class="track-caption">${caption}</div>` : ''}
         ${eng.error ? `<div class="track-snippet">${eng.error}</div>` : ''}`;
       tracksEl.appendChild(track);
     });
