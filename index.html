@@ -1138,7 +1138,8 @@ form.addEventListener('submit', async function(e){
       gapHeadlineEl.innerHTML = `AI знає вас на <b>${overall}%</b>, але радить замість вас конкурентів у <b>${100-recommendPercent}%</b> клієнтських запитів.`;
       gapHeadlineEl.hidden = false;
     } else {
-      gapHeadlineEl.hidden = true;
+      gapHeadlineEl.innerHTML = `💡 Вкажіть нішу і місто через "Уточнити" у формі вище — тоді тут з'явиться порівняння з конкурентами: чи радить вас AI, а не лише "знає".`;
+      gapHeadlineEl.hidden = false;
     }
 
     // ---- Цікавий факт — найдетальніша реальна цитата серед "ЗНАЄ" ----
