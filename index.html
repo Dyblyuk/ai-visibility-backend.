@@ -373,6 +373,41 @@
     color:var(--ink-faint); font-style:italic; display:inline-flex; align-items:center; gap:6px;
   }
 
+  /* ---------- BLURRED LOCK PREVIEW (fake filler, never real data) ---------- */
+  .blur-chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; position:relative;}
+  .blur-chip{
+    height:22px; border-radius:12px; background:linear-gradient(90deg, var(--panel-2), var(--border));
+    filter:blur(3px); opacity:.8;
+  }
+  .locked-wrap{position:relative;}
+  .lock-badge-mini{
+    display:inline-flex; align-items:center; gap:5px; font-family:var(--font-mono); font-size:10px;
+    color:var(--orange); letter-spacing:.04em; margin-top:8px;
+  }
+  .lock-badge-mini .lk{font-size:11px;}
+
+  .locked-block{position:relative; margin-top:10px; border-radius:2px; overflow:hidden;}
+  .locked-block-content{filter:blur(7px); user-select:none; pointer-events:none; opacity:.75;}
+  .locked-block-row{
+    display:flex; gap:10px; padding:9px 0; border-top:1px solid var(--border); font-size:14px; color:var(--ink);
+  }
+  .locked-block-row:first-child{border-top:none;}
+  .locked-block-row .mark{color:var(--red); flex:none;}
+  .locked-block-overlay{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:8px; background:linear-gradient(180deg, rgba(28,34,42,.35), rgba(28,34,42,.85) 70%);
+  }
+  .locked-block-overlay .lk-big{
+    width:44px; height:44px; border-radius:50%; background:var(--orange); color:#14181d;
+    display:flex; align-items:center; justify-content:center; font-size:20px;
+    box-shadow:0 0 24px rgba(245,120,30,.5);
+  }
+  .locked-block-overlay .lk-text{
+    font-family:var(--font-mono); font-size:12px; color:var(--ink); text-align:center; letter-spacing:.02em;
+    max-width:80%;
+  }
+  .locked-block-overlay .lk-text b{color:var(--orange);}
+
   /* ---------- LEAD GATE ---------- */
   .lock-intro{font-size:13px; color:var(--ink-dim); margin:-6px 0 18px; line-height:1.6;}
   .unlock-teaser{
@@ -742,6 +777,18 @@
   <section class="issues" id="issuesOld" hidden>
     <h3>🔒 Повний список конкурентів і що знижує сигнал</h3>
     <p class="lock-intro">Тут — точні назви конкурентів з кожного запиту вище і конкретні проблеми, які прямо зараз знижують ваш бал.</p>
+
+    <div class="locked-block" id="issuesBlurBlock">
+      <div class="locked-block-content">
+        <div class="locked-block-row"><span class="mark">✕</span><span>████████████████████ ██████ ████████</span></div>
+        <div class="locked-block-row"><span class="mark">✕</span><span>███████████ ████████ ████ ███████████████</span></div>
+        <div class="locked-block-row"><span class="mark">✕</span><span>██████████████ ██████████ ██ ███████ ███████</span></div>
+      </div>
+      <div class="locked-block-overlay">
+        <div class="lk-big">🔒</div>
+        <div class="lk-text">Заповніть форму нижче, щоб побачити <b>точні причини</b> і <b>назви конкурентів</b></div>
+      </div>
+    </div>
 
     <div id="unlockGate">
       <div class="unlock-teaser" id="unlockTeaserText">🔒 Розблокуйте, щоб побачити деталі</div>
@@ -1331,9 +1378,23 @@ form.addEventListener('submit', async function(e){
           const sourceNote = zq.competitorsSource === 'fallback'
             ? ' <span style="opacity:.6">(грубий підбір, пошук був недоступний)</span>'
             : '';
-          const competitorsHtml = allCompetitors.length
-            ? `<span class="locked-inline">🔒 ${allCompetitors.length} реальн${allCompetitors.length===1?'ий гравець':'их гравці/ів'} ринку знайдено пошуком — розблокуйте звіт нижче, щоб побачити назви${sourceNote}</span>`
-            : `<span class="none">За цим запитом пошук не знайшов явних гравців — полиця відносно вільна.</span>`;
+          let competitorsHtml;
+          if(allCompetitors.length){
+            // Фейкові розмиті "чіпи" замість реальних назв — ширина кожного
+            // приблизно відповідає довжині справжньої назви (щоб виглядало
+            // правдоподібно), але сам текст ніде не рендериться до розблокування.
+            const chips = allCompetitors.map(nm => {
+              const w = Math.min(120, Math.max(40, nm.length * 7));
+              return `<div class="blur-chip" style="width:${w}px"></div>`;
+            }).join('');
+            competitorsHtml = `
+              <div class="locked-wrap">
+                <div class="blur-chips">${chips}</div>
+                <div class="lock-badge-mini"><span class="lk">🔒</span> ${allCompetitors.length} реальн${allCompetitors.length===1?'ий гравець':'их гравці/ів'} ринку — розблокуйте звіт нижче, щоб побачити назви${sourceNote}</div>
+              </div>`;
+          } else {
+            competitorsHtml = `<span class="none">За цим запитом пошук не знайшов явних гравців — полиця відносно вільна.</span>`;
+          }
           card.innerHTML = `
             <div class="zone-query">${zq.query}</div>
             <div class="zone-engines">${badges}</div>
@@ -1355,7 +1416,7 @@ form.addEventListener('submit', async function(e){
 });
 
 function revealLocked(emailSent){
-  document.querySelectorAll('.locked-inline').forEach(el => {
+  document.querySelectorAll('.locked-wrap').forEach(el => {
     const card = el.closest('.zone-card');
     const idx = Number(card.dataset.zoneIndex);
     const names = lastZoneCompetitors[idx] || [];
@@ -1363,6 +1424,9 @@ function revealLocked(emailSent){
       ? `Замість вас називають: <b>${names.join(', ')}</b>`
       : '';
   });
+
+  const issuesBlurBlock = document.getElementById('issuesBlurBlock');
+  if(issuesBlurBlock) issuesBlurBlock.hidden = true;
 
   const issuesList = document.getElementById('issuesList');
   issuesList.innerHTML = '';
