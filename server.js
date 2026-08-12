@@ -92,19 +92,62 @@ function buildDiscoveryQueries(niche) {
   return templates.slice(0, Math.max(1, Math.min(DISCOVERY_QUERY_COUNT, templates.length)));
 }
 
-function checkMention(text, brand) {
-  if (!text || !brand) return { hit: false, snippet: '' };
+// Проста перевірка збігу назви — потрібна лише для витягу цитати
+// (snippet), сам вердикт тепер визначає classifyMention нижче.
+function findSnippet(text, brand) {
   const normalizedText = text.toLowerCase();
   const normalizedBrand = brand.toLowerCase().trim();
-  const hit = normalizedText.includes(normalizedBrand);
-  let snippet = '';
-  if (hit) {
-    const idx = normalizedText.indexOf(normalizedBrand);
-    const start = Math.max(0, idx - 80);
-    const end = Math.min(text.length, idx + normalizedBrand.length + 80);
-    snippet = (start > 0 ? '…' : '') + text.slice(start, end).trim() + (end < text.length ? '…' : '');
+  const idx = normalizedText.indexOf(normalizedBrand);
+  if (idx === -1) return '';
+  const start = Math.max(0, idx - 80);
+  const end = Math.min(text.length, idx + normalizedBrand.length + 80);
+  return (start > 0 ? '…' : '') + text.slice(start, end).trim() + (end < text.length ? '…' : '');
+}
+
+// Оцінює ЯКІСТЬ згадки бренду через окремий класифікаційний виклик
+// Claude — три стани замість простого "є підрядок / немає":
+//   know     — впевнено й конкретно знає саме цей бренд
+//   confused — щось невиразне: натяк, невпевненість, плутанина зі схожою назвою
+//   unknown  — жодної згадки чи натяку
+async function classifyMention(text, brand) {
+  if (!ANTHROPIC_API_KEY) return { verdict: null, error: 'ANTHROPIC_API_KEY не налаштовано' };
+  if (!text) return { verdict: 'unknown' };
+
+  const prompt = `Ось відповідь AI-асистента на запит користувача, який шукав інформацію про бренд/компанію "${brand}". ` +
+    `Оціни, наскільки явно і точно асистент знає саме цей бренд:\n` +
+    `- know — впевнено й конкретно згадує саме цей бренд/сайт по суті\n` +
+    `- confused — щось невиразне: натяки, невпевненість, плутанина зі схожою назвою, загальна відповідь без явного знання\n` +
+    `- unknown — жодної згадки чи натяку\n\n` +
+    `Дай відповідь ЛИШЕ одним словом: know, confused або unknown. Без пояснень.\n\n` +
+    `Відповідь AI:\n"""${text}"""`;
+
+  const res = await askClaude(prompt);
+  if (res.error || !res.text) return { verdict: null, error: res.error || 'порожня відповідь класифікатора' };
+
+  const word = res.text.trim().toLowerCase().replace(/[^a-z]/g, '');
+  if (word === 'know' || word === 'confused' || word === 'unknown') return { verdict: word };
+  if (word.includes('know')) return { verdict: 'know' };
+  if (word.includes('confus')) return { verdict: 'confused' };
+  if (word.includes('unknown')) return { verdict: 'unknown' };
+  return { verdict: null, error: `незрозуміла відповідь класифікатора: "${res.text.slice(0,60)}"` };
+}
+
+async function checkMention(text, brand) {
+  if (!text || !brand) return { verdict: 'unknown', hit: false, snippet: '' };
+
+  const snippetFromText = findSnippet(text, brand);
+  const classification = await classifyMention(text, brand);
+
+  let verdict = classification.verdict;
+  if (!verdict) {
+    // Класифікатор недоступний (немає ключа, помилка API) — чесний
+    // бінарний фолбек замість тримовного вердикту.
+    verdict = snippetFromText ? 'know' : 'unknown';
   }
-  return { hit, snippet };
+
+  const snippet = snippetFromText || (verdict !== 'unknown' ? text.trim().slice(0, 160) + (text.length > 160 ? '…' : '') : '');
+
+  return { verdict, hit: verdict === 'know', snippet, classifierError: classification.error || null };
 }
 
 // ---------- Виклики AI-систем ----------
@@ -303,13 +346,20 @@ app.post('/api/scan', async (req, res) => {
       discoveryQueries.map(q => runDiscoveryQuery(q, brand))
     );
 
+    const [chatgptVerdict, geminiVerdict, perplexityVerdict, claudeVerdict] = await Promise.all([
+      chatgpt.error ? Promise.resolve({ error: chatgpt.error }) : checkMention(chatgpt.text, brand),
+      gemini.error ? Promise.resolve({ error: gemini.error }) : checkMention(gemini.text, brand),
+      perplexity.error ? Promise.resolve({ error: perplexity.error }) : checkMention(perplexity.text, brand),
+      claude.error ? Promise.resolve({ error: claude.error }) : checkMention(claude.text, brand)
+    ]);
+
     const result = {
       query,
       engines: {
-        chatgpt: chatgpt.error ? { error: chatgpt.error } : checkMention(chatgpt.text, brand),
-        gemini: gemini.error ? { error: gemini.error } : checkMention(gemini.text, brand),
-        perplexity: perplexity.error ? { error: perplexity.error } : checkMention(perplexity.text, brand),
-        claude: claude.error ? { error: claude.error } : checkMention(claude.text, brand)
+        chatgpt: chatgptVerdict,
+        gemini: geminiVerdict,
+        perplexity: perplexityVerdict,
+        claude: claudeVerdict
       },
       zoneOfInvisibility
     };
@@ -341,7 +391,7 @@ app.post('/api/scan-engine', async (req, res) => {
     if (resp.error) {
       return res.json({ error: resp.error });
     }
-    res.json(checkMention(resp.text, brand));
+    res.json(await checkMention(resp.text, brand));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Внутрішня помилка сервера' });
@@ -403,7 +453,8 @@ function buildReportPdf(data) {
       doc.fontSize(14).fillColor('#14181d').text('Результати по AI-системах');
       doc.moveDown(0.3);
       (data.engines || []).forEach(e => {
-        const verdict = e.error ? 'недоступно під час перевірки' : (e.hit ? 'ЗГАДУЄ бренд' : 'НЕ ЗГАДУЄ бренд');
+        const verdictLabels = { know: 'ЗНАЄ бренд', confused: 'ПЛУТАЄ (невпевнено/схоже)', unknown: 'НЕ ЧУВ про бренд' };
+        const verdict = e.error ? 'недоступно під час перевірки' : (verdictLabels[e.verdict] || (e.hit ? 'ЗНАЄ бренд' : 'НЕ ЧУВ про бренд'));
         doc.fontSize(11).fillColor('#14181d').text(`${e.label}: ${verdict}`);
         if (e.snippet) doc.fontSize(10).fillColor('#666').text(`   «${e.snippet}»`);
         doc.moveDown(0.2);

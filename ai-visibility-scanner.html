@@ -219,13 +219,15 @@
     border-color:var(--orange); border-top-color:transparent; animation:spin .7s linear infinite;
   }
   .status-row.done-hit .status-icon{background:var(--cyan); border-color:var(--cyan); color:#0e1114;}
+  .status-row.done-mid .status-icon{background:var(--orange); border-color:var(--orange); color:#0e1114;}
   .status-row.done-miss .status-icon{background:transparent; border-color:var(--ink-faint); color:var(--ink-faint);}
   .status-row.done-err .status-icon{background:var(--red); border-color:var(--red); color:#0e1114;}
   .status-label{flex:1; color:var(--ink-dim);}
-  .status-row.active .status-label, .status-row.done-hit .status-label,
+  .status-row.active .status-label, .status-row.done-hit .status-label, .status-row.done-mid .status-label,
   .status-row.done-miss .status-label, .status-row.done-err .status-label{color:var(--ink);}
   .status-verdict{font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em;}
   .status-row.done-hit .status-verdict{color:var(--cyan);}
+  .status-row.done-mid .status-verdict{color:var(--orange);}
   .status-row.done-err .status-verdict{color:var(--red);}
 
   /* ---------- INSTRUMENT PANEL (results) ---------- */
@@ -252,6 +254,7 @@
   }
   .track-label .verdict{font-weight:700;}
   .track-label .verdict.hit{color:var(--cyan);}
+  .track-label .verdict.mid{color:var(--orange);}
   .track-label .verdict.miss{color:var(--red);}
   .track-label .verdict.err{color:var(--ink-faint);}
   .track-bar{
@@ -268,6 +271,7 @@
     transition:transform .3s ease, opacity .3s ease;
   }
   .track-bar .blip.hit{background:var(--cyan); box-shadow:0 0 10px var(--cyan);}
+  .track-bar .blip.mid{background:var(--orange); box-shadow:0 0 10px var(--orange);}
   .track-bar .blip.miss{background:var(--red); box-shadow:0 0 10px var(--red);}
   .track-bar .blip.show{transform:translate(-50%,-50%) scale(1); opacity:1;}
   .track-snippet{
@@ -783,7 +787,7 @@ function setRowDone(id, state, verdictText){
   row.className = 'status-row ' + state;
   const icon = row.querySelector('.status-icon');
   const verdict = row.querySelector('.status-verdict');
-  icon.textContent = state === 'done-hit' ? '✓' : (state === 'done-err' ? '!' : '–');
+  icon.textContent = state === 'done-hit' ? '✓' : (state === 'done-mid' ? '～' : (state === 'done-err' ? '!' : '–'));
   if(verdict) verdict.textContent = verdictText || '';
 }
 
@@ -833,13 +837,16 @@ async function runLiveScan(name, niche){
       const result = await fetchScanEngine(name, niche, e.key);
       if(result.error){
         setRowDone(id, 'done-err', 'помилка');
-        return { ...e, error: result.error };
+        return { ...e, verdict: 'unknown', error: result.error };
       }
-      setRowDone(id, result.hit ? 'done-hit' : 'done-miss', result.hit ? 'згадує' : 'не згадує');
-      return { ...e, hit: result.hit, snippet: result.snippet };
+      const verdict = result.verdict || (result.hit ? 'know' : 'unknown');
+      const stateMap = { know: 'done-hit', confused: 'done-mid', unknown: 'done-miss' };
+      const labelMap = { know: 'знає', confused: 'плутає', unknown: 'не чув' };
+      setRowDone(id, stateMap[verdict] || 'done-miss', labelMap[verdict] || '');
+      return { ...e, verdict, hit: verdict === 'know', snippet: result.snippet };
     } catch(err){
       setRowDone(id, 'done-err', 'недоступно');
-      return { ...e, error: String(err) };
+      return { ...e, verdict: 'unknown', error: String(err) };
     }
   });
 
@@ -903,7 +910,11 @@ form.addEventListener('submit', async function(e){
       {key:'perplexity', label:'Perplexity', threshold:0.45, dotId:'dotP'},
       {key:'claude', label:'Claude', threshold:0.50, dotId:'dotC'}
     ];
-    engines = engineDefs.map(e => ({...e, hit: rand() > e.threshold, snippet:'', pos: 15 + rand()*70}));
+    engines = engineDefs.map(e => {
+      const r = rand();
+      const verdict = r > e.threshold ? 'know' : (r > e.threshold - 0.22 ? 'confused' : 'unknown');
+      return {...e, verdict, hit: verdict === 'know', snippet:'', pos: 15 + rand()*70};
+    });
 
     const nicheLabel = niche || 'вашій ніші';
     const demoQueries = [
@@ -923,6 +934,8 @@ form.addEventListener('submit', async function(e){
 
     // Демо-режим: та сама жива панель статусу, але кроки завершуються
     // за таймером, а не реальними мережевими відповідями.
+    const stateMap = { know: 'done-hit', confused: 'done-mid', unknown: 'done-miss' };
+    const labelMap = { know: 'знає', confused: 'плутає', unknown: 'не чув' };
     const statusRows = engineDefs.map(e => ({ id: 'st-' + e.key, label: e.label }))
       .concat(demoQueries.map((q, i) => ({ id: 'st-zone-' + i, label: `Нішевий запит ${i+1}: «${q}»` })));
     renderStatusRows(statusRows);
@@ -930,10 +943,13 @@ form.addEventListener('submit', async function(e){
 
     await new Promise(resolve => {
       let i = 0;
-      const allRows = engineDefs.map((e,idx) => ({id:'st-'+e.key, hit:engines[idx].hit}))
-        .concat(zoneOfInvisibility.map((zq,idx) => ({id:'st-zone-'+idx, hit: Object.values(zq.engines).some(v=>v.mentionedBrand)})));
+      const allRows = engineDefs.map((e,idx) => ({id:'st-'+e.key, state: stateMap[engines[idx].verdict], label: labelMap[engines[idx].verdict]}))
+        .concat(zoneOfInvisibility.map((zq,idx) => {
+          const hitAny = Object.values(zq.engines).some(v=>v.mentionedBrand);
+          return {id:'st-zone-'+idx, state: hitAny ? 'done-hit' : 'done-miss', label: hitAny ? 'вас згадують' : `${(zq.competitors||[]).length} гравців`};
+        }));
       const timer = setInterval(() => {
-        if(i > 0) setRowDone(allRows[i-1].id, allRows[i-1].hit ? 'done-hit' : 'done-miss', allRows[i-1].hit ? 'згадує' : 'не згадує');
+        if(i > 0) setRowDone(allRows[i-1].id, allRows[i-1].state, allRows[i-1].label);
         if(i >= allRows.length){ clearInterval(timer); resolve(); return; }
         setRowActive(allRows[i].id);
         i++;
@@ -944,9 +960,10 @@ form.addEventListener('submit', async function(e){
   const widthScore = Math.round(18 + rand()*72);
   const depthScore = Math.round(18 + rand()*72);
   const collectScore = Math.round(18 + rand()*72);
-  const hitCount = engines.filter(e => e.hit).length;
+  const verdictWeight = { know: 1, confused: 0.5, unknown: 0 };
+  const weightedSum = engines.reduce((sum, e) => sum + (verdictWeight[e.verdict] ?? (e.hit ? 1 : 0)), 0);
   const overall = usedReal
-    ? Math.round((hitCount/engines.length)*100)
+    ? Math.round((weightedSum/engines.length)*100)
     : Math.round(collectScore*0.4 + widthScore*0.35 + depthScore*0.25);
 
   const shuffled = [...ISSUE_POOL];
@@ -977,16 +994,16 @@ form.addEventListener('submit', async function(e){
     engines.forEach(eng => {
       const track = document.createElement('div');
       track.className = 'track';
-      const verdictClass = eng.error ? 'err' : (eng.hit ? 'hit' : 'miss');
-      const verdictText = eng.error ? 'НЕДОСТУПНО' : (eng.hit ? 'ЗГАДУЄ' : 'НЕ ЗГАДУЄ');
+      const vClass = eng.error ? 'err' : (eng.verdict === 'know' ? 'hit' : (eng.verdict === 'confused' ? 'mid' : 'miss'));
+      const vText = eng.error ? 'НЕДОСТУПНО' : (eng.verdict === 'know' ? 'ЗНАЄ' : (eng.verdict === 'confused' ? 'ПЛУТАЄ' : 'НЕ ЧУВ'));
       track.innerHTML = `
         <div class="track-label">
           <span>${eng.label}</span>
-          <span class="verdict ${verdictClass}">${verdictText}</span>
+          <span class="verdict ${vClass}">${vText}</span>
         </div>
         <div class="track-bar">
           <div class="sweep"></div>
-          <div class="blip ${eng.hit ? 'hit' : 'miss'}" style="left:${eng.pos}%"></div>
+          <div class="blip ${vClass}" style="left:${eng.pos}%"></div>
         </div>
         ${eng.snippet ? `<div class="track-snippet">"${eng.snippet}"</div>` : ''}
         ${eng.error ? `<div class="track-snippet">${eng.error}</div>` : ''}`;
@@ -1006,7 +1023,7 @@ form.addEventListener('submit', async function(e){
       });
       engines.forEach(eng => {
         const dot = document.getElementById(eng.dotId);
-        if(dot) setTimeout(() => { if(eng.hit) dot.classList.add('on'); }, 500);
+        if(dot) setTimeout(() => { if(eng.verdict === 'know') dot.classList.add('on'); }, 500);
       });
 
       const circle = document.getElementById('scoreCircle');
@@ -1041,7 +1058,7 @@ form.addEventListener('submit', async function(e){
       issuesList.innerHTML = '';
       lastPickedIssues = pickedIssues;
       lastScanMeta = { brand: name, niche, score: overall };
-      lastEngines = engines.map(e => ({ label: e.label, hit: !!e.hit, snippet: e.snippet || '', error: e.error || null }));
+      lastEngines = engines.map(e => ({ label: e.label, verdict: e.verdict || (e.hit ? 'know' : 'unknown'), hit: !!e.hit, snippet: e.snippet || '', error: e.error || null }));
       lastZoneOfInvisibility = zoneOfInvisibility;
 
       const zoneListEl = document.getElementById('zoneList');
