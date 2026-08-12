@@ -135,10 +135,13 @@ async function classifyMention(text, brand) {
   if (!text) return { verdict: 'unknown' };
 
   const prompt = `Ось відповідь AI-асистента на запит користувача, який шукав інформацію про бренд/компанію "${brand}". ` +
-    `Оціни, наскільки явно і точно асистент знає саме цей бренд:\n` +
-    `- know — впевнено й конкретно згадує саме цей бренд/сайт по суті\n` +
+    `Оціни, наскільки явно і точно асистент ДІЙСНО знає саме цей бренд:\n` +
+    `- know — впевнено й конкретно описує саме цей бренд/сайт по суті, наводить реальні факти про нього\n` +
     `- confused — щось невиразне: натяки, невпевненість, плутанина зі схожою назвою, загальна відповідь без явного знання\n` +
-    `- unknown — жодної згадки чи натяку\n\n` +
+    `- unknown — жодної згадки, АБО асистент прямо каже, що не має інформації/доступу і не може нічого розповісти ` +
+    `про цей бренд. ВАЖЛИВО: якщо асистент просто повторює назву чи URL із запиту користувача, але при цьому явно ` +
+    `каже "не можу", "немає доступу", "не маю інформації", "не знаю" — це "unknown", а НЕ "know", навіть якщо назва ` +
+    `бренду дослівно присутня в тексті.\n\n` +
     `Дай відповідь ЛИШЕ одним словом: know, confused або unknown. Без пояснень.\n\n` +
     `Відповідь AI:\n"""${text}"""`;
 
@@ -169,29 +172,29 @@ async function checkMention(text, brand) {
   if (!text || !brand) return { verdict: 'unknown', hit: false, snippet: '', score: 0 };
 
   const snippetFromText = findSnippet(text, brand);
-  if (snippetFromText) {
-    // Пряма текстова згадка бренду — найсильніший можливий сигнал,
-    // довіряємо йому напряму й не витрачаємо виклик на класифікатор.
-    return { verdict: 'know', hit: true, snippet: snippetFromText, score: engineConfidenceScore('know', snippetFromText) };
-  }
 
-  // Прямої згадки немає — питаємо класифікатор, чи це "плутає" щось
-  // невиразне/схоже, чи справді "не чув" взагалі про бренд.
+  // Класифікатор перевіряє КОЖНУ відповідь, навіть коли назва бренду є в
+  // тексті буквально — бо AI може просто процитувати назву з питання,
+  // одночасно прямо кажучи "не маю інформації". Проста перевірка підрядка
+  // сама по собі це не відрізняє.
   const classification = await classifyMention(text, brand);
   let verdict = classification.verdict;
+
   if (!verdict) {
-    verdict = 'unknown'; // класифікатор недоступний — чесний дефолт без прямої згадки
-  } else if (verdict === 'know') {
-    // Без прямого підрядка "впевнене знання" неможливе за визначенням —
-    // найбільше, що це може бути, це непряма/невиразна згадка.
+    // Класифікатор недоступний (немає ключа, помилка API) — чесний
+    // фолбек на пряму текстову згадку.
+    verdict = snippetFromText ? 'know' : 'unknown';
+  } else if (verdict === 'know' && !snippetFromText) {
+    // Класифікатор каже "знає", але буквальної згадки бренду немає —
+    // це щонайбільше непряма/невиразна згадка, не повне "know".
     verdict = 'confused';
   }
 
-  const snippet = verdict !== 'unknown'
+  const snippet = snippetFromText || (verdict !== 'unknown'
     ? text.trim().slice(0, 160) + (text.length > 160 ? '…' : '')
-    : '';
+    : '');
 
-  return { verdict, hit: false, snippet, score: engineConfidenceScore(verdict, snippet), classifierError: classification.error || null };
+  return { verdict, hit: verdict === 'know', snippet, score: engineConfidenceScore(verdict, snippet), classifierError: classification.error || null };
 }
 
 // ---------- Виклики AI-систем ----------
