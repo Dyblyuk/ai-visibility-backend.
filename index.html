@@ -349,6 +349,31 @@
     margin-bottom:-2px;
   }
 
+  /* ---------- STEPS PREVIEW (free) ---------- */
+  .steps-preview{
+    margin-top:24px; background:var(--panel); border:1px solid var(--border); border-top:3px solid var(--cyan);
+    padding:22px; box-shadow:0 16px 32px -22px rgba(0,0,0,.6);
+  }
+  .steps-preview h3{font-size:15px; margin-bottom:4px;}
+  .steps-preview .steps-sub{font-size:12px; color:var(--ink-dim); margin-bottom:16px;}
+  .step-preview-row{display:flex; gap:12px; padding:10px 0; border-top:1px solid var(--border);}
+  .step-preview-row:first-of-type{border-top:none;}
+  .step-preview-num{
+    width:24px; height:24px; flex:none; border-radius:50%; background:var(--bg-alt); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; color:var(--cyan);
+  }
+  .step-preview-row h4{font-size:13px; margin-bottom:2px;}
+  .step-preview-row p{font-size:12px; color:var(--ink-dim); line-height:1.5;}
+  .steps-cta{
+    margin-top:14px; font-size:12px; color:var(--orange); font-family:var(--font-mono);
+  }
+  .detail-step{padding:12px 0; border-top:1px solid var(--border);}
+  .detail-step:first-of-type{border-top:none;}
+  .detail-step b{font-size:13px; color:var(--ink); display:block; margin-bottom:4px;}
+  .detail-step p{font-size:13px; color:var(--ink-dim); line-height:1.6;}
+  .detail-step.bonus{border-top:1px solid var(--border-strong); margin-top:6px; padding-top:14px;}
+  .detail-step.bonus b{color:var(--orange);}
+
   /* ---------- ZONE OF INVISIBILITY ---------- */
   .zone-list{display:flex; flex-direction:column; gap:14px;}
   .zone-card{background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--orange); padding:18px; box-shadow:0 12px 26px -20px rgba(0,0,0,.6);}
@@ -768,6 +793,32 @@
     </div>
   </section>
 
+  <section class="steps-preview" id="stepsPreview" hidden>
+    <h3>Що зробити, щоб підняти сигнал</h3>
+    <div class="steps-sub">5 кроків, кожен можна почати сьогодні</div>
+    <div class="step-preview-row">
+      <div class="step-preview-num">1</div>
+      <div><h4>Зберіть бренд в одну сутність</h4><p>Один опис, скрізь однаково — без цього сигнали розмазуються.</p></div>
+    </div>
+    <div class="step-preview-row">
+      <div class="step-preview-num">2</div>
+      <div><h4>Потрапте до чужих списків</h4><p>Ніша, де вас нема, а конкуренти є — саме там варто з'явитись.</p></div>
+    </div>
+    <div class="step-preview-row">
+      <div class="step-preview-num">3</div>
+      <div><h4>Зайдіть у живі обговорення</h4><p>Форуми та відгуки — звідти AI бере значну частку своїх посилань.</p></div>
+    </div>
+    <div class="step-preview-row">
+      <div class="step-preview-num">4</div>
+      <div><h4>Підсильте контент цифрами</h4><p>Конкретні факти й джерела — те, що AI може процитувати.</p></div>
+    </div>
+    <div class="step-preview-row">
+      <div class="step-preview-num">5</div>
+      <div><h4>Закрийте реальне питання клієнта</h4><p>Пряма відповідь у першому абзаці — а не загальна стаття.</p></div>
+    </div>
+    <div class="steps-cta">🔒 Детальний покроковий план із конкретними діями для кожного кроку — нижче, за контактом</div>
+  </section>
+
   <section class="issues" id="issues" hidden>
     <h3>Зона невидимості — так питають клієнти, і ось кого реально знаходить пошук замість вас</h3>
     <div class="mode-note" id="nicheInferredNote" hidden></div>
@@ -775,8 +826,8 @@
   </section>
 
   <section class="issues" id="issuesOld" hidden>
-    <h3>🔒 Повний список конкурентів і що знижує сигнал</h3>
-    <p class="lock-intro">Тут — точні назви конкурентів з кожного запиту вище і конкретні проблеми, які прямо зараз знижують ваш бал.</p>
+    <h3>🔒 Детальний план дій, конкуренти і що знижує сигнал</h3>
+    <p class="lock-intro">Тут — покроковий план для кожного з 5 кроків, точні назви конкурентів з кожного запиту вище і конкретні проблеми, які прямо зараз знижують ваш бал.</p>
 
     <div class="locked-block" id="issuesBlurBlock">
       <div class="locked-block-content">
@@ -786,7 +837,7 @@
       </div>
       <div class="locked-block-overlay">
         <div class="lk-big">🔒</div>
-        <div class="lk-text">Заповніть форму нижче, щоб побачити <b>точні причини</b> і <b>назви конкурентів</b></div>
+        <div class="lk-text">Заповніть форму нижче, щоб побачити <b>покроковий план</b>, <b>точні причини</b> і <b>назви конкурентів</b></div>
       </div>
     </div>
 
@@ -802,6 +853,8 @@
     </div>
 
     <div class="unlocked-badge" id="unlockedNote" hidden>✓ Звіт розблоковано. Ми зв'яжемось з вами найближчим часом.</div>
+
+    <div id="detailedSteps" hidden></div>
 
     <div id="issuesList"></div>
   </section>
@@ -840,6 +893,35 @@ function mulberry32(seed){
 }
 
 const ENGINE_LABELS = { chatgpt: 'ChatGPT', gemini: 'Gemini', perplexity: 'Perplexity', claude: 'Claude' };
+
+const DETAILED_STEPS_HTML = `
+  <div class="detailed-steps-block">
+    <h3 style="font-size:15px; margin:24px 0 4px;">Покроковий план дій</h3>
+    <div class="detail-step">
+      <b>1. Зберіть бренд в одну сутність</b>
+      <p>Напишіть один канонічний абзац: хто ви + що робите + для кого + де (місто/ринок/онлайн) + один перевірюваний факт (років на ринку, клієнтів, публікацій). Вставте цей абзац дослівно всюди, де ви є: сайт, LinkedIn, соцмережі, каталоги, профілі на майданчиках. Однакове написання назви — до літери.</p>
+    </div>
+    <div class="detail-step">
+      <b>2. Потрапте до чужих списків</b>
+      <p>Запитайте в ChatGPT і Perplexity: «найкращі [ваша ніша] у [місто/ринок]». Зафіксуйте, на які добірки й рейтинги вони посилаються. Випишіть 5-10 списків, де є конкуренти, а вас немає. Напишіть авторам майданчиків заявку на включення — багато нішевих добірок додають безкоштовно.</p>
+    </div>
+    <div class="detail-step">
+      <b>3. Зайдіть у живі обговорення</b>
+      <p>Знайдіть 2-3 живі майданчики, де реально обговорюють вашу нішу: форуми, галузеві спільноти, Q&A. Дайте там 2-3 розгорнуті корисні відповіді як експерт, без реклами в лоб. Запустіть збір змістовних відгуків від клієнтів — з деталями (послуга, специфіка), а не просто «все супер».</p>
+    </div>
+    <div class="detail-step">
+      <b>4. Підсильте контент цифрами</b>
+      <p>Візьміть головний експертний матеріал і підсильте трьома речами: конкретні цифри й статистика замість загальних слів, цитати з посиланням на ім'я, зазначення джерел даних.</p>
+    </div>
+    <div class="detail-step">
+      <b>5. Закрийте реальне питання клієнта</b>
+      <p>Візьміть реальне формулювання, яким клієнти шукають таких, як ви. Опублікуйте матеріал: заголовок = питання клієнта, перший абзац = пряма відповідь (2-4 речення). Ставте свіжу дату і оновлюйте ключові матеріали раз на квартал.</p>
+    </div>
+    <div class="detail-step bonus">
+      <b>Бонус: зареєструйтесь у Bing Webmaster Tools</b>
+      <p>15 хвилин, безкоштовно. Помітна частка цитат пошукового режиму ChatGPT збігається з органічною видачею Bing, а конкуренція там значно нижча.</p>
+    </div>
+  </div>`;
 
 const ISSUE_POOL = [
   "Назва бренду написана по-різному на сайті, в LinkedIn і в каталогах",
@@ -1285,6 +1367,7 @@ form.addEventListener('submit', async function(e){
 
     panel.hidden = false;
     axes.hidden = false;
+    document.getElementById('stepsPreview').hidden = false;
     issuesSection.hidden = false;
     issuesOldSection.hidden = false;
     ctaBlock.hidden = false;
@@ -1416,6 +1499,9 @@ form.addEventListener('submit', async function(e){
 });
 
 function revealLocked(emailSent){
+  document.getElementById('detailedSteps').hidden = false;
+  document.getElementById('detailedSteps').innerHTML = DETAILED_STEPS_HTML;
+
   document.querySelectorAll('.locked-wrap').forEach(el => {
     const card = el.closest('.zone-card');
     const idx = Number(card.dataset.zoneIndex);
