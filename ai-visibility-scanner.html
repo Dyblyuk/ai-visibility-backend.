@@ -110,6 +110,74 @@
   }
   .mode-note b{color:var(--orange);}
 
+  /* ---------- HERO v2 (matches reference structure) ---------- */
+  .hero-badge{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; color:var(--cyan);
+    text-transform:uppercase;
+  }
+  .hero-badge::before{content:"●"; font-size:8px; color:var(--cyan);}
+  .hero-sub{color:var(--ink-dim); font-size:15px; line-height:1.6; max-width:56ch; margin:14px 0 28px;}
+
+  .refine-toggle{
+    background:none; border:1px solid var(--border); color:var(--ink-dim);
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.04em; padding:8px 14px;
+    cursor:pointer; border-radius:2px; margin-top:12px;
+  }
+  .refine-toggle:hover{border-color:var(--orange); color:var(--ink);}
+  .refine-panel{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:14px;}
+  .refine-panel label{
+    display:flex; flex-direction:column; gap:6px;
+    font-family:var(--font-mono); font-size:10px; letter-spacing:.08em; color:var(--ink-dim); text-transform:uppercase;
+  }
+  .refine-panel input, .refine-panel select{
+    background:var(--bg-alt); border:1px solid var(--border); color:var(--ink);
+    padding:10px; font-family:var(--font-body); font-size:13px; border-radius:2px; outline:none;
+  }
+  .hero-meta{
+    font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); margin-top:14px; letter-spacing:.04em;
+  }
+  .hero-helper{font-size:12px; color:var(--ink-faint); margin-top:8px;}
+
+  /* ---------- HOW IT WORKS ---------- */
+  .how-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+  .how-card{background:var(--panel); border:1px solid var(--border); padding:20px;}
+  .how-num{
+    width:30px; height:30px; border:1px solid var(--orange); color:var(--orange);
+    font-family:var(--font-mono); font-weight:700; display:flex; align-items:center; justify-content:center;
+    margin-bottom:14px; border-radius:50%;
+  }
+  .how-card h3{font-size:15px; margin-bottom:8px;}
+  .how-card p{font-size:13px; color:var(--ink-dim); line-height:1.6;}
+
+  /* ---------- PREVIEW CARDS (what you'll learn) ---------- */
+  .preview-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px;}
+  .preview-card{background:var(--panel); border:1px solid var(--border); padding:20px;}
+  .preview-card h3{font-size:15px; margin:10px 0 6px;}
+  .preview-card p{font-size:12px; color:var(--ink-dim); line-height:1.6;}
+  .preview-visual{font-family:var(--font-mono); display:flex; align-items:baseline; gap:10px;}
+  .preview-visual .big{font-size:32px; font-weight:800; color:var(--orange);}
+  .preview-verdicts{display:flex; gap:10px; font-family:var(--font-mono); font-size:12px;}
+  .preview-verdicts span{display:flex; align-items:center; gap:5px;}
+  .preview-verdicts .v-no{color:var(--red);}
+  .preview-verdicts .v-mid{color:var(--ink-faint);}
+  .preview-verdicts .v-yes{color:var(--cyan);}
+
+  /* ---------- FAQ ---------- */
+  .faq-item{border-top:1px solid var(--border); padding:16px 0;}
+  .faq-item:first-of-type{border-top:none;}
+  .faq-item summary{
+    cursor:pointer; font-size:14px; color:var(--ink); list-style:none; display:flex; justify-content:space-between; align-items:center;
+  }
+  .faq-item summary::-webkit-details-marker{display:none;}
+  .faq-item summary::after{content:"+"; color:var(--orange); font-family:var(--font-mono); font-size:18px;}
+  .faq-item[open] summary::after{content:"−";}
+  .faq-item p{font-size:13px; color:var(--ink-dim); line-height:1.6; margin-top:12px;}
+
+  @media(max-width:640px){
+    .refine-panel, .how-grid, .preview-grid{grid-template-columns:1fr;}
+  }
+
   /* ---------- INSTRUMENT PANEL (results) ---------- */
   .instrument-panel{
     margin-top:28px; background:var(--panel); border:1px solid var(--border); padding:26px;
@@ -360,20 +428,122 @@
   </div>
 
   <section class="hero">
-    <span class="eyebrow">Прилад Top Marketing · перевірка сигналу бренду в AI</span>
-    <h1>Скільки з 5 запитів клієнта <span class="accent">ChatGPT</span> спрямовує повз вас?</h1>
-    <p class="lede">Введіть бренд або ім'я експерта. Прилад пройде по трьох AI-системах і покаже, наскільки чітко вони зараз бачать вас — і чого саме не вистачає для сигналу.</p>
+    <span class="hero-badge">Безкоштовно · без реєстрації</span>
+    <h1>Все про вас очима <span class="accent">AI</span> — на одному екрані</h1>
+    <p class="hero-sub">ChatGPT, Claude, Gemini і Perplexity вже радять ваших конкурентів. Перевірте за хвилину, чи знають вони про вас.</p>
 
     <form class="scan-form" id="scanForm">
-      <label>Назва бренду або експерта
+      <label>Назва компанії або ваше ім'я
         <input type="text" id="brandName" placeholder="Напр. Top Marketing" required>
       </label>
-      <label>Ніша / місто
-        <input type="text" id="brandNiche" placeholder="Напр. performance-маркетинг, Київ">
-      </label>
-      <button type="submit" class="btn-scan" id="scanBtn">Запустити скан →</button>
+      <button type="submit" class="btn-scan" id="scanBtn">Перевірити →</button>
     </form>
+    <div class="hero-helper">Введіть назву — без неї AI нема кого шукати</div>
+
+    <button type="button" class="refine-toggle" id="refineToggle">Уточнити (місто, ніша) ▾</button>
+    <div class="refine-panel" id="refinePanel" hidden>
+      <label>Місто
+        <input type="text" id="brandCity" placeholder="Напр. Київ">
+      </label>
+      <label>Ніша
+        <input type="text" id="brandNicheField" placeholder="Напр. стоматологія">
+      </label>
+      <label>Масштаб бізнесу
+        <select id="brandScale">
+          <option value="в місті">В місті</option>
+          <option value="по країні">По країні</option>
+          <option value="по всьому світу">По всьому світу</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="hero-meta">Кілька реальних запитів · 4 AI-системи (ChatGPT, Claude, Gemini, Perplexity) · ~1 хвилина</div>
     <div class="mode-note" id="modeNote">Перевірка режиму підключення...</div>
+  </section>
+
+  <section class="section">
+    <div class="section-eyebrow">Як це працює</div>
+    <h2>Три кроки, і все на екрані</h2>
+    <div class="how-grid">
+      <div class="how-card">
+        <div class="how-num">1</div>
+        <h3>Вводите назву</h3>
+        <p>Компанія чи особистий бренд. Без анкет і реєстрацій.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">2</div>
+        <h3>AI відповідають чесно</h3>
+        <p>Реальні запити в ChatGPT, Claude, Gemini і Perplexity — ті самі, які ставлять ваші клієнти.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">3</div>
+        <h3>Отримуєте звіт</h3>
+        <p>Бал видимості, дослівні цитати AI і конкуренти, які вже зайняли ваше місце у відповідях.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-eyebrow">Поки ви це читаєте, клієнти вже питають AI</div>
+    <h2>Це вже впливає на вашу вирву продажів</h2>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-num placeholder">[XX%]</div><div class="stat-label">підприємців не впевнені, що клієнт знайде їх через AI</div></div>
+      <div class="stat-card"><div class="stat-num placeholder">кожен [X]-й</div><div class="stat-label">з тих, хто перевіряв, — себе у відповідях не знайшов</div></div>
+      <div class="stat-card"><div class="stat-num placeholder">[XX%]</div><div class="stat-label">платять за рекламу, яка дорожчає з кожним місяцем</div></div>
+    </div>
+    <div class="mode-note">Цифри вище — плейсхолдери під ваше власне опитування клієнтів чи індустріальні дані з посиланням на джерело.</div>
+  </section>
+
+  <section class="section">
+    <div class="section-eyebrow">Що ви дізнаєтесь</div>
+    <h2>Реальний звіт, а не загальні поради</h2>
+    <div class="preview-grid">
+      <div class="preview-card">
+        <div class="preview-visual"><span class="big">27</span><span style="color:var(--ink-faint)">/ 100</span></div>
+        <h3>AI-Visibility Score</h3>
+        <p>Один чесний бал 0–100: наскільки AI взагалі вас бачать.</p>
+      </div>
+      <div class="preview-card">
+        <div class="preview-verdicts">
+          <span class="v-no">✕ ChatGPT</span><span class="v-mid">～ Gemini</span><span class="v-yes">✓ Claude</span>
+        </div>
+        <h3>Вердикт кожного AI</h3>
+        <p>ChatGPT, Claude, Gemini, Perplexity: знає / плутає / не чув — з дослівною цитатою.</p>
+      </div>
+      <div class="preview-card">
+        <div class="preview-visual"><span class="big" style="font-size:22px">"найкращий … у місті"</span></div>
+        <h3>Запити ваших клієнтів</h3>
+        <p>Чи знаходять вас на типові пошукові фрази — карта видимості по нішевих запитах.</p>
+      </div>
+      <div class="preview-card">
+        <div class="preview-visual"><span class="big" style="font-size:22px; color:var(--red)">не ви</span></div>
+        <h3>Кого радять замість вас</h3>
+        <p>Конкуренти, яких AI реально знаходить пошуком і називає на вашому місці.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-eyebrow">Часті питання</div>
+    <h2>FAQ</h2>
+    <div>
+      <details class="faq-item">
+        <summary>Звідки дані?</summary>
+        <p>Жодної магії: ми ставимо реальні запити в ChatGPT, Claude, Gemini і Perplexity та показуємо їхні чесні відповіді. Цитати — дослівні, бал рахуємо за прозорою методикою. Відповіді AI — на дату перевірки, не факти про бізнес.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Це безкоштовно? В чому підвох?</summary>
+        <p>Безкоштовно і без реєстрації. Підвіх простий і чесний: якщо звіт виявиться корисним — запропонуємо залишити телефон і пошту, щоб отримати повний PDF-звіт і консультацію Top Marketing. Можна цього не робити.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Та ну, хто шукає бізнес через AI?</summary>
+        <p>Вже шукають. Частина ринку досі гуглить по-старому, а полиця рекомендацій в AI ще напівпорожня — і її займають перші.</p>
+      </details>
+      <details class="faq-item">
+        <summary>А якщо AI про мене нічого не знає?</summary>
+        <p>Це найкорисніший результат: тепер ви знаєте це раніше за конкурентів. Звіт покаже, хто вже зайняв ваше місце, і з чого почати, щоб AI почав рекомендувати саме вас.</p>
+      </details>
+    </div>
   </section>
 
   <section class="instrument-panel" id="panel" hidden>
@@ -456,9 +626,10 @@
   </section>
 
   <footer>
-    Осі "Широта / Глибина / Точка збору" — ілюстративна оцінка. Блок ChatGPT/Gemini/Perplexity/Claude вище показує
-    результат реального запиту, коли підключено бекенд — інакше працює демо-режим із симуляцією.<br>
-    Прилад · AI-Видимість · Top Marketing
+    Відповіді AI — на дату перевірки, не факти про бізнес. Осі "Широта / Глибина / Точка збору" — ілюстративна
+    оцінка. Блок ChatGPT/Gemini/Perplexity/Claude вище показує результат реального запиту, коли підключено
+    бекенд — інакше працює демо-режим із симуляцією.<br>
+    © Top Marketing · Прилад AI-Видимість
   </footer>
 
 </div>
@@ -505,6 +676,14 @@ const ISSUE_POOL = [
 
 const form = document.getElementById('scanForm');
 const btn = document.getElementById('scanBtn');
+
+const refineToggle = document.getElementById('refineToggle');
+const refinePanel = document.getElementById('refinePanel');
+refineToggle.addEventListener('click', () => {
+  const isHidden = refinePanel.hidden;
+  refinePanel.hidden = !isHidden;
+  refineToggle.textContent = isHidden ? 'Сховати уточнення ▴' : 'Уточнити (місто, ніша) ▾';
+});
 const panel = document.getElementById('panel');
 const axes = document.getElementById('axes');
 const issuesSection = document.getElementById('issues');
@@ -531,7 +710,12 @@ async function fetchRealScan(brand, niche){
 form.addEventListener('submit', async function(e){
   e.preventDefault();
   const name = document.getElementById('brandName').value.trim();
-  const niche = document.getElementById('brandNiche').value.trim();
+  const nicheField = document.getElementById('brandNicheField').value.trim();
+  const cityField = document.getElementById('brandCity').value.trim();
+  const scaleField = document.getElementById('brandScale').value;
+  const nicheParts = [nicheField, cityField].filter(Boolean);
+  let niche = nicheParts.join(', ');
+  if(niche && scaleField && scaleField !== 'в місті') niche += ` (${scaleField})`;
   if(!name) return;
 
   btn.disabled = true;
