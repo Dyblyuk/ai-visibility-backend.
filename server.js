@@ -245,10 +245,16 @@ async function checkMention(text, brand) {
 // безкоштовні тарифи AI-провайдерів часто мають жорсткі ліміти на
 // запити/хвилину, і коротка пауза й повторна спроба вирішують це в
 // більшості випадків, замість того щоб одразу падати з помилкою.
-async function fetchWithRetry(url, options, retryDelayMs = 4000) {
+// Кілька спроб з наростаючою паузою і невеликим випадковим "розкидом"
+// (jitter) — щоб паралельні виклики, які всі впираються в один і той
+// самий ліміт одночасно, не повторювали спробу знову в ту саму мілісекунду.
+async function fetchWithRetry(url, options, maxRetries = 3) {
   let res = await fetch(url, options);
-  if (res.status === 429) {
-    await new Promise(r => setTimeout(r, retryDelayMs));
+  let attempt = 0;
+  while (res.status === 429 && attempt < maxRetries) {
+    attempt++;
+    const delay = attempt * 3000 + Math.random() * 2000;
+    await new Promise(r => setTimeout(r, delay));
     res = await fetch(url, options);
   }
   return res;
@@ -373,7 +379,7 @@ async function inferNiche(brand) {
     `поверни рівно слово: невідомо`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -414,7 +420,7 @@ async function findRealCompetitors(query, brand) {
     `після масиву. Виключи бренд "${brand}", якщо він там зустрічається.`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

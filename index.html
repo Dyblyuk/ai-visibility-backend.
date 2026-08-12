@@ -926,7 +926,10 @@ async function runLiveScan(name, niche){
   await new Promise(r => setTimeout(r, 350));
   setRowDone('st-recognize', 'done-hit', '');
 
-  const discoveryQueriesPromise = fetchDiscoveryQueries(name, niche);
+  // Невелика затримка перед запуском зони невидимості — щоб виклики до
+  // Claude (пряма перевірка + визначення ніші, якщо вона порожня) не
+  // стартували абсолютно одночасно й не ловили ліміт швидкості разом.
+  const discoveryQueriesPromise = new Promise(resolve => setTimeout(resolve, 900)).then(() => fetchDiscoveryQueries(name, niche));
 
   const enginePromises = ENGINE_DEFS_LIVE.map(async (e) => {
     const id = 'st-' + e.key;
