@@ -192,6 +192,42 @@
     .refine-panel, .how-grid, .preview-grid{grid-template-columns:1fr;}
   }
 
+  /* ---------- LIVE SCAN STATUS ---------- */
+  .scan-status{
+    margin-top:24px; background:var(--panel); border:1px solid var(--border); border-top:3px solid var(--orange);
+    padding:22px; box-shadow:0 20px 44px -26px rgba(0,0,0,.6); animation:fadeUp .4s ease both;
+  }
+  .scan-status-head{
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; color:var(--ink-dim);
+    text-transform:uppercase; margin-bottom:16px; display:flex; align-items:center; gap:8px;
+  }
+  .scan-status-head .spin{
+    width:10px; height:10px; border-radius:50%; border:2px solid var(--border); border-top-color:var(--orange);
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .status-row{
+    display:flex; align-items:center; gap:12px; padding:9px 0; border-top:1px solid var(--border); font-size:13px;
+  }
+  .status-row:first-child{border-top:none;}
+  .status-icon{
+    width:18px; height:18px; flex:none; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:700; background:var(--bg-alt); border:1px solid var(--border); color:var(--ink-faint);
+  }
+  .status-row.pending .status-icon{color:var(--ink-faint);}
+  .status-row.active .status-icon{
+    border-color:var(--orange); border-top-color:transparent; animation:spin .7s linear infinite;
+  }
+  .status-row.done-hit .status-icon{background:var(--cyan); border-color:var(--cyan); color:#0e1114;}
+  .status-row.done-miss .status-icon{background:transparent; border-color:var(--ink-faint); color:var(--ink-faint);}
+  .status-row.done-err .status-icon{background:var(--red); border-color:var(--red); color:#0e1114;}
+  .status-label{flex:1; color:var(--ink-dim);}
+  .status-row.active .status-label, .status-row.done-hit .status-label,
+  .status-row.done-miss .status-label, .status-row.done-err .status-label{color:var(--ink);}
+  .status-verdict{font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em;}
+  .status-row.done-hit .status-verdict{color:var(--cyan);}
+  .status-row.done-err .status-verdict{color:var(--red);}
+
   /* ---------- INSTRUMENT PANEL (results) ---------- */
   .instrument-panel{
     margin-top:28px; background:var(--panel); border:1px solid var(--border); border-top:3px solid var(--orange);
@@ -563,6 +599,11 @@
     </div>
   </section>
 
+  <section class="scan-status" id="scanStatus" hidden>
+    <div class="scan-status-head"><span class="spin"></span> Сканування триває...</div>
+    <div id="statusList"></div>
+  </section>
+
   <section class="instrument-panel" id="panel" hidden>
     <div class="panel-head">
       <span>Сигнал зафіксовано для</span>
@@ -707,14 +748,121 @@ let lastScanMeta = { brand:'', niche:'', score:null };
 let lastEngines = []; // повний знімок відповідей систем — для PDF-звіту
 let lastZoneOfInvisibility = []; // повний знімок зони невидимості — для PDF-звіту
 
-async function fetchRealScan(brand, niche){
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({brand, niche})
+// API_URL завжди закінчується на /api/scan — інші гранулярні ендпоінти
+// живуть поруч, на тому самому бекенді.
+const API_BASE = API_URL.replace(/\/api\/scan$/, '');
+
+const ENGINE_DEFS_LIVE = [
+  {key:'chatgpt', label:'ChatGPT', dotId:'dotG'},
+  {key:'gemini', label:'Gemini', dotId:'dotM'},
+  {key:'perplexity', label:'Perplexity', dotId:'dotP'},
+  {key:'claude', label:'Claude', dotId:'dotC'}
+];
+
+function renderStatusRows(rows){
+  const list = document.getElementById('statusList');
+  list.innerHTML = '';
+  rows.forEach(r => {
+    const row = document.createElement('div');
+    row.className = 'status-row pending';
+    row.id = r.id;
+    row.innerHTML = `<span class="status-icon">·</span><span class="status-label">${r.label}</span><span class="status-verdict"></span>`;
+    list.appendChild(row);
   });
-  if(!res.ok) throw new Error('Backend HTTP ' + res.status);
+}
+
+function setRowActive(id){
+  const row = document.getElementById(id);
+  if(!row) return;
+  row.className = 'status-row active';
+}
+
+function setRowDone(id, state, verdictText){
+  const row = document.getElementById(id);
+  if(!row) return;
+  row.className = 'status-row ' + state;
+  const icon = row.querySelector('.status-icon');
+  const verdict = row.querySelector('.status-verdict');
+  icon.textContent = state === 'done-hit' ? '✓' : (state === 'done-err' ? '!' : '–');
+  if(verdict) verdict.textContent = verdictText || '';
+}
+
+async function fetchScanEngine(brand, niche, engineKey){
+  const res = await fetch(API_BASE + '/api/scan-engine', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({brand, niche, engine: engineKey})
+  });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
   return res.json();
+}
+
+async function fetchDiscoveryQueries(niche){
+  const res = await fetch(API_BASE + '/api/discovery-queries', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({niche})
+  });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  return data.queries || [];
+}
+
+async function fetchZoneQuery(brand, query){
+  const res = await fetch(API_BASE + '/api/zone-query', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({brand, query})
+  });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+// Реальний скан із живим прогресом: кожен крок — окремий мережевий
+// запит, статус на екрані оновлюється в момент, коли крок дійсно
+// стартував/завершився, а не за вигаданим таймером.
+async function runLiveScan(name, niche){
+  const discoveryQueries = await fetchDiscoveryQueries(niche);
+
+  const statusRows = ENGINE_DEFS_LIVE.map(e => ({ id: 'st-' + e.key, label: e.label }))
+    .concat(discoveryQueries.map((q, i) => ({ id: 'st-zone-' + i, label: `Нішевий запит ${i+1}: «${q.length > 60 ? q.slice(0,60)+'…' : q}»` })));
+  renderStatusRows(statusRows);
+  document.getElementById('scanStatus').hidden = false;
+
+  const enginePromises = ENGINE_DEFS_LIVE.map(async (e) => {
+    const id = 'st-' + e.key;
+    setRowActive(id);
+    try{
+      const result = await fetchScanEngine(name, niche, e.key);
+      if(result.error){
+        setRowDone(id, 'done-err', 'помилка');
+        return { ...e, error: result.error };
+      }
+      setRowDone(id, result.hit ? 'done-hit' : 'done-miss', result.hit ? 'згадує' : 'не згадує');
+      return { ...e, hit: result.hit, snippet: result.snippet };
+    } catch(err){
+      setRowDone(id, 'done-err', 'недоступно');
+      return { ...e, error: String(err) };
+    }
+  });
+
+  const zonePromises = discoveryQueries.map(async (q, i) => {
+    const id = 'st-zone-' + i;
+    setRowActive(id);
+    try{
+      const result = await fetchZoneQuery(name, q);
+      const hitAny = Object.values(result.engines || {}).some(v => v.mentionedBrand);
+      setRowDone(id, hitAny ? 'done-hit' : 'done-miss', hitAny ? 'вас згадують' : `${(result.competitors||[]).length} гравців`);
+      return result;
+    } catch(err){
+      setRowDone(id, 'done-err', 'недоступно');
+      return { query: q, engines: {}, competitors: [], competitorsSource: 'error' };
+    }
+  });
+
+  const [engines, zoneOfInvisibility] = await Promise.all([
+    Promise.all(enginePromises),
+    Promise.all(zonePromises)
+  ]);
+
+  return { engines, zoneOfInvisibility };
 }
 
 form.addEventListener('submit', async function(e){
@@ -739,14 +887,9 @@ form.addEventListener('submit', async function(e){
 
   if(API_URL){
     try{
-      const data = await fetchRealScan(name, niche);
+      const data = await runLiveScan(name, niche);
       usedReal = true;
-      engines = [
-        {label:'ChatGPT', dotId:'dotG', ...data.engines.chatgpt},
-        {label:'Gemini', dotId:'dotM', ...data.engines.gemini},
-        {label:'Perplexity', dotId:'dotP', ...data.engines.perplexity},
-        {label:'Claude', dotId:'dotC', ...data.engines.claude}
-      ].map(e => ({...e, pos: 15 + rand()*70}));
+      engines = data.engines.map(e => ({...e, pos: 15 + rand()*70}));
       zoneOfInvisibility = data.zoneOfInvisibility || [];
     } catch(err){
       console.warn('Бекенд недоступний, переходжу в демо-режим:', err);
@@ -777,6 +920,25 @@ form.addEventListener('submit', async function(e){
       const competitors = [...FAKE_COMPETITORS].sort(() => rand() - 0.5).slice(0, 2 + Math.floor(rand()*3));
       return { query: q, engines: engineResults, competitors, competitorsSource: 'demo' };
     });
+
+    // Демо-режим: та сама жива панель статусу, але кроки завершуються
+    // за таймером, а не реальними мережевими відповідями.
+    const statusRows = engineDefs.map(e => ({ id: 'st-' + e.key, label: e.label }))
+      .concat(demoQueries.map((q, i) => ({ id: 'st-zone-' + i, label: `Нішевий запит ${i+1}: «${q}»` })));
+    renderStatusRows(statusRows);
+    document.getElementById('scanStatus').hidden = false;
+
+    await new Promise(resolve => {
+      let i = 0;
+      const allRows = engineDefs.map((e,idx) => ({id:'st-'+e.key, hit:engines[idx].hit}))
+        .concat(zoneOfInvisibility.map((zq,idx) => ({id:'st-zone-'+idx, hit: Object.values(zq.engines).some(v=>v.mentionedBrand)})));
+      const timer = setInterval(() => {
+        if(i > 0) setRowDone(allRows[i-1].id, allRows[i-1].hit ? 'done-hit' : 'done-miss', allRows[i-1].hit ? 'згадує' : 'не згадує');
+        if(i >= allRows.length){ clearInterval(timer); resolve(); return; }
+        setRowActive(allRows[i].id);
+        i++;
+      }, 260);
+    });
   }
 
   const widthScore = Math.round(18 + rand()*72);
@@ -795,6 +957,7 @@ form.addEventListener('submit', async function(e){
   const pickedIssues = shuffled.slice(0,3);
 
   setTimeout(() => {
+    document.getElementById('scanStatus').hidden = true;
     document.getElementById('unlockGate').hidden = false;
     document.getElementById('unlockedNote').hidden = true;
     document.getElementById('leadName').value = '';

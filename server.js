@@ -321,6 +321,58 @@ app.post('/api/scan', async (req, res) => {
   }
 });
 
+// ---------- Гранулярні ендпоінти для живого прогресу сканування ----------
+// Той самий результат, що й /api/scan, але розбитий на окремі виклики —
+// фронтенд робить кілька паралельних запитів і оновлює статус кожного
+// кроку по мірі того, як він реально завершується.
+
+app.post('/api/scan-engine', async (req, res) => {
+  try {
+    const { brand, niche, engine } = req.body || {};
+    if (!brand || typeof brand !== 'string') {
+      return res.status(400).json({ error: 'Поле "brand" обовʼязкове' });
+    }
+    const caller = ENGINE_CALLERS[engine];
+    if (!caller) {
+      return res.status(400).json({ error: `Невідома система: ${engine}` });
+    }
+    const [query] = buildQueries(brand, niche);
+    const resp = await caller(query).catch(e => ({ error: String(e) }));
+    if (resp.error) {
+      return res.json({ error: resp.error });
+    }
+    res.json(checkMention(resp.text, brand));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Внутрішня помилка сервера' });
+  }
+});
+
+// Повертає лише текст нішевих запитів (без виконання) — щоб фронтенд міг
+// одразу намалювати список кроків прогресу, ще до того, як почнеться сам
+// пошук.
+app.post('/api/discovery-queries', (req, res) => {
+  const { niche } = req.body || {};
+  res.json({ queries: buildDiscoveryQueries(niche) });
+});
+
+app.post('/api/zone-query', async (req, res) => {
+  try {
+    const { brand, query } = req.body || {};
+    if (!brand || typeof brand !== 'string') {
+      return res.status(400).json({ error: 'Поле "brand" обовʼязкове' });
+    }
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({ error: 'Поле "query" обовʼязкове' });
+    }
+    const result = await runDiscoveryQuery(query, brand);
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Внутрішня помилка сервера' });
+  }
+});
+
 // Приймає контакт, залишений за розблокування повного звіту.
 
 // Формує PDF-звіт із даних скану, які прислав фронтенд (той самий скан,
