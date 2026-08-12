@@ -477,7 +477,6 @@
     <div class="hero-helper">Введіть назву або адресу сайту — без цього AI нема кого шукати</div>
 
     <div class="hero-meta">Кілька реальних запитів · 4 AI-системи (ChatGPT, Claude, Gemini, Perplexity) · ~1 хвилина</div>
-    <div class="mode-note" id="modeNote">Перевірка режиму підключення...</div>
   </section>
 
   <section class="section">
@@ -487,7 +486,7 @@
       <div class="how-card">
         <div class="how-num">1</div>
         <h3>Вводите назву</h3>
-        <p>Компанія чи особистий бренд. Без анкет і реєстрацій.</p>
+        <p>Компанія чи сайт. Без анкет і реєстрацій.</p>
       </div>
       <div class="how-card">
         <div class="how-num">2</div>
@@ -510,7 +509,6 @@
       <div class="stat-card"><div class="stat-num">кожен 2-й</div><div class="stat-label">з тих, хто перевіряв, — себе у відповідях не знайшов</div></div>
       <div class="stat-card"><div class="stat-num">64%</div><div class="stat-label">платять за рекламу, яка дорожчає з кожним місяцем</div></div>
     </div>
-    <div class="mode-note">Орієнтовні дані по ринку — за бажанням замініть на власне опитування клієнтів із посиланням на джерело.</div>
   </section>
 
   <section class="section">
@@ -645,9 +643,6 @@
   </section>
 
   <footer>
-    Відповіді AI — на дату перевірки, не факти про бізнес. Осі "Широта / Глибина / Точка збору" — ілюстративна
-    оцінка. Блок ChatGPT/Gemini/Perplexity/Claude вище показує результат реального запиту, коли підключено
-    бекенд — інакше працює демо-режим із симуляцією.<br>
     © Top Marketing · Прилад AI-Видимість
   </footer>
 
@@ -658,13 +653,6 @@
 // (див. /ai-visibility-backend/README.md). Поки що тут порожньо — тому
 // сканер працює в демо-режимі із симульованими даними.
 const API_URL = 'https://ai-visibility-backend-ybg2.onrender.com/api/scan';
-
-const modeNote = document.getElementById('modeNote');
-if(API_URL){
-  modeNote.innerHTML = 'Режим: <b>реальна перевірка</b> через підключений бекенд';
-} else {
-  modeNote.innerHTML = 'Режим: <b>демо</b> (симульовані дані) — впишіть API_URL у коді, щоб увімкнути реальну перевірку';
-}
 
 function hashCode(str){
   let h = 0;
