@@ -639,6 +639,35 @@ app.get('/api/debug-search', async (req, res) => {
   res.json({ query, ...result });
 });
 
+// Показує СИРИЙ текст відповіді конкретної системи поруч із тим, що
+// checkMention з нього виснував — щоб бачити, чому вердикт саме такий,
+// а не гадати наосліп.
+// Приклад: GET /api/debug-mention?brand=Top%20Marketing&niche=маркетинг,%20Київ&engine=chatgpt
+app.get('/api/debug-mention', async (req, res) => {
+  try {
+    const brand = req.query.brand || 'Тестовий Бренд';
+    const niche = req.query.niche || '';
+    const engine = req.query.engine || 'chatgpt';
+    const caller = ENGINE_CALLERS[engine];
+    if (!caller) return res.status(400).json({ error: `Невідома система: ${engine}` });
+
+    const [query] = buildQueries(brand, niche);
+    const resp = await caller(query).catch(e => ({ error: String(e) }));
+    if (resp.error) return res.json({ query, error: resp.error });
+
+    const result = await checkMention(resp.text, brand);
+    res.json({
+      query,
+      brand,
+      rawText: resp.text,
+      matchCandidates: brandMatchCandidates(brand),
+      result
+    });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
