@@ -386,16 +386,16 @@
   }
   .lock-badge-mini .lk{font-size:11px;}
 
-  .locked-block{position:relative; margin-top:10px; border-radius:2px; overflow:hidden;}
-  .locked-block-content{filter:blur(7px); user-select:none; pointer-events:none; opacity:.75;}
+  .locked-block{position:relative; margin-top:10px; border-radius:2px; overflow:hidden; min-height:120px; background:var(--bg-alt); border:1px solid var(--border);}
+  .locked-block-content{filter:blur(6px); user-select:none; pointer-events:none; opacity:.9; padding:14px 16px;}
   .locked-block-row{
-    display:flex; gap:10px; padding:9px 0; border-top:1px solid var(--border); font-size:14px; color:var(--ink);
+    display:flex; gap:10px; padding:9px 0; border-top:1px solid var(--border); font-size:15px; color:var(--ink); font-weight:600;
   }
   .locked-block-row:first-child{border-top:none;}
   .locked-block-row .mark{color:var(--red); flex:none;}
   .locked-block-overlay{
     position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:8px; background:linear-gradient(180deg, rgba(28,34,42,.35), rgba(28,34,42,.85) 70%);
+    gap:8px; background:linear-gradient(180deg, rgba(14,17,20,.05), rgba(14,17,20,.45) 60%, rgba(14,17,20,.6));
   }
   .locked-block-overlay .lk-big{
     width:44px; height:44px; border-radius:50%; background:var(--orange); color:#14181d;
@@ -780,9 +780,9 @@
 
     <div class="locked-block" id="issuesBlurBlock">
       <div class="locked-block-content">
-        <div class="locked-block-row"><span class="mark">✕</span><span>████████████████████ ██████ ████████</span></div>
-        <div class="locked-block-row"><span class="mark">✕</span><span>███████████ ████████ ████ ███████████████</span></div>
-        <div class="locked-block-row"><span class="mark">✕</span><span>██████████████ ██████████ ██ ███████ ███████</span></div>
+        <div class="locked-block-row"><span class="mark">✕</span><span>Сайт не має жодної перевірюваної цифри чи джерела на головній</span></div>
+        <div class="locked-block-row"><span class="mark">✕</span><span>Профілі на різних майданчиках ведуть на різні сторінки бренду</span></div>
+        <div class="locked-block-row"><span class="mark">✕</span><span>Останній помітний матеріал вийшов понад три роки тому назад</span></div>
       </div>
       <div class="locked-block-overlay">
         <div class="lk-big">🔒</div>
