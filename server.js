@@ -241,12 +241,25 @@ async function checkMention(text, brand) {
 
 // ---------- Виклики AI-систем ----------
 
+// Обгортка з одним автоматичним повтором при HTTP 429 (ліміт швидкості) —
+// безкоштовні тарифи AI-провайдерів часто мають жорсткі ліміти на
+// запити/хвилину, і коротка пауза й повторна спроба вирішують це в
+// більшості випадків, замість того щоб одразу падати з помилкою.
+async function fetchWithRetry(url, options, retryDelayMs = 4000) {
+  let res = await fetch(url, options);
+  if (res.status === 429) {
+    await new Promise(r => setTimeout(r, retryDelayMs));
+    res = await fetch(url, options);
+  }
+  return res;
+}
+
 async function askChatGPT(query) {
   if (!OPENAI_API_KEY) return { error: 'OPENAI_API_KEY не налаштовано' };
   // Responses API + вбудований інструмент web_search — щоб ChatGPT реально
   // гуглив бренд, а не відповідав лише з пам'яті навчання (де для менших
   // регіональних компаній майже завжди порожньо).
-  const res = await fetch('https://api.openai.com/v1/responses', {
+  const res = await fetchWithRetry('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -279,7 +292,7 @@ async function askChatGPT(query) {
 async function askGemini(query) {
   if (!GEMINI_API_KEY) return { error: 'GEMINI_API_KEY не налаштовано' };
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -299,7 +312,7 @@ async function askGemini(query) {
 
 async function askPerplexity(query) {
   if (!PERPLEXITY_API_KEY) return { error: 'PERPLEXITY_API_KEY не налаштовано' };
-  const res = await fetch('https://api.perplexity.ai/chat/completions', {
+  const res = await fetchWithRetry('https://api.perplexity.ai/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -317,7 +330,7 @@ async function askPerplexity(query) {
 
 async function askClaude(query) {
   if (!ANTHROPIC_API_KEY) return { error: 'ANTHROPIC_API_KEY не налаштовано' };
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetchWithRetry('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
