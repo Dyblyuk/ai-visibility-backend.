@@ -293,6 +293,50 @@ const ENGINE_CALLERS = {
 // Просить Claude знайти РЕАЛЬНИХ гравців ринку через вбудований інструмент
 // веб-пошуку — це вже не здогадка з чужої відповіді, а фактичний пошук
 // в інтернеті на момент сканування.
+// Якщо користувач не вказав нішу — визначаємо її самі через веб-пошук,
+// щоб "зона невидимості" все одно спрацювала, а не просто мовчала.
+async function inferNiche(brand) {
+  if (!ANTHROPIC_API_KEY) return { niche: '', error: 'ANTHROPIC_API_KEY не налаштовано' };
+
+  const prompt = `Використай пошук в інтернеті, щоб визначити, чим займається компанія чи бренд "${brand}" ` +
+    `і де вона розташована (місто чи країна). Поверни ЛИШЕ короткий опис у форматі ` +
+    `"сфера діяльності, місто" (наприклад: "стоматологічна клініка, Київ" або "маркетингова агенція, Україна"), ` +
+    `без жодних пояснень до чи після. Якщо через пошук не вдалось нічого знайти про цю компанію — ` +
+    `поверни рівно слово: невідомо`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: CLAUDE_MODEL,
+        max_tokens: 200,
+        messages: [{ role: 'user', content: prompt }],
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }]
+      })
+    });
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => '');
+      console.error(`inferNiche: Claude HTTP ${res.status} — ${bodyText}`);
+      return { niche: '', error: `Claude+search HTTP ${res.status}` };
+    }
+    const data = await res.json();
+    const text = (data?.content || []).filter(b => b.type === 'text').map(b => b.text).join(' ').trim();
+    const cleaned = text.replace(/^["'«]|["'»]$/g, '').trim();
+    if (!cleaned || cleaned.toLowerCase().includes('невідомо')) {
+      return { niche: '' };
+    }
+    return { niche: cleaned.slice(0, 120) };
+  } catch (err) {
+    console.error('inferNiche: виняток', err);
+    return { niche: '', error: String(err) };
+  }
+}
+
 async function findRealCompetitors(query, brand) {
   if (!ANTHROPIC_API_KEY) return { competitors: [], error: 'ANTHROPIC_API_KEY не налаштовано' };
 
@@ -448,9 +492,29 @@ app.post('/api/scan-engine', async (req, res) => {
 // Повертає лише текст нішевих запитів (без виконання) — щоб фронтенд міг
 // одразу намалювати список кроків прогресу, ще до того, як почнеться сам
 // пошук.
-app.post('/api/discovery-queries', (req, res) => {
-  const { niche } = req.body || {};
-  res.json({ queries: buildDiscoveryQueries(niche) });
+app.post('/api/discovery-queries', async (req, res) => {
+  try {
+    const { brand, niche } = req.body || {};
+    let effectiveNiche = (niche || '').trim();
+    let inferred = false;
+
+    if (!effectiveNiche && brand) {
+      const result = await inferNiche(brand);
+      if (result.niche) {
+        effectiveNiche = result.niche;
+        inferred = true;
+      }
+    }
+
+    res.json({
+      queries: buildDiscoveryQueries(effectiveNiche),
+      niche: effectiveNiche,
+      inferred
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Внутрішня помилка сервера' });
+  }
 });
 
 app.post('/api/zone-query', async (req, res) => {

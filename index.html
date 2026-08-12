@@ -735,6 +735,7 @@
 
   <section class="issues" id="issues" hidden>
     <h3>Зона невидимості — так питають клієнти, і ось кого реально знаходить пошук замість вас</h3>
+    <div class="mode-note" id="nicheInferredNote" hidden></div>
     <div class="zone-list" id="zoneList"></div>
   </section>
 
@@ -878,14 +879,14 @@ async function fetchScanEngine(brand, niche, engineKey){
   return res.json();
 }
 
-async function fetchDiscoveryQueries(niche){
+async function fetchDiscoveryQueries(brand, niche){
   const res = await fetch(API_BASE + '/api/discovery-queries', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({niche})
+    body: JSON.stringify({brand, niche})
   });
   if(!res.ok) throw new Error('HTTP ' + res.status);
   const data = await res.json();
-  return data.queries || [];
+  return data;
 }
 
 async function fetchZoneQuery(brand, query){
@@ -902,6 +903,7 @@ async function fetchZoneQuery(brand, query){
 // стартував/завершився, а не за вигаданим таймером.
 async function runLiveScan(name, niche){
   document.getElementById('scanStatusTitle').textContent = `Питаю AI про «${name}»`;
+  const nicheGiven = Boolean(niche);
 
   const statusRows = [
     { id: 'st-recognize', label: `Розпізнаю «${name}»: бізнес, ніша, місто…` },
@@ -909,7 +911,9 @@ async function runLiveScan(name, niche){
     { id: 'st-claude', label: `Claude згадує, чи чув про «${name}»…` },
     { id: 'st-gemini', label: `Gemini перевіряє свої знання про «${name}»…` },
     { id: 'st-perplexity', label: `Perplexity шукає «${name}» в інтернеті…` },
-    { id: 'st-zone', label: `Генерую запити, якими вас шукають клієнти…` },
+    { id: 'st-zone', label: nicheGiven
+        ? `Генерую запити, якими вас шукають клієнти…`
+        : `Визначаю нішу через пошук і генерую запити клієнтів…` },
     { id: 'st-score', label: `Рахую AI-Visibility Score…` },
     { id: 'st-assemble', label: `Збираю все в один звіт…` }
   ];
@@ -922,7 +926,7 @@ async function runLiveScan(name, niche){
   await new Promise(r => setTimeout(r, 350));
   setRowDone('st-recognize', 'done-hit', '');
 
-  const discoveryQueriesPromise = fetchDiscoveryQueries(niche);
+  const discoveryQueriesPromise = fetchDiscoveryQueries(name, niche);
 
   const enginePromises = ENGINE_DEFS_LIVE.map(async (e) => {
     const id = 'st-' + e.key;
@@ -945,7 +949,11 @@ async function runLiveScan(name, niche){
   });
 
   setRowActive('st-zone');
-  const discoveryQueries = await discoveryQueriesPromise;
+  const discoveryData = await discoveryQueriesPromise;
+  const discoveryQueries = discoveryData.queries || [];
+  const effectiveNiche = discoveryData.niche || niche;
+  const nicheWasInferred = Boolean(discoveryData.inferred);
+
   const zonePromises = discoveryQueries.map(async (q) => {
     try{
       return await fetchZoneQuery(name, q);
@@ -960,8 +968,15 @@ async function runLiveScan(name, niche){
   ]);
 
   const zoneMentionsCount = zoneOfInvisibility.filter(zq => Object.values(zq.engines || {}).some(v => v.mentionedBrand)).length;
-  setRowDone('st-zone', zoneMentionsCount > 0 ? 'done-hit' : 'done-miss',
-    zoneOfInvisibility.length ? `згадують у ${zoneMentionsCount} з ${zoneOfInvisibility.length}` : 'пропущено (нема ніші)');
+  let zoneRowLabel;
+  if(!zoneOfInvisibility.length){
+    zoneRowLabel = 'не вдалось визначити нішу';
+  } else if(nicheWasInferred){
+    zoneRowLabel = `визначив нішу: «${effectiveNiche}»`;
+  } else {
+    zoneRowLabel = `згадують у ${zoneMentionsCount} з ${zoneOfInvisibility.length}`;
+  }
+  setRowDone('st-zone', zoneMentionsCount > 0 ? 'done-hit' : 'done-miss', zoneRowLabel);
 
   setRowActive('st-score');
   await new Promise(r => setTimeout(r, 300));
@@ -971,7 +986,7 @@ async function runLiveScan(name, niche){
   await new Promise(r => setTimeout(r, 300));
   setRowDone('st-assemble', 'done-hit', '');
 
-  return { engines, zoneOfInvisibility };
+  return { engines, zoneOfInvisibility, effectiveNiche, nicheWasInferred };
 }
 
 form.addEventListener('submit', async function(e){
@@ -994,6 +1009,7 @@ form.addEventListener('submit', async function(e){
   let engines;
   let usedReal = false;
   let zoneOfInvisibility = [];
+  let nicheWasInferred = false;
 
   if(API_URL){
     try{
@@ -1001,6 +1017,10 @@ form.addEventListener('submit', async function(e){
       usedReal = true;
       engines = data.engines.map(e => ({...e, pos: 15 + rand()*70}));
       zoneOfInvisibility = data.zoneOfInvisibility || [];
+      if(data.nicheWasInferred && data.effectiveNiche){
+        niche = data.effectiveNiche;
+        nicheWasInferred = true;
+      }
     } catch(err){
       console.warn('Бекенд недоступний, переходжу в демо-режим:', err);
     }
@@ -1021,7 +1041,11 @@ form.addEventListener('submit', async function(e){
       return {...e, verdict, hit: verdict === 'know', snippet:'', score, pos: 15 + rand()*70};
     });
 
-    const nicheLabel = niche || 'вашій ніші';
+    if(!niche){
+      niche = 'демо-ніша для ' + name;
+      nicheWasInferred = true;
+    }
+    const nicheLabel = niche;
     const demoQueries = [
       `Порадь кілька найкращих варіантів: ${nicheLabel}`,
       `Де знайти або замовити ${nicheLabel}? Порадь 3-5 варіантів`,
@@ -1111,6 +1135,14 @@ form.addEventListener('submit', async function(e){
     unlockBtnReset.textContent = 'Отримати повний звіт і консультацію →';
 
     document.getElementById('panelBrandName').textContent = name.toUpperCase() + (niche ? ' · ' + niche.toUpperCase() : '');
+
+    const nicheInferredNoteEl = document.getElementById('nicheInferredNote');
+    if(nicheWasInferred && niche){
+      nicheInferredNoteEl.textContent = `🔍 Нішу й місто ви не вказали — AI сам визначив через пошук: «${niche}». Якщо неточно, вкажіть нішу вручну через "Уточнити" і скануйте ще раз.`;
+      nicheInferredNoteEl.hidden = false;
+    } else {
+      nicheInferredNoteEl.hidden = true;
+    }
     document.getElementById('scoreFootnote').textContent = usedReal
       ? 'реальний запит · зафіксовано зараз'
       : 'демо-оцінка · зафіксовано зараз';
