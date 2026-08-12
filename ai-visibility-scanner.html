@@ -15,12 +15,13 @@
     --ink:#eef1f4;
     --ink-dim:#8b97a6;
     --ink-faint:#5b6570;
-    --orange:#ff6a1a;
+    --orange:#ff781e;
+    --orange-light:#ffa155;
     --orange-dim:#c9531a;
     --cyan:#4fd1c5;
     --red:#ff5a5f;
     --border:rgba(255,255,255,.10);
-    --border-strong:rgba(255,106,26,.45);
+    --border-strong:rgba(255,120,30,.45);
     --font-mono:'JetBrains Mono', ui-monospace, monospace;
     --font-body:'Manrope', -apple-system, sans-serif;
   }
@@ -28,9 +29,11 @@
   html,body{background:var(--bg); color:var(--ink); font-family:var(--font-body); overflow-x:hidden;}
   body{
     background-image:
+      radial-gradient(ellipse 900px 500px at 15% -5%, rgba(255,120,30,.16), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(79,209,197,.08), transparent 55%),
       linear-gradient(var(--border) 1px, transparent 1px),
       linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 40px 40px;
+    background-size: auto, auto, 40px 40px, 40px 40px;
     background-attachment: fixed;
   }
   .page{max-width:920px; margin:0 auto; padding:0 24px 80px;}
@@ -42,14 +45,7 @@
     padding:22px 0; border-bottom:1px solid var(--border);
   }
   .logo{display:flex; align-items:center; gap:10px;}
-  .logo-badge{
-    width:34px; height:34px; background:var(--orange); color:#14181d;
-    display:flex; align-items:center; justify-content:center;
-    font-family:var(--font-mono); font-weight:800; font-size:14px; border-radius:3px;
-  }
-  .logo-text{font-family:var(--font-mono); font-size:14px; letter-spacing:.04em; line-height:1.15;}
-  .logo-text b{color:var(--orange);}
-  .logo-text span{display:block; font-size:9px; color:var(--ink-faint); letter-spacing:.14em; margin-top:2px;}
+  .logo-img{height:30px; width:auto; display:block;}
   .engines-nav{display:flex; gap:18px; font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; color:var(--ink-dim);}
   .engines-nav span{display:flex; align-items:center; gap:6px;}
   .dot{width:6px; height:6px; border-radius:50%; background:var(--ink-faint); display:inline-block;}
@@ -69,13 +65,16 @@
     font-size:clamp(28px, 4.4vw, 46px); line-height:1.12; letter-spacing:-.01em;
     margin:20px 0 16px; font-weight:800; max-width:17ch;
   }
-  h1 .accent{color:var(--orange);}
+  h1 .accent{
+    background:linear-gradient(100deg, var(--orange), var(--orange-light));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
   .lede{color:var(--ink-dim); font-size:16px; line-height:1.6; max-width:56ch; margin-bottom:36px;}
 
   .scan-form{
     display:grid; grid-template-columns:1fr 1fr; gap:14px;
     background:var(--panel); border:1px solid var(--border); padding:22px;
-    position:relative;
+    position:relative; box-shadow:0 20px 60px -30px rgba(255,120,30,.35);
   }
   .scan-form::before, .scan-form::after,
   .instrument-panel::before, .instrument-panel::after{
@@ -91,17 +90,17 @@
   .scan-form input{
     background:var(--bg-alt); border:1px solid var(--border); color:var(--ink);
     padding:12px 12px; font-family:var(--font-body); font-size:14px; border-radius:2px;
-    outline:none;
+    outline:none; transition:border-color .15s ease;
   }
   .scan-form input:focus{border-color:var(--orange);}
   .btn-scan{
     grid-column:1/-1; margin-top:6px;
-    background:var(--orange); color:#14181d; border:none; padding:14px;
+    background:linear-gradient(100deg, var(--orange), var(--orange-light)); color:#14181d; border:none; padding:14px;
     font-family:var(--font-mono); font-weight:700; letter-spacing:.08em; font-size:13px;
     cursor:pointer; text-transform:uppercase; border-radius:2px;
     transition:transform .15s ease, box-shadow .15s ease;
   }
-  .btn-scan:hover{transform:translateY(-1px); box-shadow:0 6px 18px rgba(255,106,26,.28);}
+  .btn-scan:hover{transform:translateY(-1px); box-shadow:0 10px 26px -6px rgba(255,120,30,.45);}
   .btn-scan:disabled{opacity:.5; cursor:progress;}
 
   .mode-note{
@@ -114,7 +113,7 @@
   .hero-badge{
     display:inline-flex; align-items:center; gap:8px;
     font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; color:var(--cyan);
-    text-transform:uppercase;
+    text-transform:uppercase; border:1px solid rgba(79,209,197,.35); padding:6px 12px; border-radius:2px;
   }
   .hero-badge::before{content:"●"; font-size:8px; color:var(--cyan);}
   .hero-sub{color:var(--ink-dim); font-size:15px; line-height:1.6; max-width:56ch; margin:14px 0 28px;}
@@ -141,7 +140,8 @@
 
   /* ---------- HOW IT WORKS ---------- */
   .how-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
-  .how-card{background:var(--panel); border:1px solid var(--border); padding:20px;}
+  .how-card{background:var(--panel); border:1px solid var(--border); padding:20px; border-top:2px solid var(--orange); transition:transform .15s ease, border-color .15s ease;}
+  .how-card:hover{transform:translateY(-2px);}
   .how-num{
     width:30px; height:30px; border:1px solid var(--orange); color:var(--orange);
     font-family:var(--font-mono); font-weight:700; display:flex; align-items:center; justify-content:center;
@@ -152,7 +152,8 @@
 
   /* ---------- PREVIEW CARDS (what you'll learn) ---------- */
   .preview-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px;}
-  .preview-card{background:var(--panel); border:1px solid var(--border); padding:20px;}
+  .preview-card{background:var(--panel); border:1px solid var(--border); padding:20px; transition:transform .15s ease, box-shadow .15s ease;}
+  .preview-card:hover{transform:translateY(-2px); box-shadow:0 14px 30px -18px rgba(255,120,30,.4);}
   .preview-card h3{font-size:15px; margin:10px 0 6px;}
   .preview-card p{font-size:12px; color:var(--ink-dim); line-height:1.6;}
   .preview-visual{font-family:var(--font-mono); display:flex; align-items:baseline; gap:10px;}
@@ -328,7 +329,7 @@
 
   /* ---------- STAT GRID ---------- */
   .stat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px;}
-  .stat-card{background:var(--panel); border:1px solid var(--border); padding:18px; text-align:center;}
+  .stat-card{background:var(--panel); border:1px solid var(--border); padding:18px; text-align:center; border-bottom:2px solid var(--orange);}
   .stat-num{font-family:var(--font-mono); font-size:26px; font-weight:800; color:var(--orange);}
   .stat-label{font-size:11px; color:var(--ink-dim); margin-top:8px; line-height:1.5;}
 
@@ -416,8 +417,7 @@
 
   <div class="topbar">
     <div class="logo">
-      <div class="logo-badge">TM</div>
-      <div class="logo-text"><b>TOP</b> MARKETING<span>DIGITAL PERFORMANCE AGENCY</span></div>
+      <img src="assets/logo.png" alt="Top Marketing" class="logo-img">
     </div>
     <div class="engines-nav">
       <span><i class="dot" id="dotG"></i>ChatGPT</span>
@@ -433,12 +433,12 @@
     <p class="hero-sub">ChatGPT, Claude, Gemini і Perplexity вже радять ваших конкурентів. Перевірте за хвилину, чи знають вони про вас.</p>
 
     <form class="scan-form" id="scanForm">
-      <label>Назва компанії або ваше ім'я
-        <input type="text" id="brandName" placeholder="Напр. Top Marketing" required>
+      <label>Назва компанії, ім'я або сайт
+        <input type="text" id="brandName" placeholder="Напр. Top Marketing або topmarketing.com.ua" required>
       </label>
       <button type="submit" class="btn-scan" id="scanBtn">Перевірити →</button>
     </form>
-    <div class="hero-helper">Введіть назву — без неї AI нема кого шукати</div>
+    <div class="hero-helper">Введіть назву або адресу сайту — без цього AI нема кого шукати</div>
 
     <button type="button" class="refine-toggle" id="refineToggle">Уточнити (місто, ніша) ▾</button>
     <div class="refine-panel" id="refinePanel" hidden>
