@@ -519,6 +519,11 @@
     <div class="hero-meta">Кілька реальних запитів · 4 AI-системи (ChatGPT, Claude, Gemini, Perplexity) · ~1 хвилина</div>
   </section>
 
+  <section class="scan-status" id="scanStatus" hidden>
+    <div class="scan-status-head"><span class="spin"></span> Сканування триває...</div>
+    <div id="statusList"></div>
+  </section>
+
   <section class="section">
     <div class="section-eyebrow">Як це працює</div>
     <h2>Три кроки, і все на екрані</h2>
@@ -601,11 +606,6 @@
         <p>Це найкорисніший результат: тепер ви знаєте це раніше за конкурентів. Звіт покаже, хто вже зайняв ваше місце, і з чого почати, щоб AI почав рекомендувати саме вас.</p>
       </details>
     </div>
-  </section>
-
-  <section class="scan-status" id="scanStatus" hidden>
-    <div class="scan-status-head"><span class="spin"></span> Сканування триває...</div>
-    <div id="statusList"></div>
   </section>
 
   <section class="instrument-panel" id="panel" hidden>
@@ -828,7 +828,9 @@ async function runLiveScan(name, niche){
   const statusRows = ENGINE_DEFS_LIVE.map(e => ({ id: 'st-' + e.key, label: e.label }))
     .concat(discoveryQueries.map((q, i) => ({ id: 'st-zone-' + i, label: `Нішевий запит ${i+1}: «${q.length > 60 ? q.slice(0,60)+'…' : q}»` })));
   renderStatusRows(statusRows);
-  document.getElementById('scanStatus').hidden = false;
+  const scanStatusEl = document.getElementById('scanStatus');
+  scanStatusEl.hidden = false;
+  scanStatusEl.scrollIntoView({behavior:'smooth', block:'start'});
 
   const enginePromises = ENGINE_DEFS_LIVE.map(async (e) => {
     const id = 'st-' + e.key;
@@ -939,7 +941,9 @@ form.addEventListener('submit', async function(e){
     const statusRows = engineDefs.map(e => ({ id: 'st-' + e.key, label: e.label }))
       .concat(demoQueries.map((q, i) => ({ id: 'st-zone-' + i, label: `Нішевий запит ${i+1}: «${q}»` })));
     renderStatusRows(statusRows);
-    document.getElementById('scanStatus').hidden = false;
+    const scanStatusElDemo = document.getElementById('scanStatus');
+    scanStatusElDemo.hidden = false;
+    scanStatusElDemo.scrollIntoView({behavior:'smooth', block:'start'});
 
     await new Promise(resolve => {
       let i = 0;

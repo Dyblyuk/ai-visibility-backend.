@@ -94,14 +94,35 @@ function buildDiscoveryQueries(niche) {
 
 // Проста перевірка збігу назви — потрібна лише для витягу цитати
 // (snippet), сам вердикт тепер визначає classifyMention нижче.
+// Якщо бренд введено як URL (напр. https://site.ua/), звичайний
+// AI-текст ніколи не міститиме цей рядок дослівно з протоколом і
+// слешем — тому пробуємо кілька варіантів: повний рядок, домен без
+// протоколу, і саму назву без домену верхнього рівня.
+function brandMatchCandidates(brand) {
+  const raw = brand.trim();
+  const candidates = new Set([raw.toLowerCase()]);
+  const cleaned = raw.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '');
+  if (cleaned) {
+    candidates.add(cleaned.toLowerCase());
+    const host = cleaned.split('/')[0];
+    candidates.add(host.toLowerCase());
+    const namePart = host.split('.')[0];
+    if (namePart && namePart.length > 2) candidates.add(namePart.toLowerCase());
+  }
+  return [...candidates].filter(Boolean);
+}
+
 function findSnippet(text, brand) {
   const normalizedText = text.toLowerCase();
-  const normalizedBrand = brand.toLowerCase().trim();
-  const idx = normalizedText.indexOf(normalizedBrand);
-  if (idx === -1) return '';
-  const start = Math.max(0, idx - 80);
-  const end = Math.min(text.length, idx + normalizedBrand.length + 80);
-  return (start > 0 ? '…' : '') + text.slice(start, end).trim() + (end < text.length ? '…' : '');
+  for (const candidate of brandMatchCandidates(brand)) {
+    const idx = normalizedText.indexOf(candidate);
+    if (idx !== -1) {
+      const start = Math.max(0, idx - 80);
+      const end = Math.min(text.length, idx + candidate.length + 80);
+      return (start > 0 ? '…' : '') + text.slice(start, end).trim() + (end < text.length ? '…' : '');
+    }
+  }
+  return '';
 }
 
 // Оцінює ЯКІСТЬ згадки бренду через окремий класифікаційний виклик
@@ -136,18 +157,29 @@ async function checkMention(text, brand) {
   if (!text || !brand) return { verdict: 'unknown', hit: false, snippet: '' };
 
   const snippetFromText = findSnippet(text, brand);
-  const classification = await classifyMention(text, brand);
-
-  let verdict = classification.verdict;
-  if (!verdict) {
-    // Класифікатор недоступний (немає ключа, помилка API) — чесний
-    // бінарний фолбек замість тримовного вердикту.
-    verdict = snippetFromText ? 'know' : 'unknown';
+  if (snippetFromText) {
+    // Пряма текстова згадка бренду — найсильніший можливий сигнал,
+    // довіряємо йому напряму й не витрачаємо виклик на класифікатор.
+    return { verdict: 'know', hit: true, snippet: snippetFromText };
   }
 
-  const snippet = snippetFromText || (verdict !== 'unknown' ? text.trim().slice(0, 160) + (text.length > 160 ? '…' : '') : '');
+  // Прямої згадки немає — питаємо класифікатор, чи це "плутає" щось
+  // невиразне/схоже, чи справді "не чув" взагалі про бренд.
+  const classification = await classifyMention(text, brand);
+  let verdict = classification.verdict;
+  if (!verdict) {
+    verdict = 'unknown'; // класифікатор недоступний — чесний дефолт без прямої згадки
+  } else if (verdict === 'know') {
+    // Без прямого підрядка "впевнене знання" неможливе за визначенням —
+    // найбільше, що це може бути, це непряма/невиразна згадка.
+    verdict = 'confused';
+  }
 
-  return { verdict, hit: verdict === 'know', snippet, classifierError: classification.error || null };
+  const snippet = verdict !== 'unknown'
+    ? text.trim().slice(0, 160) + (text.length > 160 ? '…' : '')
+    : '';
+
+  return { verdict, hit: false, snippet, classifierError: classification.error || null };
 }
 
 // ---------- Виклики AI-систем ----------
@@ -303,7 +335,7 @@ async function runDiscoveryQuery(query, brand) {
       engineResults[key] = { error: resp.error };
       return;
     }
-    const mentionedBrand = resp.text.toLowerCase().includes(brand.toLowerCase());
+    const mentionedBrand = Boolean(findSnippet(resp.text, brand));
     engineResults[key] = { mentionedBrand };
     rawTexts.push(resp.text);
   }));
