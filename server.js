@@ -44,6 +44,12 @@ const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-5';
 // Gemini API models get deprecated/shut down fairly often — gemini-1.5-flash
 // no longer exists as of 2026. Override via GEMINI_MODEL if this goes stale too.
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+// ChatGPT через Responses API з веб-пошуком. Точні назви моделі й типу
+// інструменту в OpenAI змінюються — якщо почне падати з помилкою про
+// невідому модель чи tool type, звірте з поточною документацією
+// developers.openai.com/api/docs/guides/tools-web-search і поправте тут.
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1';
+const OPENAI_WEB_SEARCH_TOOL = process.env.OPENAI_WEB_SEARCH_TOOL || 'web_search_preview';
 
 // "Зона невидимості" — скільки нішевих запитів ставити і яким системам.
 // Кожен запит іде в кожен обраний engine, і якщо бренд не згадано —
@@ -84,10 +90,16 @@ function buildQueries(brand, niche) {
 function buildDiscoveryQueries(niche) {
   const n = niche && niche.trim() ? niche.trim() : null;
   if (!n) return [];
+  // Різні формулювання — так реально гуглять і питають AI: хтось шукає
+  // "найкращі варіанти", хтось "де замовити", хтось перевіряє відгуки.
+  // Ширший набір формулювань ловить більше реальних клієнтських фраз.
   const templates = [
     `Порадь кілька найкращих варіантів: ${n}. Назви конкретні компанії чи бренди.`,
     `Де знайти або замовити ${n}? Порадь 3-5 конкретних варіантів.`,
-    `Хто топові гравці у сфері «${n}»? Перелічи компанії чи бренди.`
+    `Хто топові гравці у сфері «${n}»? Перелічи компанії чи бренди.`,
+    `Хто надає послуги «${n}» з хорошими відгуками? Порадь перевірені варіанти.`,
+    `Порівняй кілька компаній у сфері «${n}» — кого порадиш і чому?`,
+    `Яку компанію обрати для «${n}»? Дай конкретні назви з коротким поясненням.`
   ];
   return templates.slice(0, Math.max(1, Math.min(DISCOVERY_QUERY_COUNT, templates.length)));
 }
@@ -231,16 +243,19 @@ async function checkMention(text, brand) {
 
 async function askChatGPT(query) {
   if (!OPENAI_API_KEY) return { error: 'OPENAI_API_KEY не налаштовано' };
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  // Responses API + вбудований інструмент web_search — щоб ChatGPT реально
+  // гуглив бренд, а не відповідав лише з пам'яті навчання (де для менших
+  // регіональних компаній майже завжди порожньо).
+  const res = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${OPENAI_API_KEY}`
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: query }],
-      max_tokens: 500
+      model: OPENAI_MODEL,
+      tools: [{ type: OPENAI_WEB_SEARCH_TOOL }],
+      input: query
     })
   });
   if (!res.ok) {
@@ -249,7 +264,16 @@ async function askChatGPT(query) {
     return { error: `OpenAI HTTP ${res.status}`, detail: bodyText.slice(0, 300) };
   }
   const data = await res.json();
-  return { text: data?.choices?.[0]?.message?.content || '' };
+  let text = data.output_text;
+  if (!text) {
+    // Фолбек, якщо зручного output_text немає у відповіді — збираємо
+    // текст вручну з масиву output.
+    const messageItems = (data.output || []).filter(i => i.type === 'message');
+    text = messageItems
+      .flatMap(m => (m.content || []).filter(c => c.type === 'output_text').map(c => c.text))
+      .join(' ');
+  }
+  return { text: text || '' };
 }
 
 async function askGemini(query) {
@@ -259,7 +283,8 @@ async function askGemini(query) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: query }] }]
+      contents: [{ parts: [{ text: query }] }],
+      tools: [{ google_search: {} }]
     })
   });
   if (!res.ok) {
