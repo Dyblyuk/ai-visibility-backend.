@@ -1003,6 +1003,12 @@ form.addEventListener('submit', async function(e){
   if(niche && scaleField && scaleField !== 'в місті') niche += ` (${scaleField})`;
   if(!name) return;
 
+  // Очищаємо поля "Уточнити" одразу після зчитування — щоб стара ніша з
+  // попереднього скану випадково не підставилась для наступного бренду.
+  document.getElementById('brandNicheField').value = '';
+  document.getElementById('brandCity').value = '';
+  document.getElementById('brandScale').value = 'в місті';
+
   btn.disabled = true;
   btn.textContent = 'Сканування...';
   document.body.classList.add('scan-active');
@@ -1140,8 +1146,11 @@ form.addEventListener('submit', async function(e){
     document.getElementById('panelBrandName').textContent = name.toUpperCase() + (niche ? ' · ' + niche.toUpperCase() : '');
 
     const nicheInferredNoteEl = document.getElementById('nicheInferredNote');
-    if(nicheWasInferred && niche){
+    if(niche && nicheWasInferred){
       nicheInferredNoteEl.textContent = `🔍 Нішу й місто ви не вказали — AI сам визначив через пошук: «${niche}». Якщо неточно, вкажіть нішу вручну через "Уточнити" і скануйте ще раз.`;
+      nicheInferredNoteEl.hidden = false;
+    } else if(niche){
+      nicheInferredNoteEl.textContent = `Ніша/місто для цього скану: «${niche}»`;
       nicheInferredNoteEl.hidden = false;
     } else {
       nicheInferredNoteEl.hidden = true;
