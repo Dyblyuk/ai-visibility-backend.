@@ -612,6 +612,13 @@ app.post('/api/zone-query', async (req, res) => {
 
 // Формує PDF-звіт із даних скану, які прислав фронтенд (той самий скан,
 // що вже показаний на сторінці — тут нічого заново не рахується).
+const LOGO_PATH = path.join(process.cwd(), 'assets', 'logo.png');
+const FONT_REGULAR_PATH = path.join(process.cwd(), 'assets', 'fonts', 'PTSans-Regular.ttf');
+const FONT_BOLD_PATH = path.join(process.cwd(), 'assets', 'fonts', 'PTSans-Bold.ttf');
+const PDF_ORANGE = '#F5781E';
+const PDF_INK = '#14181D';
+const PDF_GRAY = '#5B6570';
+
 function buildReportPdf(data) {
   return new Promise((resolve, reject) => {
     try {
@@ -621,57 +628,96 @@ function buildReportPdf(data) {
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
-      doc.fontSize(20).fillColor('#14181d').text('AI-Видимість — детальний звіт', { align: 'left' });
-      doc.moveDown(0.3);
-      doc.fontSize(10).fillColor('#888').text('Top Marketing · topmarketing.com.ua');
-      doc.moveDown();
+      const pageLeft = doc.page.margins.left;
+      const pageRight = doc.page.width - doc.page.margins.right;
 
-      doc.fontSize(11).fillColor('#333');
+      // Дефолтні шрифти PDFKit (Helvetica тощо) не мають кириличних гліфів —
+      // без цього українській текст перетворюється на нечитабельну кашу.
+      doc.registerFont('PT-Sans', FONT_REGULAR_PATH);
+      doc.registerFont('PT-Sans-Bold', FONT_BOLD_PATH);
+      doc.font('PT-Sans');
+
+      function divider(color = PDF_ORANGE, weight = 1.5) {
+        const y = doc.y + 2;
+        doc.moveTo(pageLeft, y).lineTo(pageRight, y).strokeColor(color).lineWidth(weight).stroke();
+        doc.moveDown(0.6);
+      }
+      function sectionTitle(text) {
+        doc.moveDown(0.4);
+        doc.font('PT-Sans-Bold').fontSize(14).fillColor(PDF_ORANGE).text(text);
+        doc.font('PT-Sans');
+        doc.moveDown(0.2);
+      }
+
+      // ---- Шапка з логотипом ----
+      try {
+        doc.image(LOGO_PATH, pageLeft, doc.y, { width: 120 });
+        doc.moveDown(2.4);
+      } catch (e) {
+        // Якщо файл лого з якоїсь причини недоступний — просто пропускаємо,
+        // решта PDF все одно згенерується.
+      }
+
+      doc.font('PT-Sans-Bold').fontSize(20).fillColor(PDF_INK).text('AI-Видимість — детальний звіт');
+      doc.font('PT-Sans');
+      doc.moveDown(0.2);
+      doc.fontSize(10).fillColor(PDF_GRAY).text('topmarketing.com.ua');
+      doc.moveDown(0.4);
+      divider();
+
+      doc.fontSize(11).fillColor(PDF_GRAY);
       doc.text(`Бренд: ${data.brand || '—'}`);
       if (data.niche) doc.text(`Ніша / місто: ${data.niche}`);
       doc.text(`Дата перевірки: ${new Date().toLocaleDateString('uk-UA')}`);
       doc.moveDown();
 
-      doc.fontSize(16).fillColor('#14181d').text(`Загальний бал: ${data.score ?? '—'} / 100`);
+      doc.font('PT-Sans-Bold').fontSize(28).fillColor(PDF_ORANGE).text(`${data.score ?? '—'}`, { continued: true });
+      doc.font('PT-Sans');
+      doc.fontSize(14).fillColor(PDF_GRAY).text(' / 100 — загальний бал AI-видимості');
       doc.moveDown();
 
-      doc.fontSize(14).fillColor('#14181d').text('Результати по AI-системах');
-      doc.moveDown(0.3);
+      sectionTitle('Результати по AI-системах');
+      divider('#E5E5E5', 0.75);
       (data.engines || []).forEach(e => {
         const verdictLabels = { know: 'ЗНАЄ бренд', confused: 'ПЛУТАЄ (невпевнено/схоже)', unknown: 'НЕ ЧУВ про бренд' };
         const verdict = e.error ? 'недоступно під час перевірки' : (verdictLabels[e.verdict] || (e.hit ? 'ЗНАЄ бренд' : 'НЕ ЧУВ про бренд'));
-        doc.fontSize(11).fillColor('#14181d').text(`${e.label}: ${verdict}`);
-        if (e.snippet) doc.fontSize(10).fillColor('#666').text(`   «${e.snippet}»`);
+        doc.fontSize(11).fillColor(PDF_INK).text(`${e.label}: `, { continued: true }).fillColor(PDF_ORANGE).text(verdict);
+        if (e.snippet) doc.fontSize(10).fillColor(PDF_GRAY).text(`   «${e.snippet}»`);
         doc.moveDown(0.2);
       });
       doc.moveDown(0.5);
 
       if ((data.zoneOfInvisibility || []).length) {
-        doc.fontSize(14).fillColor('#14181d').text('Зона невидимості — реальні гравці ринку по запитах');
-        doc.moveDown(0.3);
+        sectionTitle('Зона невидимості — реальні гравці ринку по запитах');
+        divider('#E5E5E5', 0.75);
         data.zoneOfInvisibility.forEach((zq, i) => {
-          doc.fontSize(11).fillColor('#14181d').text(`${i + 1}. ${zq.query}`);
+          doc.fontSize(11).fillColor(PDF_INK).text(`${i + 1}. ${zq.query}`);
           const comp = (zq.competitors || []).join(', ');
-          doc.fontSize(10).fillColor('#666').text(comp ? `    Знайдені гравці: ${comp}` : '    Явних гравців пошук не знайшов — полиця відносно вільна.');
+          doc.fontSize(10).fillColor(PDF_GRAY).text(comp ? `    Знайдені гравці: ${comp}` : '    Явних гравців пошук не знайшов — полиця відносно вільна.');
           doc.moveDown(0.2);
         });
         doc.moveDown(0.5);
       }
 
       if ((data.issues || []).length) {
-        doc.fontSize(14).fillColor('#14181d').text('Що знижує сигнал просто зараз');
-        doc.moveDown(0.3);
+        sectionTitle('Що знижує сигнал просто зараз');
+        divider('#E5E5E5', 0.75);
         data.issues.forEach(txt => {
-          doc.fontSize(11).fillColor('#14181d').text(`•  ${txt}`);
+          doc.fontSize(11).fillColor(PDF_INK).text(`•  ${txt}`);
         });
         doc.moveDown(0.5);
       }
 
       doc.addPage();
-      doc.fontSize(16).fillColor('#14181d').text('Покроковий план дій');
-      doc.moveDown(0.3);
-      doc.fontSize(10).fillColor('#888').text('5 кроків, кожен можна почати сьогодні');
-      doc.moveDown();
+      try {
+        doc.image(LOGO_PATH, pageLeft, doc.y, { width: 90 });
+        doc.moveDown(1.8);
+      } catch (e) {}
+      doc.fontSize(18).fillColor(PDF_INK).text('Покроковий план дій');
+      doc.moveDown(0.15);
+      doc.fontSize(10).fillColor(PDF_GRAY).text('5 кроків, кожен можна почати сьогодні');
+      doc.moveDown(0.4);
+      divider();
 
       const steps = [
         {
@@ -710,17 +756,23 @@ function buildReportPdf(data) {
         }
       ];
       steps.forEach(s => {
-        doc.fontSize(12).fillColor('#14181d').text(s.title);
+        doc.fontSize(12).fillColor(PDF_ORANGE).text(s.title);
         doc.moveDown(0.15);
-        doc.fontSize(10).fillColor('#555').text(s.body);
+        doc.fontSize(10).fillColor(PDF_GRAY).text(s.body);
         doc.moveDown(0.6);
       });
 
       doc.moveDown();
-      doc.fontSize(11).fillColor('#333').text(
-        'Наступний крок: команда Top Marketing допоможе перетворити ці дані на послідовний план ' +
-        'підвищення AI-видимості вашого бренду. Ми звʼяжемось з вами найближчим часом.'
+      divider();
+      doc.fontSize(13).fillColor(PDF_INK).text('Це попередній аналіз — із чіткими рекомендаціями');
+      doc.moveDown(0.2);
+      doc.fontSize(11).fillColor(PDF_GRAY).text(
+        'Кроки вище можна застосувати самостійно вже сьогодні — усе прозоро й покроково. А якщо хочете ' +
+        'системного результату без витрат часу на це самим — Top Marketing може взяти SEO та GEO-просування ' +
+        'в AI-системах на себе.'
       );
+      doc.moveDown(0.6);
+      doc.fontSize(11).fillColor(PDF_ORANGE).text('Обговорити просування з Top Marketing >> topmarketing.com.ua');
 
       doc.end();
     } catch (err) {
