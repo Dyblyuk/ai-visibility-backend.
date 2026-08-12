@@ -153,14 +153,26 @@ async function classifyMention(text, brand) {
   return { verdict: null, error: `незрозуміла відповідь класифікатора: "${res.text.slice(0,60)}"` };
 }
 
+// Проста детермінована оцінка "впевненості" 0-100 по довжині й
+// конкретності цитати — навмисно БЕЗ додаткового виклику AI (дешево,
+// швидко, відтворювано). Це не окрема "методологія", а прозора евристика:
+// довша й конкретніша згадка = вища оцінка.
+function engineConfidenceScore(verdict, snippet) {
+  if (verdict === 'unknown') return 0;
+  const len = (snippet || '').length;
+  const base = verdict === 'know' ? 55 : 20;
+  const bonus = Math.min(40, Math.round(len / 4));
+  return Math.min(100, base + bonus);
+}
+
 async function checkMention(text, brand) {
-  if (!text || !brand) return { verdict: 'unknown', hit: false, snippet: '' };
+  if (!text || !brand) return { verdict: 'unknown', hit: false, snippet: '', score: 0 };
 
   const snippetFromText = findSnippet(text, brand);
   if (snippetFromText) {
     // Пряма текстова згадка бренду — найсильніший можливий сигнал,
     // довіряємо йому напряму й не витрачаємо виклик на класифікатор.
-    return { verdict: 'know', hit: true, snippet: snippetFromText };
+    return { verdict: 'know', hit: true, snippet: snippetFromText, score: engineConfidenceScore('know', snippetFromText) };
   }
 
   // Прямої згадки немає — питаємо класифікатор, чи це "плутає" щось
@@ -179,7 +191,7 @@ async function checkMention(text, brand) {
     ? text.trim().slice(0, 160) + (text.length > 160 ? '…' : '')
     : '';
 
-  return { verdict, hit: false, snippet, classifierError: classification.error || null };
+  return { verdict, hit: false, snippet, score: engineConfidenceScore(verdict, snippet), classifierError: classification.error || null };
 }
 
 // ---------- Виклики AI-систем ----------

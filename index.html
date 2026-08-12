@@ -242,6 +242,48 @@
   .instrument-panel::after{bottom:-1px; right:-1px; border-width:0 2px 2px 0;}
   @keyframes fadeUp{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);}}
 
+  /* ---------- REPORT HEADER (badge, gap headline, fact callout) ---------- */
+  .report-header{text-align:center; padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid var(--border);}
+  .report-badge{
+    display:inline-flex; align-items:center; gap:8px; font-size:14px; font-weight:700;
+    background:rgba(245,120,30,.12); border:1px solid var(--border-strong); padding:8px 16px; border-radius:20px;
+    margin-bottom:8px;
+  }
+  .report-tagline{color:var(--ink-dim); font-size:13px;}
+  .report-date{font-family:var(--font-mono); font-size:10px; color:var(--ink-faint); margin-top:8px; letter-spacing:.04em;}
+
+  .gap-headline{
+    background:var(--bg-alt); border:1px solid var(--border); border-left:3px solid var(--orange);
+    padding:14px 16px; margin:18px 0; font-size:14px; line-height:1.6;
+  }
+  .gap-headline b{color:var(--orange);}
+
+  .fact-callout{
+    background:var(--bg-alt); border:1px solid var(--border); border-left:3px solid var(--cyan);
+    padding:14px 16px; margin:18px 0; font-size:13px; line-height:1.6; color:var(--ink-dim);
+  }
+  .fact-callout .fc-icon{margin-right:6px;}
+  .fact-callout blockquote{color:var(--ink); font-style:italic; margin:6px 0;}
+  .fact-callout .fc-source{font-family:var(--font-mono); font-size:11px; color:var(--cyan);}
+
+  .track-score{font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); margin-left:8px;}
+
+  /* ---------- GAP SECTION (know vs recommend) ---------- */
+  .gap-bars{display:flex; gap:24px; margin:20px 0; align-items:flex-end;}
+  .gap-bar-item{flex:1; text-align:center;}
+  .gap-bar-num{font-family:var(--font-mono); font-size:28px; font-weight:800; margin-bottom:8px;}
+  .gap-bar-item.know .gap-bar-num{color:var(--cyan);}
+  .gap-bar-item.rec .gap-bar-num{color:var(--orange);}
+  .gap-bar-track{height:8px; background:var(--bg-alt); border:1px solid var(--border); overflow:hidden; margin-bottom:8px;}
+  .gap-bar-fill{height:100%; width:0%; transition:width 1.2s cubic-bezier(.2,.8,.2,1);}
+  .gap-bar-item.know .gap-bar-fill{background:var(--cyan);}
+  .gap-bar-item.rec .gap-bar-fill{background:var(--orange);}
+  .gap-bar-label{font-size:12px; color:var(--ink-dim);}
+  .gap-note{
+    background:var(--bg-alt); border-left:3px solid var(--red); padding:12px 14px; font-size:13px;
+    color:var(--ink-dim); line-height:1.6;
+  }
+
   .panel-head{
     display:flex; justify-content:space-between; align-items:baseline;
     font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; color:var(--ink-dim);
@@ -464,7 +506,8 @@
 
   [hidden]{display:none !important;}
   body.scan-active .marketing-section{display:none !important;}
-  body.scan-active .hero{padding-bottom:0;}
+  body.scan-active .hero{display:none !important;}
+  body.scan-active .topbar{padding:16px 0;}
 
   @media(max-width:640px){
     .scan-form{grid-template-columns:1fr;}
@@ -617,11 +660,11 @@
   </section>
 
   <section class="instrument-panel" id="panel" hidden>
-    <div class="panel-head">
-      <span>Сигнал зафіксовано для</span>
-      <span class="panel-brand" id="panelBrandName">—</span>
+    <div class="report-header">
+      <div class="report-badge" id="reportBadge">📡 На радарах</div>
+      <div class="report-tagline" id="reportTagline">—</div>
+      <div class="report-date" id="reportDate"></div>
     </div>
-    <div id="tracks"></div>
 
     <div class="score-block">
       <div class="score-dial">
@@ -636,6 +679,33 @@
         <div class="score-text" id="scoreFootnote">попередня оцінка · зафіксовано зараз</div>
       </div>
     </div>
+
+    <div class="gap-headline" id="gapHeadline" hidden></div>
+    <div class="fact-callout" id="factCallout" hidden></div>
+
+    <div class="panel-head">
+      <span>Що про вас знає кожен AI</span>
+      <span class="panel-brand" id="panelBrandName">—</span>
+    </div>
+    <div id="tracks"></div>
+  </section>
+
+  <section class="instrument-panel" id="gapPanel" hidden>
+    <div class="panel-head"><span>Вас знають. Але чи радять?</span></div>
+    <p class="section-lede" style="margin-bottom:14px;">Впізнаваність — лише половина гри. Друга половина — чи називає AI саме вас, коли клієнт просить пораду, а не просто підтверджує, що чув про вас.</p>
+    <div class="gap-bars">
+      <div class="gap-bar-item know">
+        <div class="gap-bar-num" id="gapKnowNum">0</div>
+        <div class="gap-bar-track"><div class="gap-bar-fill" id="gapKnowFill"></div></div>
+        <div class="gap-bar-label">Вас знають</div>
+      </div>
+      <div class="gap-bar-item rec">
+        <div class="gap-bar-num" id="gapRecNum">0</div>
+        <div class="gap-bar-track"><div class="gap-bar-fill" id="gapRecFill"></div></div>
+        <div class="gap-bar-label">Вас радять</div>
+      </div>
+    </div>
+    <div class="gap-note" id="gapNote"></div>
   </section>
 
   <section class="axes" id="axes" hidden>
@@ -867,7 +937,7 @@ async function runLiveScan(name, niche){
       const stateMap = { know: 'done-hit', confused: 'done-mid', unknown: 'done-miss' };
       const labelMap = { know: 'знає', confused: 'плутає', unknown: 'не чув' };
       setRowDone(id, stateMap[verdict] || 'done-miss', labelMap[verdict] || '');
-      return { ...e, verdict, hit: verdict === 'know', snippet: result.snippet };
+      return { ...e, verdict, hit: verdict === 'know', snippet: result.snippet, score: result.score ?? 0 };
     } catch(err){
       setRowDone(id, 'done-err', 'недоступно');
       return { ...e, verdict: 'unknown', error: String(err) };
@@ -946,7 +1016,9 @@ form.addEventListener('submit', async function(e){
     engines = engineDefs.map(e => {
       const r = rand();
       const verdict = r > e.threshold ? 'know' : (r > e.threshold - 0.22 ? 'confused' : 'unknown');
-      return {...e, verdict, hit: verdict === 'know', snippet:'', pos: 15 + rand()*70};
+      const demoScoreBase = { know: 55, confused: 20, unknown: 0 };
+      const score = verdict === 'unknown' ? 0 : Math.min(100, demoScoreBase[verdict] + Math.round(rand()*40));
+      return {...e, verdict, hit: verdict === 'know', snippet:'', score, pos: 15 + rand()*70};
     });
 
     const nicheLabel = niche || 'вашій ніші';
@@ -1043,6 +1115,43 @@ form.addEventListener('submit', async function(e){
       ? 'реальний запит · зафіксовано зараз'
       : 'демо-оцінка · зафіксовано зараз';
 
+    // ---- Дата перевірки ----
+    const today = new Date();
+    document.getElementById('reportDate').textContent = 'Перевірено ' + today.toLocaleDateString('uk-UA', {day:'numeric', month:'long', year:'numeric'});
+
+    // ---- Бейдж-рівень за балом ----
+    let badgeEmoji, badgeText, tagline;
+    if(overall < 30){ badgeEmoji='🔴'; badgeText='Поза радаром'; tagline='AI майже не бачить бренд — конкуренти займають ваше місце.'; }
+    else if(overall < 60){ badgeEmoji='📡'; badgeText='На радарах'; tagline='Вас видно, але конкуренти дихають у спину.'; }
+    else if(overall < 85){ badgeEmoji='✅'; badgeText='Впізнають'; tagline='Бренд впізнають — є що підсилити для впевненого лідерства.'; }
+    else { badgeEmoji='🏆'; badgeText='Лідер сигналу'; tagline='AI впевнено знає і називає саме вас.'; }
+    document.getElementById('reportBadge').textContent = `${badgeEmoji} ${badgeText}`;
+    document.getElementById('reportTagline').textContent = tagline;
+
+    // ---- Розрив "знають vs радять" (реальні дані, не вигадані) ----
+    const zoneTotal = zoneOfInvisibility.length;
+    const zoneMentions = zoneOfInvisibility.filter(zq => Object.values(zq.engines||{}).some(v=>v.mentionedBrand)).length;
+    const recommendPercent = zoneTotal ? Math.round((zoneMentions/zoneTotal)*100) : null;
+
+    const gapHeadlineEl = document.getElementById('gapHeadline');
+    if(recommendPercent !== null){
+      gapHeadlineEl.innerHTML = `AI знає вас на <b>${overall}%</b>, але радить замість вас конкурентів у <b>${100-recommendPercent}%</b> клієнтських запитів.`;
+      gapHeadlineEl.hidden = false;
+    } else {
+      gapHeadlineEl.hidden = true;
+    }
+
+    // ---- Цікавий факт — найдетальніша реальна цитата серед "ЗНАЄ" ----
+    const factCalloutEl = document.getElementById('factCallout');
+    const knowEngines = engines.filter(e => e.verdict === 'know' && e.snippet);
+    if(knowEngines.length){
+      const best = knowEngines.reduce((a,b) => (b.snippet.length > a.snippet.length ? b : a));
+      factCalloutEl.innerHTML = `<span class="fc-icon">🔍</span>AI реально знає про вас:<blockquote>"${best.snippet}"</blockquote><span class="fc-source">— знайшов ${best.label}</span>`;
+      factCalloutEl.hidden = false;
+    } else {
+      factCalloutEl.hidden = true;
+    }
+
     const tracksEl = document.getElementById('tracks');
     tracksEl.innerHTML = '';
     const captionMap = {
@@ -1056,10 +1165,11 @@ form.addEventListener('submit', async function(e){
       const vClass = eng.error ? 'err' : (eng.verdict === 'know' ? 'hit' : (eng.verdict === 'confused' ? 'mid' : 'miss'));
       const vText = eng.error ? 'НЕДОСТУПНО' : (eng.verdict === 'know' ? 'ЗНАЄ' : (eng.verdict === 'confused' ? 'ПЛУТАЄ' : 'НЕ ЧУВ'));
       const caption = eng.error ? '' : (captionMap[eng.verdict] || '');
+      const scoreNum = (typeof eng.score === 'number') ? `<span class="track-score">${eng.score}/100</span>` : '';
       track.innerHTML = `
         <div class="track-label">
           <span>${eng.label}</span>
-          <span class="verdict ${vClass}">${vText}</span>
+          <span>${scoreNum}<span class="verdict ${vClass}">${vText}</span></span>
         </div>
         <div class="track-bar">
           <div class="sweep"></div>
@@ -1070,12 +1180,44 @@ form.addEventListener('submit', async function(e){
         ${eng.error ? `<div class="track-snippet">${eng.error}</div>` : ''}`;
       tracksEl.appendChild(track);
     });
+    const soonTrack = document.createElement('div');
+    soonTrack.className = 'track';
+    soonTrack.style.opacity = '.55';
+    soonTrack.innerHTML = `
+      <div class="track-label">
+        <span>Google AI Overview</span>
+        <span class="verdict err">СКОРО</span>
+      </div>
+      <div class="track-snippet">Google поки не дає публічного доступу до AI Overview — з'явиться, щойно відкриють API.</div>`;
+    tracksEl.appendChild(soonTrack);
 
     panel.hidden = false;
     axes.hidden = false;
     issuesSection.hidden = false;
     issuesOldSection.hidden = false;
     ctaBlock.hidden = false;
+
+    const gapPanelEl = document.getElementById('gapPanel');
+    if(recommendPercent !== null){
+      gapPanelEl.hidden = false;
+      document.getElementById('gapKnowNum').textContent = overall;
+      document.getElementById('gapRecNum').textContent = recommendPercent;
+      const gapVal = overall - recommendPercent;
+      const gapNoteEl = document.getElementById('gapNote');
+      if(gapVal >= 15){
+        gapNoteEl.textContent = `Розрив ${gapVal} балів — це клієнти, які чують про вас… і йдуть до інших.`;
+      } else if(gapVal <= 0){
+        gapNoteEl.textContent = `Вас радять так само часто, як і знають — сильний результат, тримайте темп.`;
+      } else {
+        gapNoteEl.textContent = `Невеликий розрив у ${gapVal} балів — є куди рости, але напрямок правильний.`;
+      }
+      setTimeout(() => {
+        document.getElementById('gapKnowFill').style.width = overall + '%';
+        document.getElementById('gapRecFill').style.width = recommendPercent + '%';
+      }, 200);
+    } else {
+      gapPanelEl.hidden = true;
+    }
 
     requestAnimationFrame(() => {
       document.querySelectorAll('.track-bar .sweep').forEach(s => s.style.width = '100%');
@@ -1119,7 +1261,7 @@ form.addEventListener('submit', async function(e){
       issuesList.innerHTML = '';
       lastPickedIssues = pickedIssues;
       lastScanMeta = { brand: name, niche, score: overall };
-      lastEngines = engines.map(e => ({ label: e.label, verdict: e.verdict || (e.hit ? 'know' : 'unknown'), hit: !!e.hit, snippet: e.snippet || '', error: e.error || null }));
+      lastEngines = engines.map(e => ({ label: e.label, verdict: e.verdict || (e.hit ? 'know' : 'unknown'), hit: !!e.hit, score: e.score || 0, snippet: e.snippet || '', error: e.error || null }));
       lastZoneOfInvisibility = zoneOfInvisibility;
 
       const zoneListEl = document.getElementById('zoneList');
