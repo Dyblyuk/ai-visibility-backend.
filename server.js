@@ -72,10 +72,10 @@ const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'AI-Visibility <onboa
 // ---------- Допоміжне ----------
 
 function buildQueries(brand, niche) {
-  const nicheClause = niche ? niche : 'у цій ніші';
+  const nicheClause = niche ? ` (${niche})` : '';
   return [
-    `Порадь кілька найкращих варіантів: ${nicheClause}. Дай список із коротким поясненням по кожному.`,
-    `Хто топ-3 у сфері «${nicheClause}»? Порівняй їх коротко.`
+    `Що ти знаєш про компанію чи бренд "${brand}"${nicheClause}? Якщо чув про неї — розкажи коротко, чим вона займається. Якщо не чув — так і скажи.`,
+    `Чи знайома тобі назва "${brand}"${nicheClause}? Опиши, що знаєш.`
   ];
 }
 
