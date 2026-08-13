@@ -1011,6 +1011,40 @@ app.get('/api/debug-niche', async (req, res) => {
   res.json({ brand, ...result });
 });
 
+// Перевірка доставки в Google Таблицю (чи в інший LEAD_WEBHOOK_URL) окремо
+// від усього іншого — шле тестовий рядок і показує, що саме відповів
+// Apps Script (чи інший вебхук).
+app.get('/api/debug-webhook', async (req, res) => {
+  if (!LEAD_WEBHOOK_URL) {
+    return res.json({ ok: false, error: 'LEAD_WEBHOOK_URL не налаштовано на цьому сервері' });
+  }
+  const testLead = {
+    name: 'Тест',
+    phone: '+380000000000',
+    email: 'test@example.com',
+    brand: 'Тестовий Бренд',
+    niche: 'тестова ніша',
+    score: 42,
+    ts: new Date().toISOString()
+  };
+  try {
+    const resp = await fetch(LEAD_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(testLead)
+    });
+    const bodyText = await resp.text().catch(() => '');
+    res.json({
+      ok: resp.ok,
+      httpStatus: resp.status,
+      responseBody: bodyText.slice(0, 500),
+      sentPayload: testLead
+    });
+  } catch (err) {
+    res.json({ ok: false, error: String(err) });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
@@ -1018,8 +1052,11 @@ app.get('/api/health', (req, res) => {
       openai: Boolean(OPENAI_API_KEY),
       gemini: Boolean(GEMINI_API_KEY),
       perplexity: Boolean(PERPLEXITY_API_KEY),
-      anthropic: Boolean(ANTHROPIC_API_KEY)
-    }
+      anthropic: Boolean(ANTHROPIC_API_KEY),
+      resend: Boolean(RESEND_API_KEY),
+      leadWebhook: Boolean(LEAD_WEBHOOK_URL)
+    },
+    leadWebhookUrlPreview: LEAD_WEBHOOK_URL ? LEAD_WEBHOOK_URL.slice(0, 45) + '...' : null
   });
 });
 
