@@ -843,8 +843,6 @@
   <section class="cta" id="ctaBlock" hidden>
     <h2>Це попередній аналіз — із чіткими рекомендаціями</h2>
     <p>Кроки вище можна застосувати самостійно вже сьогодні — усе прозоро й покроково. А якщо хочете системного результату без витрат часу на це самим — Top Marketing може взяти SEO та GEO-просування в AI-системах на себе.</p>
-    <a href="#" class="btn-cta">Обговорити просування з Top Marketing →</a>
-    <div class="fine">[МІСЦЕ ДЛЯ ПОСИЛАННЯ НА ВАШУ ПОСЛУГУ]</div>
   </section>
 
   <footer>
@@ -1429,20 +1427,9 @@ form.addEventListener('submit', async function(e){
         const combined = document.createElement('div');
         combined.className = 'zone-combined';
 
-        const rowsHtml = zoneOfInvisibility.map((zq, idx) => {
-          const badges = Object.entries(zq.engines).map(([key, val]) => {
-            const label = ENGINE_LABELS[key] || key;
-            if(val.error) return `<span class="zone-badge err"><i class="zdot"></i>${label}</span>`;
-            const cls = val.mentionedBrand ? 'hit' : 'miss';
-            return `<span class="zone-badge ${cls}"><i class="zdot"></i>${label}</span>`;
-          }).join('');
+        zoneOfInvisibility.forEach((zq, idx) => {
           lastZoneCompetitors[idx] = zq.competitors || [];
-          return `
-            <div class="zone-query-row">
-              <div class="zq-text">${idx+1}. «${zq.query}»</div>
-              <div class="zq-badges">${badges}</div>
-            </div>`;
-        }).join('');
+        });
 
         const allCompetitorsFlat = zoneOfInvisibility.flatMap(zq => zq.competitors || []);
         const anyFallback = zoneOfInvisibility.some(zq => zq.competitorsSource === 'fallback');
@@ -1459,14 +1446,14 @@ form.addEventListener('submit', async function(e){
               <div class="locked-block-content">${rows}</div>
               <div class="locked-block-overlay">
                 <div class="lk-big">🔒</div>
-                <div class="lk-text">${allCompetitorsFlat.length} реальн${allCompetitorsFlat.length===1?'ий гравець':'их гравці/ів'} ринку по всіх запитах — розблокуйте нижче${sourceNote}</div>
+                <div class="lk-text">${allCompetitorsFlat.length} реальн${allCompetitorsFlat.length===1?'ий гравець':'их гравці/ів'} ринку по ваших запитах — розблокуйте нижче${sourceNote}</div>
               </div>
             </div>`;
         } else {
           competitorsHtml = `<div class="zone-competitors"><span class="none">За цими запитами пошук не знайшов явних гравців — полиця відносно вільна.</span></div>`;
         }
 
-        combined.innerHTML = rowsHtml + competitorsHtml;
+        combined.innerHTML = competitorsHtml;
         zoneListEl.appendChild(combined);
       }
 
