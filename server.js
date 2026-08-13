@@ -44,6 +44,10 @@ const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-5';
 // Gemini API models get deprecated/shut down fairly often — gemini-1.5-flash
 // no longer exists as of 2026. Override via GEMINI_MODEL if this goes stale too.
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+// Вимкніть на 'false', якщо квота на веб-пошук Gemini постійно впирається
+// в 429 навіть із підключеним білінгом — тоді Gemini відповідатиме з
+// пам'яті моделі, без пошуку, але й без помилок.
+const GEMINI_USE_SEARCH = (process.env.GEMINI_USE_SEARCH || 'true') !== 'false';
 // ChatGPT через Responses API з веб-пошуком. Точні назви моделі й типу
 // інструменту в OpenAI змінюються — якщо почне падати з помилкою про
 // невідому модель чи tool type, звірте з поточною документацією
@@ -298,13 +302,17 @@ async function askChatGPT(query) {
 async function askGemini(query) {
   if (!GEMINI_API_KEY) return { error: 'GEMINI_API_KEY не налаштовано' };
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  const body = { contents: [{ parts: [{ text: query }] }] };
+  // Веб-пошук (grounding) для Gemini вмикається окремо — на безкоштовному
+  // тарифі Google Cloud він часто впирається у дуже низьку квоту (HTTP 429)
+  // навіть після підключення білінгу. GEMINI_USE_SEARCH=false в .env
+  // вимикає пошук лише для Gemini — відповідь буде з пам'яті моделі, без
+  // помилок, поки квоту з Google не буде вирішено.
+  if (GEMINI_USE_SEARCH) body.tools = [{ google_search: {} }];
   const res = await fetchWithRetry(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: query }] }],
-      tools: [{ google_search: {} }]
-    })
+    body: JSON.stringify(body)
   });
   if (!res.ok) {
     const bodyText = await res.text().catch(() => '');
