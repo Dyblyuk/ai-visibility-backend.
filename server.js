@@ -615,109 +615,182 @@ app.post('/api/zone-query', async (req, res) => {
 const LOGO_PATH = path.join(process.cwd(), 'assets', 'logo.png');
 const FONT_REGULAR_PATH = path.join(process.cwd(), 'assets', 'fonts', 'PTSans-Regular.ttf');
 const FONT_BOLD_PATH = path.join(process.cwd(), 'assets', 'fonts', 'PTSans-Bold.ttf');
+
+// Темна палітра, узгоджена з фірмовим сайтом Top Marketing.
+const PDF_BG = '#14181D';
+const PDF_PANEL = '#1D232B';
+const PDF_BORDER = '#333B46';
+const PDF_INK = '#EEF1F4';
+const PDF_INK_DIM = '#9AA5B1';
+const PDF_INK_FAINT = '#6B7580';
 const PDF_ORANGE = '#F5781E';
-const PDF_INK = '#14181D';
-const PDF_GRAY = '#5B6570';
+const PDF_CYAN = '#4FD1C5';
+const PDF_RED = '#FF5A5F';
 
 function buildReportPdf(data) {
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ margin: 50, size: 'A4' });
+      const doc = new PDFDocument({ margin: 46, size: 'A4', bufferPages: true });
       const chunks = [];
       doc.on('data', (c) => chunks.push(c));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
-      const pageLeft = doc.page.margins.left;
-      const pageRight = doc.page.width - doc.page.margins.right;
-
-      // Дефолтні шрифти PDFKit (Helvetica тощо) не мають кириличних гліфів —
-      // без цього українській текст перетворюється на нечитабельну кашу.
       doc.registerFont('PT-Sans', FONT_REGULAR_PATH);
       doc.registerFont('PT-Sans-Bold', FONT_BOLD_PATH);
       doc.font('PT-Sans');
 
-      function divider(color = PDF_ORANGE, weight = 1.5) {
-        const y = doc.y + 2;
-        doc.moveTo(pageLeft, y).lineTo(pageRight, y).strokeColor(color).lineWidth(weight).stroke();
-        doc.moveDown(0.6);
+      const pageW = doc.page.width;
+      const pageH = doc.page.height;
+      const mL = doc.page.margins.left;
+      const mR = pageW - doc.page.margins.right;
+      const mB = pageH - doc.page.margins.bottom;
+      const contentW = mR - mL;
+
+      function paintBg() {
+        doc.rect(0, 0, pageW, pageH).fill(PDF_BG);
       }
-      function sectionTitle(text) {
-        doc.moveDown(0.4);
-        doc.font('PT-Sans-Bold').fontSize(14).fillColor(PDF_ORANGE).text(text);
-        doc.font('PT-Sans');
-        doc.moveDown(0.2);
+      function newPage() {
+        doc.addPage();
+        paintBg();
+        return doc.page.margins.top;
+      }
+      function ensureSpace(y, needed) {
+        if (y + needed > mB) return newPage();
+        return y;
+      }
+      function card(x, y, w, h, opts = {}) {
+        doc.roundedRect(x, y, w, h, 6).fill(opts.bg || PDF_PANEL);
+        if (opts.borderTop) doc.rect(x, y, w, 3).fill(opts.borderTop);
+        if (opts.borderLeft) doc.rect(x, y, 3, h).fill(opts.borderLeft);
+      }
+      function pillWidth(text) {
+        doc.font('PT-Sans-Bold').fontSize(9);
+        return doc.widthOfString(text.toUpperCase()) + 22;
+      }
+      function pill(x, y, text, color) {
+        const w = pillWidth(text);
+        doc.roundedRect(x, y, w, 20, 10).lineWidth(1).stroke(color);
+        doc.font('PT-Sans-Bold').fontSize(9).fillColor(color).text(text.toUpperCase(), x + 11, y + 6);
+        return w;
+      }
+      function verdictStyle(verdict) {
+        if (verdict === 'know') return { label: 'ЗНАЄ', color: PDF_CYAN };
+        if (verdict === 'confused') return { label: 'ПЛУТАЄ', color: PDF_ORANGE };
+        return { label: 'НЕ ЧУВ', color: PDF_RED };
       }
 
-      // ---- Шапка з логотипом ----
-      try {
-        doc.image(LOGO_PATH, pageLeft, doc.y, { width: 120 });
-        doc.moveDown(2.4);
-      } catch (e) {
-        // Якщо файл лого з якоїсь причини недоступний — просто пропускаємо,
-        // решта PDF все одно згенерується.
-      }
+      paintBg();
 
-      doc.font('PT-Sans-Bold').fontSize(20).fillColor(PDF_INK).text('AI-Видимість — детальний звіт');
-      doc.font('PT-Sans');
-      doc.moveDown(0.2);
-      doc.fontSize(10).fillColor(PDF_GRAY).text('topmarketing.com.ua');
-      doc.moveDown(0.4);
-      divider();
+      // ---- Шапка ----
+      try { doc.image(LOGO_PATH, mL, 42, { width: 108 }); } catch (e) {}
+      const eyebrow = 'AI-ВИДИМІСТЬ';
+      pill(mR - pillWidth(eyebrow), 46, eyebrow, PDF_ORANGE);
 
-      doc.fontSize(11).fillColor(PDF_GRAY);
-      doc.text(`Бренд: ${data.brand || '—'}`);
-      if (data.niche) doc.text(`Ніша / місто: ${data.niche}`);
-      doc.text(`Дата перевірки: ${new Date().toLocaleDateString('uk-UA')}`);
-      doc.moveDown();
+      let y = 108;
+      doc.font('PT-Sans-Bold').fontSize(22).fillColor(PDF_INK).text(data.brand || 'Ваш бренд', mL, y, { width: contentW });
+      y = doc.y + 2;
+      doc.font('PT-Sans').fontSize(11).fillColor(PDF_INK_DIM).text('Персональний звіт AI-видимості', mL, y);
+      y = doc.y + 12;
 
-      doc.font('PT-Sans-Bold').fontSize(28).fillColor(PDF_ORANGE).text(`${data.score ?? '—'}`, { continued: true });
-      doc.font('PT-Sans');
-      doc.fontSize(14).fillColor(PDF_GRAY).text(' / 100 — загальний бал AI-видимості');
-      doc.moveDown();
+      const metaParts = [];
+      if (data.niche) metaParts.push(`Ніша: ${data.niche}`);
+      metaParts.push(`Перевірено: ${new Date().toLocaleDateString('uk-UA')}`);
+      doc.font('PT-Sans').fontSize(9).fillColor(PDF_INK_FAINT).text(metaParts.join('   ·   '), mL, y);
+      y = doc.y + 22;
 
-      sectionTitle('Результати по AI-системах');
-      divider('#E5E5E5', 0.75);
-      (data.engines || []).forEach(e => {
-        const verdictLabels = { know: 'ЗНАЄ бренд', confused: 'ПЛУТАЄ (невпевнено/схоже)', unknown: 'НЕ ЧУВ про бренд' };
-        const verdict = e.error ? 'недоступно під час перевірки' : (verdictLabels[e.verdict] || (e.hit ? 'ЗНАЄ бренд' : 'НЕ ЧУВ про бренд'));
-        doc.fontSize(11).fillColor(PDF_INK).text(`${e.label}: `, { continued: true }).fillColor(PDF_ORANGE).text(verdict);
-        if (e.snippet) doc.fontSize(10).fillColor(PDF_GRAY).text(`   «${e.snippet}»`);
-        doc.moveDown(0.2);
+      // ---- Картка балу ----
+      const score = data.score ?? 0;
+      let tier;
+      if (score < 30) tier = { emoji: '●', label: 'ПОЗА РАДАРОМ', text: 'AI майже не бачить бренд — конкуренти займають ваше місце.' };
+      else if (score < 60) tier = { emoji: '●', label: 'НА РАДАРАХ', text: 'Вас видно, але конкуренти дихають у спину.' };
+      else if (score < 85) tier = { emoji: '●', label: 'ВПІЗНАЮТЬ', text: 'Бренд впізнають — є що підсилити для лідерства.' };
+      else tier = { emoji: '●', label: 'ЛІДЕР СИГНАЛУ', text: 'AI впевнено знає і називає саме вас.' };
+
+      const scoreCardH = 100;
+      y = ensureSpace(y, scoreCardH + 20);
+      card(mL, y, contentW, scoreCardH, { borderTop: PDF_ORANGE });
+      doc.font('PT-Sans-Bold').fontSize(44).fillColor(PDF_ORANGE).text(`${score}`, mL + 26, y + 20, { continued: true });
+      doc.font('PT-Sans').fontSize(15).fillColor(PDF_INK_DIM).text(' / 100', { continued: false });
+      doc.font('PT-Sans-Bold').fontSize(11).fillColor(PDF_INK).text(tier.label, mL + 26, y + 68);
+      doc.font('PT-Sans').fontSize(9.5).fillColor(PDF_INK_DIM).text(tier.text, mL + 190, y + 34, { width: contentW - 220 });
+      y += scoreCardH + 24;
+
+      // ---- Результати по AI-системах ----
+      doc.font('PT-Sans-Bold').fontSize(14).fillColor(PDF_ORANGE);
+      y = ensureSpace(y, 24);
+      doc.text('Результати по AI-системах', mL, y);
+      y = doc.y + 10;
+
+      (data.engines || []).forEach((e) => {
+        const v = e.error ? { label: 'НЕДОСТУПНО', color: PDF_INK_FAINT } : verdictStyle(e.verdict || (e.hit ? 'know' : 'unknown'));
+        const quote = e.snippet ? `«${e.snippet}»` : (e.error || '');
+        doc.font('PT-Sans').fontSize(9.5);
+        const quoteH = quote ? doc.heightOfString(quote, { width: contentW - 32 }) : 0;
+        const cardH = 34 + (quote ? quoteH + 8 : 0);
+        y = ensureSpace(y, cardH + 10);
+        card(mL, y, contentW, cardH, { borderLeft: v.color });
+        doc.font('PT-Sans-Bold').fontSize(11).fillColor(PDF_INK).text(e.label, mL + 16, y + 11, { continued: true });
+        doc.font('PT-Sans-Bold').fontSize(10).fillColor(v.color).text('   ' + v.label);
+        if (quote) {
+          doc.font('PT-Sans').fontSize(9.5).fillColor(PDF_INK_DIM).text(quote, mL + 16, y + 30, { width: contentW - 32 });
+        }
+        y += cardH + 10;
       });
-      doc.moveDown(0.5);
+      y += 10;
 
+      // ---- Зона невидимості ----
       if ((data.zoneOfInvisibility || []).length) {
-        sectionTitle('Зона невидимості — реальні гравці ринку по запитах');
-        divider('#E5E5E5', 0.75);
+        doc.font('PT-Sans-Bold').fontSize(14).fillColor(PDF_ORANGE);
+        y = ensureSpace(y, 24);
+        doc.text('Зона невидимості — реальні гравці ринку', mL, y);
+        y = doc.y + 10;
+
         data.zoneOfInvisibility.forEach((zq, i) => {
-          doc.fontSize(11).fillColor(PDF_INK).text(`${i + 1}. ${zq.query}`);
           const comp = (zq.competitors || []).join(', ');
-          doc.fontSize(10).fillColor(PDF_GRAY).text(comp ? `    Знайдені гравці: ${comp}` : '    Явних гравців пошук не знайшов — полиця відносно вільна.');
-          doc.moveDown(0.2);
+          const compLine = comp ? `Знайдені гравці: ${comp}` : 'Явних гравців пошук не знайшов — полиця відносно вільна.';
+          doc.font('PT-Sans').fontSize(9.5);
+          const qH = doc.heightOfString(`${i + 1}. ${zq.query}`, { width: contentW - 32 });
+          const cH = doc.heightOfString(compLine, { width: contentW - 32 });
+          const cardH = 14 + qH + cH + 16;
+          y = ensureSpace(y, cardH + 10);
+          card(mL, y, contentW, cardH, { borderLeft: comp ? PDF_RED : PDF_CYAN });
+          doc.font('PT-Sans-Bold').fontSize(9.5).fillColor(PDF_INK).text(`${i + 1}. ${zq.query}`, mL + 16, y + 10, { width: contentW - 32 });
+          doc.font('PT-Sans').fontSize(9.5).fillColor(PDF_INK_DIM).text(compLine, mL + 16, doc.y + 4, { width: contentW - 32 });
+          y += cardH + 10;
         });
-        doc.moveDown(0.5);
+        y += 10;
       }
 
+      // ---- Що знижує сигнал ----
       if ((data.issues || []).length) {
-        sectionTitle('Що знижує сигнал просто зараз');
-        divider('#E5E5E5', 0.75);
-        data.issues.forEach(txt => {
-          doc.fontSize(11).fillColor(PDF_INK).text(`•  ${txt}`);
+        doc.font('PT-Sans-Bold').fontSize(14).fillColor(PDF_ORANGE);
+        y = ensureSpace(y, 24);
+        doc.text('Що знижує сигнал просто зараз', mL, y);
+        y = doc.y + 10;
+
+        doc.font('PT-Sans').fontSize(10);
+        const issuesH = data.issues.reduce((sum, t) => sum + doc.heightOfString(`X  ${t}`, { width: contentW - 32 }) + 8, 0);
+        y = ensureSpace(y, issuesH + 24);
+        card(mL, y, contentW, issuesH + 24, { borderLeft: PDF_RED });
+        let iy = y + 12;
+        data.issues.forEach((t) => {
+          doc.font('PT-Sans').fontSize(10).fillColor(PDF_INK);
+          doc.fillColor(PDF_RED).text('X', mL + 16, iy, { continued: false });
+          doc.fillColor(PDF_INK).text(t, mL + 32, iy, { width: contentW - 48 });
+          iy = doc.y + 8;
         });
-        doc.moveDown(0.5);
+        y = iy + 8;
       }
 
-      doc.addPage();
-      try {
-        doc.image(LOGO_PATH, pageLeft, doc.y, { width: 90 });
-        doc.moveDown(1.8);
-      } catch (e) {}
-      doc.fontSize(18).fillColor(PDF_INK).text('Покроковий план дій');
-      doc.moveDown(0.15);
-      doc.fontSize(10).fillColor(PDF_GRAY).text('5 кроків, кожен можна почати сьогодні');
-      doc.moveDown(0.4);
-      divider();
+      // ---- Сторінка 2: покроковий план ----
+      y = newPage();
+      try { doc.image(LOGO_PATH, mL, 42, { width: 88 }); } catch (e) {}
+      y = 108;
+      doc.font('PT-Sans-Bold').fontSize(18).fillColor(PDF_INK).text('Покроковий план дій', mL, y);
+      y = doc.y + 2;
+      doc.font('PT-Sans').fontSize(10).fillColor(PDF_INK_DIM).text('5 кроків, кожен можна почати сьогодні', mL, y);
+      y = doc.y + 20;
 
       const steps = [
         {
@@ -752,27 +825,35 @@ function buildReportPdf(data) {
         {
           title: 'Бонус: зареєструйтесь у Bing Webmaster Tools',
           body: `15 хвилин, безкоштовно. Помітна частка цитат пошукового режиму ChatGPT збігається з органічною ` +
-            `видачею Bing, а конкуренція там значно нижча.`
+            `видачею Bing, а конкуренція там значно нижча.`,
+          bonus: true
         }
       ];
-      steps.forEach(s => {
-        doc.fontSize(12).fillColor(PDF_ORANGE).text(s.title);
-        doc.moveDown(0.15);
-        doc.fontSize(10).fillColor(PDF_GRAY).text(s.body);
-        doc.moveDown(0.6);
+
+      steps.forEach((s) => {
+        doc.font('PT-Sans').fontSize(10);
+        const bodyH = doc.heightOfString(s.body, { width: contentW - 40 });
+        const cardH = 28 + bodyH + 16;
+        y = ensureSpace(y, cardH + 12);
+        card(mL, y, contentW, cardH, { borderLeft: s.bonus ? PDF_ORANGE : PDF_CYAN });
+        doc.font('PT-Sans-Bold').fontSize(12).fillColor(s.bonus ? PDF_ORANGE : PDF_INK).text(s.title, mL + 18, y + 12, { width: contentW - 40 });
+        doc.font('PT-Sans').fontSize(10).fillColor(PDF_INK_DIM).text(s.body, mL + 18, doc.y + 4, { width: contentW - 40 });
+        y += cardH + 12;
       });
 
-      doc.moveDown();
-      divider();
-      doc.fontSize(13).fillColor(PDF_INK).text('Це попередній аналіз — із чіткими рекомендаціями');
-      doc.moveDown(0.2);
-      doc.fontSize(11).fillColor(PDF_GRAY).text(
-        'Кроки вище можна застосувати самостійно вже сьогодні — усе прозоро й покроково. А якщо хочете ' +
-        'системного результату без витрат часу на це самим — Top Marketing може взяти SEO та GEO-просування ' +
-        'в AI-системах на себе.'
-      );
-      doc.moveDown(0.6);
-      doc.fontSize(11).fillColor(PDF_ORANGE).text('Обговорити просування з Top Marketing >> topmarketing.com.ua');
+      // ---- Фінальний CTA ----
+      const ctaTitle = 'Це попередній аналіз — із чіткими рекомендаціями';
+      const ctaBody = 'Кроки вище можна застосувати самостійно вже сьогодні — усе прозоро й покроково. А якщо ' +
+        'хочете системного результату без витрат часу на це самим — Top Marketing може взяти SEO та GEO-просування ' +
+        'в AI-системах на себе.';
+      doc.font('PT-Sans').fontSize(10.5);
+      const ctaBodyH = doc.heightOfString(ctaBody, { width: contentW - 40 });
+      const ctaH = 30 + ctaBodyH + 40;
+      y = ensureSpace(y, ctaH + 10);
+      card(mL, y, contentW, ctaH, { bg: PDF_PANEL, borderTop: PDF_ORANGE });
+      doc.font('PT-Sans-Bold').fontSize(13).fillColor(PDF_INK).text(ctaTitle, mL + 20, y + 16, { width: contentW - 40 });
+      doc.font('PT-Sans').fontSize(10.5).fillColor(PDF_INK_DIM).text(ctaBody, mL + 20, doc.y + 6, { width: contentW - 40 });
+      doc.font('PT-Sans-Bold').fontSize(10.5).fillColor(PDF_ORANGE).text('Обговорити просування з Top Marketing  >>  topmarketing.com.ua', mL + 20, doc.y + 12);
 
       doc.end();
     } catch (err) {
