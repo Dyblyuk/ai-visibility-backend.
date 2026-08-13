@@ -435,6 +435,8 @@
     padding:12px; font-family:var(--font-body); font-size:14px; border-radius:2px; outline:none;
   }
   .unlock-form input:focus{border-color:var(--orange);}
+  .unlock-form input.invalid{border-color:var(--red);}
+  .form-error{color:var(--red); font-size:12px; margin-top:-6px;}
   .unlock-form button{grid-column:1/-1;}
   .unlocked-badge{
     background:rgba(79,209,197,.1); border:1px solid rgba(79,209,197,.4); color:var(--cyan);
@@ -837,6 +839,7 @@
         <input type="text" id="leadName" placeholder="Ваше ім'я">
         <input type="tel" id="leadPhone" placeholder="Телефон" required>
         <input type="email" id="leadEmail" placeholder="Email (сюди прийде PDF-звіт)" required style="grid-column:1/-1;">
+        <div class="form-error" id="formError" hidden style="grid-column:1/-1;"></div>
         <button type="submit" id="unlockBtn" class="btn-scan">Отримати повний звіт і консультацію →</button>
       </form>
       <div class="mode-note">Без спаму — надішлемо звіт і, за потреби, зв'яжемось щодо консультації Top Marketing.</div>
@@ -1499,7 +1502,7 @@ form.addEventListener('submit', async function(e){
   }, usedReal ? 200 : 1400);
 });
 
-function revealLocked(emailSent){
+function revealLocked(emailSent, leadEmail){
   ['stepsBlurBlock','zoneBlurBlock','issuesBlurBlock'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.hidden = true;
@@ -1508,17 +1511,46 @@ function revealLocked(emailSent){
   document.getElementById('unlockGate').hidden = true;
   const note = document.getElementById('unlockedNote');
   note.hidden = false;
-  note.textContent = emailSent
-    ? '✓ Дані розблоковано і надіслано вам у PDF-файлі на пошту.'
-    : '✓ Заявку прийнято. Ми звʼяжемось з вами найближчим часом.';
+  note.innerHTML = emailSent
+    ? `Дякуємо! Ваші дані прийнято.<br>Детальний PDF-звіт із покроковим планом дій і повним аналізом уже надіслано на <b>${leadEmail || 'вашу пошту'}</b> — перевірте, будь ласка, "Вхідні" і, про всяк випадок, папку "Спам".<br>Найближчим часом з вами зв'яжеться команда Top Marketing щодо консультації.`
+    : `Дякуємо! Заявку прийнято.<br>Не вдалось автоматично надіслати PDF на пошту — але ми вже отримали ваші контакти і зв'яжемось із вами найближчим часом.`;
+}
+
+function isValidEmail(email){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+}
+function isValidPhone(phone){
+  const digits = phone.replace(/\D/g, '');
+  return digits.length >= 10 && digits.length <= 15;
 }
 
 document.getElementById('unlockForm').addEventListener('submit', async function(e){
   e.preventDefault();
   const leadName = document.getElementById('leadName').value.trim();
-  const leadPhone = document.getElementById('leadPhone').value.trim();
-  const leadEmail = document.getElementById('leadEmail').value.trim();
-  if(!leadPhone || !leadEmail) return;
+  const leadPhoneEl = document.getElementById('leadPhone');
+  const leadEmailEl = document.getElementById('leadEmail');
+  const leadPhone = leadPhoneEl.value.trim();
+  const leadEmail = leadEmailEl.value.trim();
+
+  const formErrorEl = document.getElementById('formError');
+  leadPhoneEl.classList.remove('invalid');
+  leadEmailEl.classList.remove('invalid');
+
+  const errors = [];
+  if(!isValidPhone(leadPhone)){
+    errors.push('Перевірте номер телефону — введіть його повністю, з кодом країни/оператора.');
+    leadPhoneEl.classList.add('invalid');
+  }
+  if(!isValidEmail(leadEmail)){
+    errors.push('Перевірте email — здається, там помилка (напр. немає "@" або домену).');
+    leadEmailEl.classList.add('invalid');
+  }
+  if(errors.length){
+    formErrorEl.textContent = errors.join(' ');
+    formErrorEl.hidden = false;
+    return;
+  }
+  formErrorEl.hidden = true;
 
   const unlockBtn = document.getElementById('unlockBtn');
   unlockBtn.disabled = true;
@@ -1553,7 +1585,7 @@ document.getElementById('unlockForm').addEventListener('submit', async function(
     }
   }
 
-  revealLocked(emailSent);
+  revealLocked(emailSent, leadEmail);
 });
 </script>
 </body>

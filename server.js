@@ -915,6 +915,13 @@ app.post('/api/lead', async (req, res) => {
     if (!phone || typeof phone !== 'string' || !phone.trim()) {
       return res.status(400).json({ error: 'Поле "phone" обовʼязкове' });
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
+      return res.status(400).json({ error: 'Некоректний формат email' });
+    }
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+      return res.status(400).json({ error: 'Некоректний формат телефону' });
+    }
 
     const lead = {
       name: (name || '').trim(),
