@@ -359,7 +359,11 @@ async function askClaude(query) {
       messages: [{ role: 'user', content: query }]
     })
   });
-  if (!res.ok) return { error: `Claude HTTP ${res.status}` };
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => '');
+    console.error(`askClaude: HTTP ${res.status} — ${bodyText}`);
+    return { error: `Claude HTTP ${res.status}`, detail: bodyText.slice(0, 300) };
+  }
   const data = await res.json();
   const text = (data?.content || []).filter(b => b.type === 'text').map(b => b.text).join(' ');
   return { text };
@@ -1005,7 +1009,7 @@ app.get('/api/debug-mention', async (req, res) => {
 
     const [query] = buildQueries(brand, niche);
     const resp = await caller(query).catch(e => ({ error: String(e) }));
-    if (resp.error) return res.json({ query, error: resp.error });
+    if (resp.error) return res.json({ query, error: resp.error, detail: resp.detail || null });
 
     const result = await checkMention(resp.text, brand);
     res.json({
