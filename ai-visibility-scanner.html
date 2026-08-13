@@ -424,6 +424,17 @@
 
   /* ---------- LEAD GATE ---------- */
   .lock-intro{font-size:13px; color:var(--ink-dim); margin:-6px 0 18px; line-height:1.6;}
+  .secret-zone{
+    background:linear-gradient(160deg, var(--panel-2), var(--panel));
+    border:1px solid var(--border-strong); padding:26px; text-align:center;
+    box-shadow:0 16px 32px -22px rgba(0,0,0,.6);
+  }
+  .secret-zone-icon{font-size:26px; margin-bottom:6px;}
+  .secret-zone h3{font-size:17px; margin-bottom:4px;}
+  .secret-zone-count{font-family:var(--font-mono); font-size:12px; color:var(--orange); letter-spacing:.04em; margin-bottom:10px;}
+  .secret-zone-desc{font-size:13px; color:var(--ink-dim); line-height:1.6; max-width:44ch; margin:0 auto 20px;}
+  .secret-zone .unlock-form{text-align:left; max-width:440px; margin:0 auto;}
+  .secret-zone .mode-note{margin-top:12px;}
   .unlock-teaser{
     background:var(--bg-alt); border:1px dashed var(--border-strong); padding:16px;
     font-size:14px; color:var(--ink); margin-bottom:16px; line-height:1.6;
@@ -818,29 +829,18 @@
   </section>
 
   <section class="issues" id="issuesOld" hidden>
-    <h3>🔒 Детальний план дій, конкуренти і що знижує сигнал</h3>
-    <p class="lock-intro">Тут — покроковий план для кожного з 5 кроків, точні назви конкурентів з кожного запиту вище і конкретні проблеми, які прямо зараз знижують ваш бал.</p>
+    <div class="secret-zone" id="secretZoneCard">
+      <div class="secret-zone-icon">🔐</div>
+      <h3>Секретна зона</h3>
+      <div class="secret-zone-count" id="secretZoneCount">+3 приховані інсайти</div>
+      <p class="secret-zone-desc">Найцінніша частина звіту: покроковий план дій, реальні конкуренти і причини, що знижують сигнал. Залиште контакт — і все прийде вам на пошту.</p>
 
-    <div class="locked-block" id="issuesBlurBlock">
-      <div class="locked-block-content">
-        <div class="locked-block-row"><span class="mark">✕</span><span>Сайт не має жодної перевірюваної цифри чи джерела на головній</span></div>
-        <div class="locked-block-row"><span class="mark">✕</span><span>Профілі на різних майданчиках ведуть на різні сторінки бренду</span></div>
-        <div class="locked-block-row"><span class="mark">✕</span><span>Останній помітний матеріал вийшов понад три роки тому назад</span></div>
-      </div>
-      <div class="locked-block-overlay">
-        <div class="lk-big">🔒</div>
-        <div class="lk-text">Заповніть форму нижче, щоб побачити <b>покроковий план</b>, <b>точні причини</b> і <b>назви конкурентів</b></div>
-      </div>
-    </div>
-
-    <div id="unlockGate">
-      <div class="unlock-teaser" id="unlockTeaserText">🔒 Розблокуйте, щоб побачити деталі</div>
       <form id="unlockForm" class="unlock-form">
         <input type="text" id="leadName" placeholder="Ваше ім'я">
         <input type="tel" id="leadPhone" placeholder="Телефон" required>
         <input type="email" id="leadEmail" placeholder="Email (сюди прийде PDF-звіт)" required style="grid-column:1/-1;">
         <div class="form-error" id="formError" hidden style="grid-column:1/-1;"></div>
-        <button type="submit" id="unlockBtn" class="btn-scan">Отримати повний звіт і консультацію →</button>
+        <button type="submit" id="unlockBtn" class="btn-scan">Отримати повний звіт →</button>
       </form>
       <div class="mode-note">Без спаму — надішлемо звіт і, за потреби, зв'яжемось щодо консультації Top Marketing.</div>
     </div>
@@ -1274,14 +1274,14 @@ form.addEventListener('submit', async function(e){
 
   setTimeout(() => {
     document.getElementById('scanStatus').hidden = true;
-    document.getElementById('unlockGate').hidden = false;
+    document.getElementById('secretZoneCard').hidden = false;
     document.getElementById('unlockedNote').hidden = true;
     document.getElementById('leadName').value = '';
     document.getElementById('leadPhone').value = '';
     document.getElementById('leadEmail').value = '';
     const unlockBtnReset = document.getElementById('unlockBtn');
     unlockBtnReset.disabled = false;
-    unlockBtnReset.textContent = 'Отримати повний звіт і консультацію →';
+    unlockBtnReset.textContent = 'Отримати повний звіт →';
 
     document.getElementById('panelBrandName').textContent = name.toUpperCase() + (niche ? ' · ' + niche.toUpperCase() : '');
 
@@ -1491,8 +1491,8 @@ form.addEventListener('submit', async function(e){
       }
 
       const totalCompetitors = lastZoneCompetitors.reduce((sum, arr) => sum + (arr ? arr.length : 0), 0);
-      document.getElementById('unlockTeaserText').innerHTML =
-        `🔒 Знайдено <b>${lastPickedIssues.length}</b> проблем${lastPickedIssues.length===1?'у':'и'}, які знижують сигнал, і <b>${totalCompetitors}</b> назв${totalCompetitors===1?'у':'и'} конкурентів по запитах вище.`;
+      const insightsCount = lastPickedIssues.length + totalCompetitors + 5; // +5 = кроки покрокового плану
+      document.getElementById('secretZoneCount').textContent = `+${insightsCount} прихован${insightsCount===1?'ий інсайт':'их інсайти'}`;
 
       panel.scrollIntoView({behavior:'smooth', block:'start'});
     });
@@ -1503,12 +1503,12 @@ form.addEventListener('submit', async function(e){
 });
 
 function revealLocked(emailSent, leadEmail){
-  ['stepsBlurBlock','zoneBlurBlock','issuesBlurBlock'].forEach(id => {
+  ['stepsBlurBlock','zoneBlurBlock'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.hidden = true;
   });
 
-  document.getElementById('unlockGate').hidden = true;
+  document.getElementById('secretZoneCard').hidden = true;
   const note = document.getElementById('unlockedNote');
   note.hidden = false;
   note.innerHTML = emailSent
