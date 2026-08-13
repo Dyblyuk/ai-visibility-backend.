@@ -350,20 +350,11 @@
   }
 
   /* ---------- STEPS PREVIEW (free) ---------- */
-  .steps-preview{
-    margin-top:24px; background:var(--panel); border:1px solid var(--border); border-top:3px solid var(--cyan);
-    padding:22px; box-shadow:0 16px 32px -22px rgba(0,0,0,.6);
-  }
-  .steps-preview h3{font-size:15px; margin-bottom:4px;}
-  .steps-preview .steps-sub{font-size:12px; color:var(--ink-dim); margin-bottom:16px;}
-  .step-preview-row{display:flex; gap:12px; padding:10px 0; border-top:1px solid var(--border);}
-  .step-preview-row:first-of-type{border-top:none;}
-  .step-preview-num{
-    width:24px; height:24px; flex:none; border-radius:50%; background:var(--bg-alt); border:1px solid var(--border);
-    display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; color:var(--cyan);
-  }
-  .step-preview-row h4{font-size:13px; margin-bottom:2px;}
-  .step-preview-row p{font-size:12px; color:var(--ink-dim); line-height:1.5;}
+  .steps-preview-inner{margin-top:22px; padding-top:18px; border-top:1px solid var(--border);}
+  .steps-preview-inner h3{font-size:15px; margin-bottom:4px;}
+  .steps-preview-inner .steps-sub{font-size:12px; color:var(--ink-dim); margin-bottom:12px;}
+  .step-line{font-size:13px; color:var(--ink); padding:6px 0; border-top:1px solid var(--border);}
+  .step-line:first-of-type{border-top:none;}
   .steps-cta{
     margin-top:14px; font-size:12px; color:var(--orange); font-family:var(--font-mono);
   }
@@ -375,23 +366,23 @@
   .detail-step.bonus b{color:var(--orange);}
 
   /* ---------- ZONE OF INVISIBILITY ---------- */
-  .zone-list{display:flex; flex-direction:column; gap:14px;}
-  .zone-card{background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--orange); padding:18px; box-shadow:0 12px 26px -20px rgba(0,0,0,.6);}
-  .zone-query{font-size:14px; color:var(--ink); margin-bottom:12px; line-height:1.5;}
+  .zone-list{display:flex; flex-direction:column; gap:8px;}
+  .zone-card{background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--orange); padding:12px 14px; box-shadow:0 8px 18px -16px rgba(0,0,0,.6);}
+  .zone-query{font-size:12.5px; color:var(--ink); margin-bottom:8px; line-height:1.4;}
   .zone-query::before{content:"«"; color:var(--ink-faint);}
   .zone-query::after{content:"»"; color:var(--ink-faint);}
-  .zone-engines{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;}
+  .zone-engines{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:7px;}
   .zone-badge{
-    font-family:var(--font-mono); font-size:10px; letter-spacing:.04em; padding:5px 9px;
-    border:1px solid var(--border); border-radius:2px; display:flex; align-items:center; gap:6px;
+    font-family:var(--font-mono); font-size:9.5px; letter-spacing:.04em; padding:3px 7px;
+    border:1px solid var(--border); border-radius:2px; display:flex; align-items:center; gap:5px;
   }
-  .zone-badge .zdot{width:6px; height:6px; border-radius:50%;}
+  .zone-badge .zdot{width:5px; height:5px; border-radius:50%;}
   .zone-badge.hit{color:var(--cyan); border-color:rgba(79,209,197,.4);}
   .zone-badge.hit .zdot{background:var(--cyan); box-shadow:0 0 5px var(--cyan);}
   .zone-badge.miss{color:var(--ink-dim); border-color:var(--border);}
   .zone-badge.miss .zdot{background:var(--ink-faint);}
   .zone-badge.err{color:var(--ink-faint); border-color:var(--border);}
-  .zone-competitors{font-size:12px; color:var(--ink-dim); line-height:1.6;}
+  .zone-competitors{font-size:11.5px; color:var(--ink-dim); line-height:1.5;}
   .zone-competitors b{color:var(--red); font-weight:600;}
   .zone-competitors .none{color:var(--cyan);}
   .locked-inline{
@@ -786,43 +777,28 @@
     </div>
   </section>
 
-  <section class="steps-preview" id="stepsPreview" hidden>
-    <h3>Що зробити, щоб підняти сигнал</h3>
-    <div class="steps-sub">5 кроків, кожен можна почати сьогодні</div>
-    <div class="locked-block" id="stepsBlurBlock">
-      <div class="locked-block-content" id="stepsBlurContent">
-        <div class="step-preview-row">
-          <div class="step-preview-num">1</div>
-          <div><h4>Зберіть бренд в одну сутність</h4><p>Один опис, скрізь однаково — без цього сигнали розмазуються.</p></div>
-        </div>
-        <div class="step-preview-row">
-          <div class="step-preview-num">2</div>
-          <div><h4>Потрапте до чужих списків</h4><p>Ніша, де вас нема, а конкуренти є — саме там варто з'явитись.</p></div>
-        </div>
-        <div class="step-preview-row">
-          <div class="step-preview-num">3</div>
-          <div><h4>Зайдіть у живі обговорення</h4><p>Форуми та відгуки — звідти AI бере значну частку своїх посилань.</p></div>
-        </div>
-        <div class="step-preview-row">
-          <div class="step-preview-num">4</div>
-          <div><h4>Підсильте контент цифрами</h4><p>Конкретні факти й джерела — те, що AI може процитувати.</p></div>
-        </div>
-        <div class="step-preview-row">
-          <div class="step-preview-num">5</div>
-          <div><h4>Закрийте реальне питання клієнта</h4><p>Пряма відповідь у першому абзаці — а не загальна стаття.</p></div>
-        </div>
-      </div>
-      <div class="locked-block-overlay">
-        <div class="lk-big">🔒</div>
-        <div class="lk-text">Заповніть форму нижче, щоб побачити <b>всі 5 кроків</b> і покроковий план дій</div>
-      </div>
-    </div>
-  </section>
-
   <section class="issues" id="issues" hidden>
     <h3>Зона невидимості — так питають клієнти, і ось кого реально знаходить пошук замість вас</h3>
     <div class="mode-note" id="nicheInferredNote" hidden></div>
     <div class="zone-list" id="zoneList"></div>
+
+    <div class="steps-preview-inner" id="stepsPreview">
+      <h3>Що зробити, щоб підняти сигнал</h3>
+      <div class="steps-sub">5 кроків, кожен можна почати сьогодні</div>
+      <div class="locked-block small" id="stepsBlurBlock">
+        <div class="locked-block-content" id="stepsBlurContent">
+          <div class="step-line">1. Зберіть бренд в одну сутність</div>
+          <div class="step-line">2. Потрапте до чужих списків</div>
+          <div class="step-line">3. Зайдіть у живі обговорення</div>
+          <div class="step-line">4. Підсильте контент цифрами</div>
+          <div class="step-line">5. Закрийте реальне питання клієнта</div>
+        </div>
+        <div class="locked-block-overlay">
+          <div class="lk-big">🔒</div>
+          <div class="lk-text">Заповніть форму нижче, щоб побачити <b>покроковий план дій</b></div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="issues" id="issuesOld" hidden>
