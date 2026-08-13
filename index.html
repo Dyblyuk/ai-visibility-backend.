@@ -6,6 +6,25 @@
 <title>Top Marketing · AI-Видимість · Сканер сигналу бренду</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '297361415966498');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->
+
 <style>
   :root{
     --bg:#14181d;
@@ -1580,6 +1599,18 @@ document.getElementById('unlockForm').addEventListener('submit', async function(
       const leadData = await leadRes.json().catch(() => ({}));
       emailSent = !!leadData.emailSent;
       emailError = leadData.emailError || null;
+
+      if(leadRes.ok){
+        // Meta Pixel: подія "Lead" — саме в момент, коли контакт реально
+        // прийнято бекендом, а не при кожному завантаженні сторінки.
+        try{
+          if(typeof fbq === 'function'){
+            fbq('track', 'Lead');
+          }
+        } catch(pixelErr){
+          console.warn('Meta Pixel: не вдалось відправити подію Lead:', pixelErr);
+        }
+      }
     } catch(err){
       console.warn('Не вдалось відправити лід на бекенд:', err);
     }
