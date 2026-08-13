@@ -470,6 +470,15 @@
   }
   .cta .fine{font-family:var(--font-mono); font-size:10px; color:var(--ink-faint); margin-top:14px;}
 
+  /* ---------- RESTART ---------- */
+  .restart-block{text-align:center; margin-top:28px;}
+  .btn-restart{
+    background:none; border:1px solid var(--border); color:var(--ink-dim);
+    padding:12px 22px; font-family:var(--font-body); font-size:13px; font-weight:600;
+    cursor:pointer; border-radius:2px; transition:border-color .15s ease, color .15s ease;
+  }
+  .btn-restart:hover{border-color:var(--orange); color:var(--ink);}
+
   /* ---------- SECTION SHELL ---------- */
   .section{margin-top:64px;}
   .section-eyebrow{font-family:var(--font-mono); font-weight:600; font-size:11px; letter-spacing:.14em; color:var(--orange); text-transform:uppercase;}
@@ -845,6 +854,10 @@
     <p>Кроки вище можна застосувати самостійно вже сьогодні — усе прозоро й покроково. А якщо хочете системного результату без витрат часу на це самим — Top Marketing може взяти SEO та GEO-просування в AI-системах на себе.</p>
   </section>
 
+  <div class="restart-block" id="restartBlock" hidden>
+    <button type="button" class="btn-restart" id="restartBtn">← Повернутися і зробити новий скан</button>
+  </div>
+
   <footer>
     © Top Marketing · Прилад AI-Видимість
   </footer>
@@ -925,6 +938,22 @@ refineToggle.addEventListener('click', () => {
   refineToggle.innerHTML = isHidden
     ? '<span class="refine-icon">＋</span> Сховати уточнення'
     : '<span class="refine-icon">＋</span> Уточнити місто і нішу — точніший результат';
+});
+
+document.getElementById('restartBtn').addEventListener('click', () => {
+  document.body.classList.remove('scan-active');
+  ['panel','gapPanel','axes','issues','issuesOld','ctaBlock','restartBlock','scanStatus'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.hidden = true;
+  });
+  document.getElementById('brandName').value = '';
+  document.getElementById('brandCity').value = '';
+  document.getElementById('brandNicheField').value = '';
+  document.getElementById('brandScale').value = 'в місті';
+  refinePanel.hidden = true;
+  refineToggle.setAttribute('aria-expanded', 'false');
+  refineToggle.innerHTML = '<span class="refine-icon">＋</span> Уточнити місто і нішу — точніший результат';
+  window.scrollTo({top: 0, behavior: 'smooth'});
 });
 const panel = document.getElementById('panel');
 const axes = document.getElementById('axes');
@@ -1350,6 +1379,7 @@ form.addEventListener('submit', async function(e){
     issuesSection.hidden = false;
     issuesOldSection.hidden = false;
     ctaBlock.hidden = false;
+    document.getElementById('restartBlock').hidden = false;
 
     const gapPanelEl = document.getElementById('gapPanel');
     if(recommendPercent !== null){
