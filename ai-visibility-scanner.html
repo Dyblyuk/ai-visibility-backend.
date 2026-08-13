@@ -367,6 +367,11 @@
 
   /* ---------- ZONE OF INVISIBILITY ---------- */
   .zone-list{display:flex; flex-direction:column; gap:8px;}
+  .zone-combined{background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--orange); padding:14px 16px; box-shadow:0 8px 18px -16px rgba(0,0,0,.6);}
+  .zone-query-row{padding:7px 0; border-top:1px solid var(--border); display:flex; flex-wrap:wrap; align-items:center; gap:8px; justify-content:space-between;}
+  .zone-query-row:first-child{border-top:none;}
+  .zq-text{font-size:12px; color:var(--ink); flex:1; min-width:60%;}
+  .zq-badges{display:flex; gap:5px; flex-wrap:wrap;}
   .zone-card{background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--orange); padding:12px 14px; box-shadow:0 8px 18px -16px rgba(0,0,0,.6);}
   .zone-query{font-size:12.5px; color:var(--ink); margin-bottom:8px; line-height:1.4;}
   .zone-query::before{content:"«"; color:var(--ink-faint);}
@@ -1421,47 +1426,48 @@ form.addEventListener('submit', async function(e){
       if(zoneOfInvisibility.length === 0){
         zoneListEl.innerHTML = `<div class="track-snippet">Вкажіть нішу/місто у формі вище, щоб побачити, кого AI називає замість вас за типовими запитами клієнтів.</div>`;
       } else {
-        zoneOfInvisibility.forEach((zq, idx) => {
-          const card = document.createElement('div');
-          card.className = 'zone-card';
-          card.dataset.zoneIndex = idx;
+        const combined = document.createElement('div');
+        combined.className = 'zone-combined';
+
+        const rowsHtml = zoneOfInvisibility.map((zq, idx) => {
           const badges = Object.entries(zq.engines).map(([key, val]) => {
             const label = ENGINE_LABELS[key] || key;
             if(val.error) return `<span class="zone-badge err"><i class="zdot"></i>${label}</span>`;
             const cls = val.mentionedBrand ? 'hit' : 'miss';
-            const text = val.mentionedBrand ? `${label}: згадав вас` : `${label}: не згадав`;
-            return `<span class="zone-badge ${cls}"><i class="zdot"></i>${text}</span>`;
+            return `<span class="zone-badge ${cls}"><i class="zdot"></i>${label}</span>`;
           }).join('');
-          const allCompetitors = zq.competitors || [];
-          lastZoneCompetitors[idx] = allCompetitors;
-          const sourceNote = zq.competitorsSource === 'fallback'
-            ? ' (грубий підбір, пошук був недоступний)'
-            : '';
-          let competitorsHtml;
-          if(allCompetitors.length){
-            // Фейкові розмиті рядки замість реальних назв — форма схожа на
-            // список, але сам текст ніде не рендериться до розблокування.
-            const fakeNames = ['Компанія А', 'Студія Б', 'Агенція В', 'Бренд Г', 'Сервіс Д'];
-            const rows = allCompetitors.map((nm, i) =>
-              `<div class="locked-block-row" style="border-top:${i===0?'none':'1px solid var(--border)'}">${fakeNames[i % fakeNames.length]}</div>`
-            ).join('');
-            competitorsHtml = `
-              <div class="locked-block small">
-                <div class="locked-block-content">${rows}</div>
-                <div class="locked-block-overlay">
-                  <div class="lk-big">🔒</div>
-                  <div class="lk-text">${allCompetitors.length} реальн${allCompetitors.length===1?'ий гравець':'их гравці/ів'} ринку — розблокуйте нижче${sourceNote}</div>
-                </div>
-              </div>`;
-          } else {
-            competitorsHtml = `<span class="none">За цим запитом пошук не знайшов явних гравців — полиця відносно вільна.</span>`;
-          }
-          card.innerHTML = `
-            <div class="zone-query">${zq.query}</div>
-            <div class="zone-engines">${badges}</div>
-            <div class="zone-competitors">${competitorsHtml}</div>`;
-          zoneListEl.appendChild(card);
-        });
+          lastZoneCompetitors[idx] = zq.competitors || [];
+          return `
+            <div class="zone-query-row">
+              <div class="zq-text">${idx+1}. «${zq.query}»</div>
+              <div class="zq-badges">${badges}</div>
+            </div>`;
+        }).join('');
+
+        const allCompetitorsFlat = zoneOfInvisibility.flatMap(zq => zq.competitors || []);
+        const anyFallback = zoneOfInvisibility.some(zq => zq.competitorsSource === 'fallback');
+        const sourceNote = anyFallback ? ' (частину підібрано грубо, пошук був частково недоступний)' : '';
+
+        let competitorsHtml;
+        if(allCompetitorsFlat.length){
+          const fakeNames = ['Компанія А', 'Студія Б', 'Агенція В', 'Бренд Г', 'Сервіс Д', 'Проєкт Е'];
+          const rows = allCompetitorsFlat.map((nm, i) =>
+            `<div class="locked-block-row" style="border-top:${i===0?'none':'1px solid var(--border)'}">${fakeNames[i % fakeNames.length]}</div>`
+          ).join('');
+          competitorsHtml = `
+            <div class="locked-block small" id="zoneBlurBlock">
+              <div class="locked-block-content">${rows}</div>
+              <div class="locked-block-overlay">
+                <div class="lk-big">🔒</div>
+                <div class="lk-text">${allCompetitorsFlat.length} реальн${allCompetitorsFlat.length===1?'ий гравець':'их гравці/ів'} ринку по всіх запитах — розблокуйте нижче${sourceNote}</div>
+              </div>
+            </div>`;
+        } else {
+          competitorsHtml = `<div class="zone-competitors"><span class="none">За цими запитами пошук не знайшов явних гравців — полиця відносно вільна.</span></div>`;
+        }
+
+        combined.innerHTML = rowsHtml + competitorsHtml;
+        zoneListEl.appendChild(combined);
       }
 
       const totalCompetitors = lastZoneCompetitors.reduce((sum, arr) => sum + (arr ? arr.length : 0), 0);
@@ -1483,15 +1489,13 @@ function revealLocked(emailSent){
   const stepsBlurBlock = document.getElementById('stepsBlurBlock');
   if(stepsBlurBlock) stepsBlurBlock.hidden = true;
 
-  document.querySelectorAll('.zone-competitors .locked-block').forEach(el => {
-    const card = el.closest('.zone-card');
-    const idx = Number(card.dataset.zoneIndex);
-    const names = lastZoneCompetitors[idx] || [];
-    el.outerHTML = names.length
-      ? `Замість вас називають: <b>${names.join(', ')}</b>`
+  const zoneBlurBlock = document.getElementById('zoneBlurBlock');
+  if(zoneBlurBlock){
+    const allNames = lastZoneCompetitors.flat();
+    zoneBlurBlock.outerHTML = allNames.length
+      ? `<div class="zone-competitors" style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">Замість вас називають: <b>${allNames.join(', ')}</b></div>`
       : '';
-  });
-
+  }
   const issuesBlurBlock = document.getElementById('issuesBlurBlock');
   if(issuesBlurBlock) issuesBlurBlock.hidden = true;
 
