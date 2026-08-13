@@ -218,10 +218,12 @@ async function checkMention(text, brand) {
 
   if (snippetFromText) {
     if (containsDenial(text)) {
-      // Назва є в тексті, але це, вочевидь, ехо з питання: AI прямо каже,
-      // що не має інформації — не "know", максимум непряма/невиразна згадка.
+      // AI прямо каже, що не має інформації — це "не чув", а не "плутає",
+      // навіть якщо назва бренду просто процитована з питання в тексті
+      // відмови. "Плутає" — це коли AI дає бодай якийсь реальний натяк,
+      // а не сухе "нічого не знаю".
       const snippet = text.trim().slice(0, 160) + (text.length > 160 ? '…' : '');
-      return { verdict: 'confused', hit: false, snippet, score: engineConfidenceScore('confused', snippet) };
+      return { verdict: 'unknown', hit: false, snippet: '', score: 0 };
     }
     // Пряма згадка без ознак відмови — найсильніший сигнал, довіряємо
     // напряму, без додаткового виклику класифікатора.
