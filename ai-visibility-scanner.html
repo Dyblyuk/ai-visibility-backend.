@@ -1500,37 +1500,12 @@ form.addEventListener('submit', async function(e){
 });
 
 function revealLocked(emailSent){
-  document.getElementById('detailedSteps').hidden = false;
-  document.getElementById('detailedSteps').innerHTML = DETAILED_STEPS_HTML;
-
-  const stepsBlurBlock = document.getElementById('stepsBlurBlock');
-  if(stepsBlurBlock) stepsBlurBlock.hidden = true;
-
-  const zoneBlurBlock = document.getElementById('zoneBlurBlock');
-  if(zoneBlurBlock){
-    const allNames = lastZoneCompetitors.flat();
-    zoneBlurBlock.outerHTML = allNames.length
-      ? `<div class="zone-competitors" style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">Замість вас називають: <b>${allNames.join(', ')}</b></div>`
-      : '';
-  }
-  const issuesBlurBlock = document.getElementById('issuesBlurBlock');
-  if(issuesBlurBlock) issuesBlurBlock.hidden = true;
-
-  const issuesList = document.getElementById('issuesList');
-  issuesList.innerHTML = '';
-  lastPickedIssues.forEach(txt => {
-    const row = document.createElement('div');
-    row.className = 'issue-row';
-    row.innerHTML = `<span class="mark">✕</span><span>${txt}</span>`;
-    issuesList.appendChild(row);
-  });
-
   document.getElementById('unlockGate').hidden = true;
   const note = document.getElementById('unlockedNote');
   note.hidden = false;
   note.textContent = emailSent
-    ? '✓ Звіт розблоковано. PDF з детальним аналізом надіслано на вашу пошту.'
-    : '✓ Звіт розблоковано. Ми зв\'яжемось з вами найближчим часом.';
+    ? '✓ Дані розблоковано і надіслано вам у PDF-файлі на пошту.'
+    : '✓ Заявку прийнято. Ми звʼяжемось з вами найближчим часом.';
 }
 
 document.getElementById('unlockForm').addEventListener('submit', async function(e){
