@@ -398,20 +398,13 @@
     color:var(--ink-faint); font-style:italic; display:inline-flex; align-items:center; gap:6px;
   }
 
-  /* ---------- BLURRED LOCK PREVIEW (fake filler, never real data) ---------- */
-  .blur-chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; position:relative;}
-  .blur-chip{
-    height:22px; border-radius:12px; background:linear-gradient(90deg, var(--panel-2), var(--border));
-    filter:blur(3px); opacity:.8;
-  }
-  .locked-wrap{position:relative;}
-  .lock-badge-mini{
-    display:inline-flex; align-items:center; gap:5px; font-family:var(--font-mono); font-size:10px;
-    color:var(--orange); letter-spacing:.04em; margin-top:8px;
-  }
-  .lock-badge-mini .lk{font-size:11px;}
 
   .locked-block{position:relative; margin-top:10px; border-radius:2px; overflow:hidden; min-height:120px; background:var(--bg-alt); border:1px solid var(--border);}
+  .locked-block.small{min-height:64px;}
+  .locked-block.small .locked-block-content{padding:10px 12px;}
+  .locked-block.small .locked-block-row{font-size:13px; padding:5px 0;}
+  .locked-block.small .locked-block-overlay .lk-big{width:32px; height:32px; font-size:15px;}
+  .locked-block.small .locked-block-overlay .lk-text{font-size:11px;}
   .locked-block-content{filter:blur(6px); user-select:none; pointer-events:none; opacity:.9; padding:14px 16px;}
   .locked-block-row{
     display:flex; gap:10px; padding:9px 0; border-top:1px solid var(--border); font-size:15px; color:var(--ink); font-weight:600;
@@ -796,27 +789,34 @@
   <section class="steps-preview" id="stepsPreview" hidden>
     <h3>Що зробити, щоб підняти сигнал</h3>
     <div class="steps-sub">5 кроків, кожен можна почати сьогодні</div>
-    <div class="step-preview-row">
-      <div class="step-preview-num">1</div>
-      <div><h4>Зберіть бренд в одну сутність</h4><p>Один опис, скрізь однаково — без цього сигнали розмазуються.</p></div>
+    <div class="locked-block" id="stepsBlurBlock">
+      <div class="locked-block-content" id="stepsBlurContent">
+        <div class="step-preview-row">
+          <div class="step-preview-num">1</div>
+          <div><h4>Зберіть бренд в одну сутність</h4><p>Один опис, скрізь однаково — без цього сигнали розмазуються.</p></div>
+        </div>
+        <div class="step-preview-row">
+          <div class="step-preview-num">2</div>
+          <div><h4>Потрапте до чужих списків</h4><p>Ніша, де вас нема, а конкуренти є — саме там варто з'явитись.</p></div>
+        </div>
+        <div class="step-preview-row">
+          <div class="step-preview-num">3</div>
+          <div><h4>Зайдіть у живі обговорення</h4><p>Форуми та відгуки — звідти AI бере значну частку своїх посилань.</p></div>
+        </div>
+        <div class="step-preview-row">
+          <div class="step-preview-num">4</div>
+          <div><h4>Підсильте контент цифрами</h4><p>Конкретні факти й джерела — те, що AI може процитувати.</p></div>
+        </div>
+        <div class="step-preview-row">
+          <div class="step-preview-num">5</div>
+          <div><h4>Закрийте реальне питання клієнта</h4><p>Пряма відповідь у першому абзаці — а не загальна стаття.</p></div>
+        </div>
+      </div>
+      <div class="locked-block-overlay">
+        <div class="lk-big">🔒</div>
+        <div class="lk-text">Заповніть форму нижче, щоб побачити <b>всі 5 кроків</b> і покроковий план дій</div>
+      </div>
     </div>
-    <div class="step-preview-row">
-      <div class="step-preview-num">2</div>
-      <div><h4>Потрапте до чужих списків</h4><p>Ніша, де вас нема, а конкуренти є — саме там варто з'явитись.</p></div>
-    </div>
-    <div class="step-preview-row">
-      <div class="step-preview-num">3</div>
-      <div><h4>Зайдіть у живі обговорення</h4><p>Форуми та відгуки — звідти AI бере значну частку своїх посилань.</p></div>
-    </div>
-    <div class="step-preview-row">
-      <div class="step-preview-num">4</div>
-      <div><h4>Підсильте контент цифрами</h4><p>Конкретні факти й джерела — те, що AI може процитувати.</p></div>
-    </div>
-    <div class="step-preview-row">
-      <div class="step-preview-num">5</div>
-      <div><h4>Закрийте реальне питання клієнта</h4><p>Пряма відповідь у першому абзаці — а не загальна стаття.</p></div>
-    </div>
-    <div class="steps-cta">🔒 Детальний покроковий план із конкретними діями для кожного кроку — нижче, за контактом</div>
   </section>
 
   <section class="issues" id="issues" hidden>
@@ -1459,21 +1459,23 @@ form.addEventListener('submit', async function(e){
           const allCompetitors = zq.competitors || [];
           lastZoneCompetitors[idx] = allCompetitors;
           const sourceNote = zq.competitorsSource === 'fallback'
-            ? ' <span style="opacity:.6">(грубий підбір, пошук був недоступний)</span>'
+            ? ' (грубий підбір, пошук був недоступний)'
             : '';
           let competitorsHtml;
           if(allCompetitors.length){
-            // Фейкові розмиті "чіпи" замість реальних назв — ширина кожного
-            // приблизно відповідає довжині справжньої назви (щоб виглядало
-            // правдоподібно), але сам текст ніде не рендериться до розблокування.
-            const chips = allCompetitors.map(nm => {
-              const w = Math.min(120, Math.max(40, nm.length * 7));
-              return `<div class="blur-chip" style="width:${w}px"></div>`;
-            }).join('');
+            // Фейкові розмиті рядки замість реальних назв — форма схожа на
+            // список, але сам текст ніде не рендериться до розблокування.
+            const fakeNames = ['Компанія А', 'Студія Б', 'Агенція В', 'Бренд Г', 'Сервіс Д'];
+            const rows = allCompetitors.map((nm, i) =>
+              `<div class="locked-block-row" style="border-top:${i===0?'none':'1px solid var(--border)'}">${fakeNames[i % fakeNames.length]}</div>`
+            ).join('');
             competitorsHtml = `
-              <div class="locked-wrap">
-                <div class="blur-chips">${chips}</div>
-                <div class="lock-badge-mini"><span class="lk">🔒</span> ${allCompetitors.length} реальн${allCompetitors.length===1?'ий гравець':'их гравці/ів'} ринку — розблокуйте звіт нижче, щоб побачити назви${sourceNote}</div>
+              <div class="locked-block small">
+                <div class="locked-block-content">${rows}</div>
+                <div class="locked-block-overlay">
+                  <div class="lk-big">🔒</div>
+                  <div class="lk-text">${allCompetitors.length} реальн${allCompetitors.length===1?'ий гравець':'их гравці/ів'} ринку — розблокуйте нижче${sourceNote}</div>
+                </div>
               </div>`;
           } else {
             competitorsHtml = `<span class="none">За цим запитом пошук не знайшов явних гравців — полиця відносно вільна.</span>`;
@@ -1502,7 +1504,10 @@ function revealLocked(emailSent){
   document.getElementById('detailedSteps').hidden = false;
   document.getElementById('detailedSteps').innerHTML = DETAILED_STEPS_HTML;
 
-  document.querySelectorAll('.locked-wrap').forEach(el => {
+  const stepsBlurBlock = document.getElementById('stepsBlurBlock');
+  if(stepsBlurBlock) stepsBlurBlock.hidden = true;
+
+  document.querySelectorAll('.zone-competitors .locked-block').forEach(el => {
     const card = el.closest('.zone-card');
     const idx = Number(card.dataset.zoneIndex);
     const names = lastZoneCompetitors[idx] || [];
