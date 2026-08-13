@@ -207,8 +207,14 @@ const DENIAL_PATTERNS = [
   /не\s+знайомий[^.!?\n]{0,30}(з|із)/i
 ];
 
+// Перевіряємо відмову лише на початку відповіді — справжнє "не знаю"
+// AI завжди каже одразу. Якщо відмова/застереження зустрічається лише
+// десь у третьому абзаці після реальних фактів (типове "але my дані
+// можуть бути неповними") — це чесна приписка, а не заперечення знання,
+// і не повинна перекреслювати змістовну відповідь вище.
 function containsDenial(text) {
-  return DENIAL_PATTERNS.some(re => re.test(text));
+  const head = text.slice(0, 260);
+  return DENIAL_PATTERNS.some(re => re.test(head));
 }
 
 async function checkMention(text, brand) {
