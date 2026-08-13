@@ -1045,6 +1045,30 @@ app.get('/api/debug-webhook', async (req, res) => {
   }
 });
 
+// Перевірка відправки email через Resend окремо від усього іншого — генерує
+// маленький тестовий PDF і намагається надіслати на вказану адресу.
+// Приклад: GET /api/debug-email?to=your@mail.com
+app.get('/api/debug-email', async (req, res) => {
+  const to = req.query.to;
+  if (!to) return res.json({ ok: false, error: 'Додайте ?to=ваш@email.com в адресу' });
+  if (!RESEND_API_KEY) return res.json({ ok: false, error: 'RESEND_API_KEY не налаштовано на цьому сервері' });
+
+  try {
+    const pdfBuffer = await buildReportPdf({
+      brand: 'Тестовий Бренд',
+      niche: 'тестова ніша',
+      score: 42,
+      engines: [{ label: 'Claude', verdict: 'know', snippet: 'Тестова цитата для перевірки' }],
+      zoneOfInvisibility: [],
+      issues: ['Тестова проблема для перевірки PDF']
+    });
+    const emailResult = await sendReportEmail(to, pdfBuffer, { brand: 'Тестовий Бренд' });
+    res.json({ pdfSize: pdfBuffer.length, emailResult });
+  } catch (err) {
+    res.json({ ok: false, error: String(err) });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,

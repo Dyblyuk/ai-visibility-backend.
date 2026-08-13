@@ -1500,6 +1500,11 @@ form.addEventListener('submit', async function(e){
 });
 
 function revealLocked(emailSent){
+  ['stepsBlurBlock','zoneBlurBlock','issuesBlurBlock'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.hidden = true;
+  });
+
   document.getElementById('unlockGate').hidden = true;
   const note = document.getElementById('unlockedNote');
   note.hidden = false;
