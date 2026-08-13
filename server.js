@@ -896,7 +896,7 @@ async function sendReportEmail(toEmail, pdfBuffer, meta) {
     if (!res.ok) {
       const bodyText = await res.text().catch(() => '');
       console.error(`sendReportEmail: Resend HTTP ${res.status} — ${bodyText}`);
-      return { sent: false, error: `Resend HTTP ${res.status}` };
+      return { sent: false, error: `Resend HTTP ${res.status}`, detail: bodyText.slice(0, 400) };
     }
     return { sent: true };
   } catch (err) {
