@@ -285,6 +285,22 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
   .fact-callout blockquote{color:var(--ink); font-style:italic; margin:6px 0;}
   .fact-callout .fc-source{font-family:var(--font-mono); font-size:11px; color:var(--cyan);}
 
+  .score-explain{margin-top:8px;}
+  .score-explain summary{
+    cursor:pointer; font-size:11px; color:var(--ink-faint); font-family:var(--font-mono);
+    letter-spacing:.03em; list-style:none;
+  }
+  .score-explain summary::-webkit-details-marker{display:none;}
+  .score-explain summary::before{content:"ⓘ "; color:var(--orange);}
+  .score-explain p{font-size:12px; color:var(--ink-dim); line-height:1.6; margin-top:8px; max-width:52ch;}
+  .score-explain b{color:var(--ink);}
+
+  .personal-insight{
+    background:var(--bg-alt); border:1px solid var(--border); border-left:3px solid var(--cyan);
+    padding:14px 16px; margin:18px 0; font-size:14px; line-height:1.6; color:var(--ink);
+  }
+  .personal-insight b{color:var(--cyan);}
+
   .track-score{font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); margin-left:8px;}
 
   /* ---------- GAP SECTION (know vs recommend) ---------- */
@@ -767,11 +783,16 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
       <div>
         <div class="score-label" id="scoreLabel">—</div>
         <div class="score-text" id="scoreFootnote">попередня оцінка · зафіксовано зараз</div>
+        <details class="score-explain">
+          <summary>Як рахується бал?</summary>
+          <p>Кожна система дає внесок: <b>«знає»</b> = 100%, <b>«плутає»</b> = 50%, <b>«не чув»</b> = 0%. Бал — середнє по всіх перевірених системах. Це прозора евристика власної розробки, а не офіційна оцінка від OpenAI, Google, Anthropic чи Perplexity.</p>
+        </details>
       </div>
     </div>
 
     <div class="gap-headline" id="gapHeadline" hidden></div>
     <div class="fact-callout" id="factCallout" hidden></div>
+    <div class="personal-insight" id="personalInsight" hidden></div>
 
     <div class="panel-head">
       <span>Що про вас знає кожен AI</span>
@@ -1356,6 +1377,26 @@ form.addEventListener('submit', async function(e){
       factCalloutEl.hidden = true;
     }
 
+    // ---- Персоналізована підказка — куди дивитись першим, на основі
+    // реальних даних цього конкретного скану (без розкриття locked-даних) ----
+    const personalInsightEl = document.getElementById('personalInsight');
+    const notKnowLabels = engines.filter(e => e.verdict !== 'know' && !e.error).map(e => e.label);
+    let focusText;
+    if(notKnowLabels.length >= 2){
+      focusText = `Найбільше системи не мають чіткого уявлення про бренд — почніть із <b>кроку 1</b> (єдиний опис бренду скрізь однаково) і <b>кроку 4</b> (факти й джерела в контенті).`;
+    } else if(recommendPercent !== null && recommendPercent < overall - 15){
+      focusText = `Системи вас знають, але рідко радять у нішевих запитах — це різниця між "чути" і "рекомендувати". Почніть із <b>кроку 2</b> (потрапити в чужі списки/рейтинги) і <b>кроку 3</b> (живі обговорення).`;
+    } else if(notKnowLabels.length === 1){
+      focusText = `Майже всі системи знають бренд, окрім <b>${notKnowLabels[0]}</b> — це не привід панікувати, радше сигнал підсилити <b>крок 4</b> (більше перевірюваних фактів у контенті).`;
+    } else {
+      focusText = `Базовий сигнал непоганий — тепер варто закріпити перевагу через <b>крок 5</b> (свіжий контент під конкретні питання клієнтів).`;
+    }
+    const engineSummary = notKnowLabels.length
+      ? `${notKnowLabels.join(', ')} поки ${notKnowLabels.length===1?'не впевнен':'не впевнені'} у бренді.`
+      : `Усі перевірені системи впізнають бренд.`;
+    personalInsightEl.innerHTML = `<b>Ваш бал ${overall}/100.</b> ${engineSummary} ${focusText}`;
+    personalInsightEl.hidden = false;
+
     const tracksEl = document.getElementById('tracks');
     tracksEl.innerHTML = '';
     const captionMap = {
@@ -1469,6 +1510,21 @@ form.addEventListener('submit', async function(e){
       lastScanMeta = { brand: name, niche, score: overall };
       lastEngines = engines.map(e => ({ label: e.label, verdict: e.verdict || (e.hit ? 'know' : 'unknown'), hit: !!e.hit, score: e.score || 0, snippet: e.snippet || '', error: e.error || null }));
       lastZoneOfInvisibility = zoneOfInvisibility;
+
+      // Записуємо "частковий лід" — сайт/бренд і ніша вже відомі, навіть
+      // якщо людина ще не заповнила (чи взагалі не заповнить) контакти.
+      // Лише для реальних сканів, не для демо-режиму з вигаданими даними.
+      if(usedReal && API_URL){
+        try{
+          fetch(API_URL.replace(/\/api\/scan$/, '/api/partial-lead'), {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ brand: name, niche, score: overall })
+          }).catch(err => console.warn('Не вдалось записати частковий лід:', err));
+        } catch(err){
+          console.warn('Не вдалось записати частковий лід:', err);
+        }
+      }
 
       const zoneListEl = document.getElementById('zoneList');
       zoneListEl.innerHTML = '';

@@ -27,6 +27,8 @@ function doPost(e) {
     const sheet = getOrCreateSheet_();
     const data = JSON.parse(e.postData.contents);
 
+    const status = data.status || (data.phone || data.email ? 'Повна заявка' : 'Тільки скан (без контакту)');
+
     sheet.appendRow([
       data.ts || new Date().toISOString(),
       data.name || '',
@@ -34,7 +36,8 @@ function doPost(e) {
       data.email || '',
       data.brand || '',
       data.niche || '',
-      (data.score === undefined || data.score === null) ? '' : data.score
+      (data.score === undefined || data.score === null) ? '' : data.score,
+      status
     ]);
 
     return ContentService
@@ -60,7 +63,7 @@ function getOrCreateSheet_() {
   let sheet = ss.getSheetByName('Ліди');
   if (!sheet) {
     sheet = ss.insertSheet('Ліди');
-    sheet.appendRow(['Час', "Ім'я", 'Телефон', 'Email', 'Бренд', 'Ніша', 'Бал']);
+    sheet.appendRow(['Час', "Ім'я", 'Телефон', 'Email', 'Бренд', 'Ніша', 'Бал', 'Статус']);
     sheet.setFrozenRows(1);
   }
   return sheet;

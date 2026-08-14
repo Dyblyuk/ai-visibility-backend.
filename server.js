@@ -919,6 +919,48 @@ async function sendReportEmail(toEmail, pdfBuffer, meta) {
   }
 }
 
+// Записує в таблицю тих, хто зробив скан, але НЕ залишив контакт —
+// щоб бачити обсяг "теплого" трафіку (сайт/бренд вказали, форму не
+// заповнили), навіть без можливості напряму з ними зв'язатись.
+app.post('/api/partial-lead', async (req, res) => {
+  try {
+    const { brand, niche, score } = req.body || {};
+    if (!brand || typeof brand !== 'string' || !brand.trim()) {
+      return res.status(400).json({ error: 'Поле "brand" обовʼязкове' });
+    }
+
+    const lead = {
+      name: '',
+      phone: '',
+      email: '',
+      brand: brand.trim(),
+      niche: (niche || '').trim(),
+      score: typeof score === 'number' ? score : null,
+      status: 'Тільки скан (без контакту)',
+      ts: new Date().toISOString()
+    };
+
+    try {
+      fs.appendFileSync(LEADS_FILE, JSON.stringify(lead) + '\n');
+    } catch (e) {
+      console.warn('Не вдалось записати частковий лід у файл:', e);
+    }
+
+    if (LEAD_WEBHOOK_URL) {
+      fetch(LEAD_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(lead)
+      }).catch(e => console.warn('Помилка відправки часткового ліда на LEAD_WEBHOOK_URL:', e));
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Внутрішня помилка сервера' });
+  }
+});
+
 app.post('/api/lead', async (req, res) => {
   try {
     const { name, phone, email, brand, niche, score, engines, zoneOfInvisibility, issues } = req.body || {};
@@ -944,6 +986,7 @@ app.post('/api/lead', async (req, res) => {
       brand: (brand || '').trim(),
       niche: (niche || '').trim(),
       score: typeof score === 'number' ? score : null,
+      status: 'Повна заявка',
       ts: new Date().toISOString()
     };
 
