@@ -391,6 +391,34 @@ const ENGINE_CALLERS = {
 // в інтернеті на момент сканування.
 // Якщо користувач не вказав нішу — визначаємо її самі через веб-пошук,
 // щоб "зона невидимості" все одно спрацювала, а не просто мовчала.
+
+// Кеш в пам'яті процесу — той самий бренд, перевірений повторно протягом
+// доби, не запускає ще один платний веб-пошук. Скидається при
+// перезапуску/передеплої сервера (Render free tier не має постійного
+// диску), і цього достатньо: мета — не платити за пошук двічі за одну й
+// ту саму назву в межах короткого проміжку тестування/реального трафіку.
+const NICHE_CACHE = new Map(); // ключ: бренд у нижньому регістрі → { niche, ts }
+const NICHE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 години
+const NICHE_CACHE_MAX_SIZE = 500; // запобіжник від необмеженого росту пам'яті
+
+async function inferNicheCached(brand) {
+  const key = brand.trim().toLowerCase();
+  const cached = NICHE_CACHE.get(key);
+  if (cached && (Date.now() - cached.ts) < NICHE_CACHE_TTL_MS) {
+    return { niche: cached.niche, cached: true };
+  }
+
+  const result = await inferNiche(brand);
+  if (result.niche) {
+    if (NICHE_CACHE.size >= NICHE_CACHE_MAX_SIZE) {
+      const oldestKey = NICHE_CACHE.keys().next().value;
+      NICHE_CACHE.delete(oldestKey);
+    }
+    NICHE_CACHE.set(key, { niche: result.niche, ts: Date.now() });
+  }
+  return { ...result, cached: false };
+}
+
 async function inferNiche(brand) {
   if (!ANTHROPIC_API_KEY) return { niche: '', error: 'ANTHROPIC_API_KEY не налаштовано' };
 
@@ -595,7 +623,7 @@ app.post('/api/discovery-queries', async (req, res) => {
     let inferred = false;
 
     if (!effectiveNiche && brand) {
-      const result = await inferNiche(brand);
+      const result = await inferNicheCached(brand);
       if (result.niche) {
         effectiveNiche = result.niche;
         inferred = true;
