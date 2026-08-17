@@ -392,30 +392,43 @@ const ENGINE_CALLERS = {
 // Якщо користувач не вказав нішу — визначаємо її самі через веб-пошук,
 // щоб "зона невидимості" все одно спрацювала, а не просто мовчала.
 
-// Кеш в пам'яті процесу — той самий бренд, перевірений повторно протягом
-// доби, не запускає ще один платний веб-пошук. Скидається при
-// перезапуску/передеплої сервера (Render free tier не має постійного
-// диску), і цього достатньо: мета — не платити за пошук двічі за одну й
-// ту саму назву в межах короткого проміжку тестування/реального трафіку.
-const NICHE_CACHE = new Map(); // ключ: бренд у нижньому регістрі → { niche, ts }
+// Спільна фабрика кешу в пам'яті процесу — той самий запит (бренд/ніша/
+// система), повторений протягом TTL, бере результат з кешу замість
+// нового платного виклику API. Скидається при перезапуску/передеплої
+// (Render free tier без постійного диску) — і цього достатньо: мета не
+// зберігати щось назавжди, а просто не платити двічі за одне й те саме
+// в межах короткого проміжку тестування чи реального трафіку.
+function makeCache(ttlMs, maxSize) {
+  const store = new Map();
+  return {
+    get(key) {
+      const entry = store.get(key);
+      if (!entry) return undefined;
+      if ((Date.now() - entry.ts) >= ttlMs) { store.delete(key); return undefined; }
+      return entry.value;
+    },
+    set(key, value) {
+      if (store.size >= maxSize) {
+        const oldestKey = store.keys().next().value;
+        store.delete(oldestKey);
+      }
+      store.set(key, { value, ts: Date.now() });
+    }
+  };
+}
+
 const NICHE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 години
-const NICHE_CACHE_MAX_SIZE = 500; // запобіжник від необмеженого росту пам'яті
+const nicheCache = makeCache(NICHE_CACHE_TTL_MS, 500);
+const engineCheckCache = makeCache(NICHE_CACHE_TTL_MS, 1000);
+const competitorCache = makeCache(NICHE_CACHE_TTL_MS, 500);
 
 async function inferNicheCached(brand) {
   const key = brand.trim().toLowerCase();
-  const cached = NICHE_CACHE.get(key);
-  if (cached && (Date.now() - cached.ts) < NICHE_CACHE_TTL_MS) {
-    return { niche: cached.niche, cached: true };
-  }
+  const cached = nicheCache.get(key);
+  if (cached) return { niche: cached, cached: true };
 
   const result = await inferNiche(brand);
-  if (result.niche) {
-    if (NICHE_CACHE.size >= NICHE_CACHE_MAX_SIZE) {
-      const oldestKey = NICHE_CACHE.keys().next().value;
-      NICHE_CACHE.delete(oldestKey);
-    }
-    NICHE_CACHE.set(key, { niche: result.niche, ts: Date.now() });
-  }
+  if (result.niche) nicheCache.set(key, result.niche);
   return { ...result, cached: false };
 }
 
@@ -506,6 +519,16 @@ async function findRealCompetitors(query, brand) {
   }
 }
 
+async function findRealCompetitorsCached(query, brand) {
+  const key = brand.trim().toLowerCase() + '::' + query.trim().toLowerCase();
+  const cached = competitorCache.get(key);
+  if (cached) return { ...cached, cached: true };
+
+  const result = await findRealCompetitors(query, brand);
+  if (!result.error) competitorCache.set(key, result);
+  return { ...result, cached: false };
+}
+
 async function runDiscoveryQuery(query, brand) {
   const engineResults = {};
   const rawTexts = [];
@@ -513,6 +536,15 @@ async function runDiscoveryQuery(query, brand) {
   await Promise.all(DISCOVERY_ENGINES.map(async (key) => {
     const caller = ENGINE_CALLERS[key];
     if (!caller) return;
+
+    const cacheKey = 'zone::' + key + '::' + brand.trim().toLowerCase() + '::' + query.trim().toLowerCase();
+    const cached = engineCheckCache.get(cacheKey);
+    if (cached) {
+      engineResults[key] = cached.error ? { error: cached.error } : { mentionedBrand: cached.mentionedBrand };
+      if (!cached.error && cached.rawText) rawTexts.push(cached.rawText);
+      return;
+    }
+
     const resp = await caller(query).catch(e => ({ error: String(e) }));
     if (resp.error) {
       engineResults[key] = { error: resp.error };
@@ -521,11 +553,12 @@ async function runDiscoveryQuery(query, brand) {
     const mentionedBrand = Boolean(findSnippet(resp.text, brand));
     engineResults[key] = { mentionedBrand };
     rawTexts.push(resp.text);
+    engineCheckCache.set(cacheKey, { mentionedBrand, rawText: resp.text });
   }));
 
   let competitors = [];
   let competitorsSource = 'search';
-  const searchResult = await findRealCompetitors(query, brand);
+  const searchResult = await findRealCompetitorsCached(query, brand);
 
   if (searchResult.competitors.length) {
     competitors = searchResult.competitors;
@@ -601,12 +634,21 @@ app.post('/api/scan-engine', async (req, res) => {
     if (!caller) {
       return res.status(400).json({ error: `Невідома система: ${engine}` });
     }
+
+    const cacheKey = engine + '::' + brand.trim().toLowerCase() + '::' + (niche || '').trim().toLowerCase();
+    const cached = engineCheckCache.get(cacheKey);
+    if (cached) {
+      return res.json({ ...cached, cached: true });
+    }
+
     const [query] = buildQueries(brand, niche);
     const resp = await caller(query).catch(e => ({ error: String(e) }));
     if (resp.error) {
       return res.json({ error: resp.error });
     }
-    res.json(await checkMention(resp.text, brand));
+    const result = await checkMention(resp.text, brand);
+    engineCheckCache.set(cacheKey, result);
+    res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Внутрішня помилка сервера' });
