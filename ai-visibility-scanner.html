@@ -795,7 +795,7 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
         <div class="score-text" id="scoreFootnote">попередня оцінка · зафіксовано зараз</div>
         <details class="score-explain">
           <summary>Як рахується бал?</summary>
-          <p>Кожна система дає внесок: <b>«знає»</b> = 100%, <b>«плутає»</b> = 50%, <b>«не чув»</b> = 0%. Бал — середнє по всіх перевірених системах. Це прозора евристика власної розробки, а не офіційна оцінка від OpenAI, Google, Anthropic чи Perplexity.</p>
+          <p>Два сигнали порівну: чи <b>«знає»</b> AI бренд напряму (знає=100%, плутає=50%, не чув=0%, середнє по системах), і чи <b>радить</b> вас AI у нішевих запитах клієнтів (без вказаної ніші рахується тільки перше). Знати про бренд і радити його - різні речі, тому бал враховує обидва. Це прозора евристика власної розробки, а не офіційна оцінка від OpenAI, Google, Anthropic чи Perplexity.</p>
         </details>
       </div>
     </div>
@@ -805,10 +805,22 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
     <div class="personal-insight" id="personalInsight" hidden></div>
 
     <div class="panel-head">
-      <span>Що про вас знає кожен AI</span>
+      <span>🔒 Детальна розбивка по кожному AI</span>
       <span class="panel-brand" id="panelBrandName">—</span>
     </div>
-    <div id="tracks"></div>
+    <div class="locked-block" id="tracksBlurBlock">
+      <div class="locked-block-content">
+        <div class="locked-block-row" style="border-top:none">ChatGPT — вердикт і дослівна цитата</div>
+        <div class="locked-block-row">Claude — вердикт і дослівна цитата</div>
+        <div class="locked-block-row">Gemini — вердикт і дослівна цитата</div>
+        <div class="locked-block-row">Perplexity — вердикт і дослівна цитата</div>
+      </div>
+      <div class="locked-block-overlay">
+        <div class="lk-big">🔒</div>
+        <div class="lk-text">Заповніть форму нижче, щоб побачити <b>вердикт і цитату</b> кожної системи окремо</div>
+      </div>
+    </div>
+    <div id="tracks" hidden></div>
   </section>
 
   <section class="instrument-panel" id="gapPanel" hidden>
@@ -1311,8 +1323,18 @@ form.addEventListener('submit', async function(e){
   const collectScore = Math.round(18 + rand()*72);
   const verdictWeight = { know: 1, confused: 0.5, unknown: 0 };
   const weightedSum = engines.reduce((sum, e) => sum + (verdictWeight[e.verdict] ?? (e.hit ? 1 : 0)), 0);
+  const knowScore = Math.round((weightedSum/engines.length)*100);
+
+  // "Знає" — набагато нижча планка, ніж "радить": AI може впізнати назву,
+  // але не називати вас, коли клієнт питає пораду своїми словами. Тому
+  // підсумковий бал враховує обидва сигнали разом (коли є дані по ніші),
+  // а не тільки факт впізнавання — інакше цифра виходить оманливо високою.
+  const zoneTotalForScore = zoneOfInvisibility.length;
+  const zoneMentionsForScore = zoneOfInvisibility.filter(zq => Object.values(zq.engines || {}).some(v => v.mentionedBrand)).length;
+  const recommendScoreForOverall = zoneTotalForScore ? Math.round((zoneMentionsForScore/zoneTotalForScore)*100) : null;
+
   const overall = usedReal
-    ? Math.round((weightedSum/engines.length)*100)
+    ? (recommendScoreForOverall !== null ? Math.round(knowScore*0.5 + recommendScoreForOverall*0.5) : knowScore)
     : Math.round(collectScore*0.4 + widthScore*0.35 + depthScore*0.25);
 
   const shuffled = [...ISSUE_POOL];
@@ -1369,7 +1391,7 @@ form.addEventListener('submit', async function(e){
 
     const gapHeadlineEl = document.getElementById('gapHeadline');
     if(recommendPercent !== null){
-      gapHeadlineEl.innerHTML = `AI знає вас на <b>${overall}%</b>, але радить замість вас конкурентів у <b>${100-recommendPercent}%</b> клієнтських запитів.`;
+      gapHeadlineEl.innerHTML = `AI знає вас на <b>${knowScore}%</b>, але радить замість вас конкурентів у <b>${100-recommendPercent}%</b> клієнтських запитів.`;
       gapHeadlineEl.hidden = false;
     } else {
       gapHeadlineEl.innerHTML = `💡 Вкажіть нішу і місто через "Уточнити" у формі вище — тоді тут з'явиться порівняння з конкурентами: чи радить вас AI, а не лише "знає".`;
@@ -1407,44 +1429,11 @@ form.addEventListener('submit', async function(e){
     personalInsightEl.innerHTML = `<b>Ваш бал ${overall}/100.</b> ${engineSummary} ${focusText}`;
     personalInsightEl.hidden = false;
 
-    const tracksEl = document.getElementById('tracks');
-    tracksEl.innerHTML = '';
-    const captionMap = {
-      know: 'Знає і говорить по суті',
-      confused: 'Дає розмиту, невпевнену відповідь',
-      unknown: 'Не орієнтується — жодного натяку'
-    };
-    engines.forEach(eng => {
-      const track = document.createElement('div');
-      track.className = 'track';
-      const vClass = eng.error ? 'err' : (eng.verdict === 'know' ? 'hit' : (eng.verdict === 'confused' ? 'mid' : 'miss'));
-      const vText = eng.error ? 'НЕДОСТУПНО' : (eng.verdict === 'know' ? 'ЗНАЄ' : (eng.verdict === 'confused' ? 'ПЛУТАЄ' : 'НЕ ЧУВ'));
-      const caption = eng.error ? '' : (captionMap[eng.verdict] || '');
-      const scoreNum = (typeof eng.score === 'number') ? `<span class="track-score">${eng.score}/100</span>` : '';
-      track.innerHTML = `
-        <div class="track-label">
-          <span>${eng.label}</span>
-          <span>${scoreNum}<span class="verdict ${vClass}">${vText}</span></span>
-        </div>
-        <div class="track-bar">
-          <div class="sweep"></div>
-          <div class="blip ${vClass}" style="left:${eng.pos}%"></div>
-        </div>
-        ${eng.snippet ? `<div class="track-snippet">"${eng.snippet}"</div>` : ''}
-        ${caption ? `<div class="track-caption">${caption}</div>` : ''}
-        ${eng.error ? `<div class="track-snippet">${eng.error}</div>` : ''}`;
-      tracksEl.appendChild(track);
-    });
-    const soonTrack = document.createElement('div');
-    soonTrack.className = 'track';
-    soonTrack.style.opacity = '.55';
-    soonTrack.innerHTML = `
-      <div class="track-label">
-        <span>Google AI Overview</span>
-        <span class="verdict err">СКОРО</span>
-      </div>
-      <div class="track-snippet">Google поки не дає публічного доступу до AI Overview — з'явиться, щойно відкриють API.</div>`;
-    tracksEl.appendChild(soonTrack);
+    // Розбивку по кожній системі (вердикт + цитата) більше НЕ рендеримо у
+    // видиму DOM — вона тепер частина закритого контенту (за контактом,
+    // у PDF). Реальні дані для PDF/ліда все одно збираються нижче в
+    // lastEngines незалежно від цього — прибирання рендеру тут нічого не
+    // ламає, лише ховає деталізацію з безкоштовного перегляду.
 
     panel.hidden = false;
     axes.hidden = false;
@@ -1457,9 +1446,9 @@ form.addEventListener('submit', async function(e){
     const gapPanelEl = document.getElementById('gapPanel');
     if(recommendPercent !== null){
       gapPanelEl.hidden = false;
-      document.getElementById('gapKnowNum').textContent = overall;
+      document.getElementById('gapKnowNum').textContent = knowScore;
       document.getElementById('gapRecNum').textContent = recommendPercent;
-      const gapVal = overall - recommendPercent;
+      const gapVal = knowScore - recommendPercent;
       const gapNoteEl = document.getElementById('gapNote');
       if(gapVal >= 15){
         gapNoteEl.textContent = `Розрив ${gapVal} балів — це клієнти, які чують про вас… і йдуть до інших.`;
@@ -1469,7 +1458,7 @@ form.addEventListener('submit', async function(e){
         gapNoteEl.textContent = `Невеликий розрив у ${gapVal} балів — є куди рости, але напрямок правильний.`;
       }
       setTimeout(() => {
-        document.getElementById('gapKnowFill').style.width = overall + '%';
+        document.getElementById('gapKnowFill').style.width = knowScore + '%';
         document.getElementById('gapRecFill').style.width = recommendPercent + '%';
       }, 200);
     } else {
@@ -1576,7 +1565,7 @@ form.addEventListener('submit', async function(e){
       }
 
       const totalCompetitors = lastZoneCompetitors.reduce((sum, arr) => sum + (arr ? arr.length : 0), 0);
-      const insightsCount = lastPickedIssues.length + totalCompetitors + 5; // +5 = кроки покрокового плану
+      const insightsCount = lastPickedIssues.length + totalCompetitors + 5 + engines.length; // +5 кроків плану, +N — цитати по кожній системі
       document.getElementById('secretZoneCount').textContent = `+${insightsCount} прихован${insightsCount===1?'ий інсайт':'их інсайти'}`;
 
       panel.scrollIntoView({behavior:'smooth', block:'start'});
@@ -1588,7 +1577,7 @@ form.addEventListener('submit', async function(e){
 });
 
 function revealLocked(emailSent, leadEmail){
-  ['stepsBlurBlock','zoneBlurBlock'].forEach(id => {
+  ['stepsBlurBlock','zoneBlurBlock','tracksBlurBlock'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.hidden = true;
   });
