@@ -388,11 +388,7 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
   .score-label b{color:var(--orange); font-family:var(--font-mono);}
 
   /* ---------- AXES ---------- */
-  .axes{margin-top:24px; display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; animation:fadeUp .5s ease .1s both;}
-  .axes-note{
-    grid-column:1/-1; font-family:var(--font-mono); font-size:10px; color:var(--ink-faint);
-    margin-bottom:-2px;
-  }
+  .axes{margin-top:24px; display:grid; grid-template-columns:1fr; gap:14px; animation:fadeUp .5s ease .1s both;}
 
   /* ---------- STEPS PREVIEW (free) ---------- */
   .steps-preview-inner{margin-top:22px; padding-top:18px; border-top:1px solid var(--border);}
@@ -842,27 +838,12 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
   </section>
 
   <section class="axes" id="axes" hidden>
-    <div class="axes-note">Оціночні осі нижче — ілюстративна методика Т-моделі, не прямий вимір (потребує аналізу зовнішніх згадок).</div>
-    <div class="axis-card">
-      <div class="eyebrow-sm">Точка збору</div>
-      <h3>Єдина сутність</h3>
-      <div class="axis-bar"><div class="fill" id="fillCollect"></div></div>
-      <div class="axis-pct" id="pctCollect">0%</div>
-      <div class="axis-desc">Чи однаково описаний бренд на сайті, в каталогах і соцмережах.</div>
-    </div>
-    <div class="axis-card">
+    <div class="axis-card" id="widthAxisCard" style="max-width:360px;">
       <div class="eyebrow-sm">Широта</div>
-      <h3>Згадки ззовні</h3>
+      <h3>Радять у нішевих запитах</h3>
       <div class="axis-bar"><div class="fill" id="fillWidth"></div></div>
       <div class="axis-pct" id="pctWidth">0%</div>
-      <div class="axis-desc">Чи є бренд у чужих списках, рейтингах, обговореннях і відгуках.</div>
-    </div>
-    <div class="axis-card">
-      <div class="eyebrow-sm">Глибина</div>
-      <h3>Цитований контент</h3>
-      <div class="axis-bar"><div class="fill" id="fillDepth"></div></div>
-      <div class="axis-pct" id="pctDepth">0%</div>
-      <div class="axis-desc">Чи є на сайті цифри, цитати й джерела, які AI може процитувати.</div>
+      <div class="axis-desc">Реальний відсоток: у скількох нішевих запитах AI назвав саме вас (не просто впізнав, а порадив).</div>
     </div>
   </section>
 
@@ -1318,9 +1299,9 @@ form.addEventListener('submit', async function(e){
     });
   }
 
-  const widthScore = Math.round(18 + rand()*72);
-  const depthScore = Math.round(18 + rand()*72);
-  const collectScore = Math.round(18 + rand()*72);
+  const widthScore = Math.round(18 + rand()*72); // лише для демо-формули нижче
+  const depthScore = Math.round(18 + rand()*72); // лише для демо-формули нижче
+  const collectScore = Math.round(18 + rand()*72); // лише для демо-формули нижче
   const verdictWeight = { know: 1, confused: 0.5, unknown: 0 };
   const weightedSum = engines.reduce((sum, e) => sum + (verdictWeight[e.verdict] ?? (e.hit ? 1 : 0)), 0);
   const knowScore = Math.round((weightedSum/engines.length)*100);
@@ -1332,6 +1313,10 @@ form.addEventListener('submit', async function(e){
   const zoneTotalForScore = zoneOfInvisibility.length;
   const zoneMentionsForScore = zoneOfInvisibility.filter(zq => Object.values(zq.engines || {}).some(v => v.mentionedBrand)).length;
   const recommendScoreForOverall = zoneTotalForScore ? Math.round((zoneMentionsForScore/zoneTotalForScore)*100) : null;
+
+  // "Широта" на екрані — РЕАЛЬНИЙ відсоток із зони невидимості в реальному
+  // режимі (не фейковий rand()), і тільки демо-число в демо-режимі.
+  const widthDisplayScore = usedReal ? recommendScoreForOverall : widthScore;
 
   const overall = usedReal
     ? (recommendScoreForOverall !== null ? Math.round(knowScore*0.5 + recommendScoreForOverall*0.5) : knowScore)
@@ -1436,7 +1421,7 @@ form.addEventListener('submit', async function(e){
     // ламає, лише ховає деталізацію з безкоштовного перегляду.
 
     panel.hidden = false;
-    axes.hidden = false;
+    axes.hidden = widthDisplayScore === null; // нема ніші — нема реальних даних для "Широти", ховаємо блок замість фейку
     document.getElementById('stepsPreview').hidden = false;
     issuesSection.hidden = false;
     issuesOldSection.hidden = false;
@@ -1495,12 +1480,10 @@ form.addEventListener('submit', async function(e){
       document.getElementById('scoreLabel').innerHTML = `<b>${tier}</b><br>${tierText}`;
 
       setTimeout(() => {
-        document.getElementById('fillCollect').style.width = collectScore + '%';
-        document.getElementById('pctCollect').textContent = collectScore + '%';
-        document.getElementById('fillWidth').style.width = widthScore + '%';
-        document.getElementById('pctWidth').textContent = widthScore + '%';
-        document.getElementById('fillDepth').style.width = depthScore + '%';
-        document.getElementById('pctDepth').textContent = depthScore + '%';
+        if(widthDisplayScore !== null){
+          document.getElementById('fillWidth').style.width = widthDisplayScore + '%';
+          document.getElementById('pctWidth').textContent = widthDisplayScore + '%';
+        }
       }, 200);
 
       const issuesList = document.getElementById('issuesList');
