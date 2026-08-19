@@ -128,6 +128,53 @@ function brandMatchCandidates(brand) {
   return [...candidates].filter(Boolean);
 }
 
+// Схоже на URL/домен? (напр. "topmarketing.com.ua", "https://webpromo.ua")
+function looksLikeUrl(brand) {
+  return /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/.*)?$/i.test(brand.trim());
+}
+
+// РЕАЛЬНИЙ (не AI, не вигаданий) аналіз сайту: завантажує сторінку і рахує
+// кількість цифр/статистики, цитат і загальний обсяг тексту. Чистий код,
+// без жодного випадкового числа — або реальний результат, або null,
+// якщо сайт не вдалось завантажити чи бренд не схожий на URL.
+async function computeDepthScore(brand) {
+  if (!looksLikeUrl(brand)) return { score: null, reason: 'brand не схожий на сайт' };
+
+  let url = brand.trim();
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+  try {
+    const res = await fetchWithRetry(url, {
+      method: 'GET',
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AI-Visibility-Scanner/1.0)' }
+    }, 1); // 1 повтор максимум — це не критичний виклик, довго чекати не варто
+    if (!res.ok) return { score: null, reason: `сайт відповів HTTP ${res.status}` };
+
+    const html = await res.text();
+    const text = html
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (text.length < 50) return { score: null, reason: 'на сторінці майже немає тексту' };
+
+    const numberMatches = (text.match(/\d[\d\s.,]*\s?(%|років|рокі|клієнт|проєкт|проект|людей|грн|\$|€|шт\.)/gi) || []).length;
+    const quoteMatches = (text.match(/[«"„][^»"“]{15,220}[»"”]/g) || []).length;
+    const wordCount = text.split(' ').filter(Boolean).length;
+
+    let score = 0;
+    score += Math.min(40, numberMatches * 8);   // конкретні цифри/статистика
+    score += Math.min(30, quoteMatches * 10);   // цитати/відгуки
+    score += Math.min(30, Math.round(wordCount / 60)); // достатньо тексту, щоб було що цитувати
+
+    return { score: Math.min(100, score), reason: null };
+  } catch (err) {
+    return { score: null, reason: String(err) };
+  }
+}
+
 function findSnippet(text, brand) {
   const normalizedText = text.toLowerCase();
   for (const candidate of brandMatchCandidates(brand)) {
@@ -1022,6 +1069,66 @@ app.post('/api/partial-lead', async (req, res) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(lead)
       }).catch(e => console.warn('Помилка відправки часткового ліда на LEAD_WEBHOOK_URL:', e));
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Внутрішня помилка сервера' });
+  }
+});
+
+// Реальний аналіз сайту (не AI) — окремо, щоб не гальмувати основний скан.
+app.post('/api/depth-score', async (req, res) => {
+  try {
+    const { brand } = req.body || {};
+    if (!brand || typeof brand !== 'string' || !brand.trim()) {
+      return res.status(400).json({ error: 'Поле "brand" обовʼязкове' });
+    }
+    const result = await computeDepthScore(brand);
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Внутрішня помилка сервера' });
+  }
+});
+
+// Заявка на консультацію — лише телефон, без email/PDF. Окремий статус
+// у таблиці, щоб відрізняти від основних лідів (тих, хто хотів PDF).
+app.post('/api/consult-request', async (req, res) => {
+  try {
+    const { phone, brand, niche, score } = req.body || {};
+    if (!phone || typeof phone !== 'string' || !phone.trim()) {
+      return res.status(400).json({ error: 'Поле "phone" обовʼязкове' });
+    }
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+      return res.status(400).json({ error: 'Некоректний формат телефону' });
+    }
+
+    const lead = {
+      name: '',
+      phone: phone.trim(),
+      email: '',
+      brand: (brand || '').trim(),
+      niche: (niche || '').trim(),
+      score: typeof score === 'number' ? score : null,
+      status: 'Запит на консультацію (лише телефон)',
+      ts: new Date().toISOString()
+    };
+
+    try {
+      fs.appendFileSync(LEADS_FILE, JSON.stringify(lead) + '\n');
+    } catch (e) {
+      console.warn('Не вдалось записати запит на консультацію у файл:', e);
+    }
+
+    if (LEAD_WEBHOOK_URL) {
+      fetch(LEAD_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(lead)
+      }).catch(e => console.warn('Помилка відправки запиту на консультацію на LEAD_WEBHOOK_URL:', e));
     }
 
     res.json({ ok: true });

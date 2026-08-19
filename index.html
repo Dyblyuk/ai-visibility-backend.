@@ -388,7 +388,9 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
   .score-label b{color:var(--orange); font-family:var(--font-mono);}
 
   /* ---------- AXES ---------- */
-  .axes{margin-top:24px; display:grid; grid-template-columns:1fr; gap:14px; animation:fadeUp .5s ease .1s both;}
+  .axes{margin-top:24px; display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px; animation:fadeUp .5s ease .1s both;}
+  .axis-card-bridge{background:var(--bg-alt); border-style:dashed;}
+  .axis-card-bridge .axis-desc{color:var(--ink-dim);}
 
   /* ---------- STEPS PREVIEW (free) ---------- */
   .steps-preview-inner{margin-top:22px; padding-top:18px; border-top:1px solid var(--border);}
@@ -474,6 +476,15 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
   .secret-zone h3{font-size:17px; margin-bottom:4px;}
   .secret-zone-count{font-family:var(--font-mono); font-size:12px; color:var(--orange); letter-spacing:.04em; margin-bottom:10px;}
   .secret-zone-desc{font-size:13px; color:var(--ink-dim); line-height:1.6; max-width:44ch; margin:0 auto 20px;}
+  .unlock-benefits{
+    list-style:none; text-align:left; max-width:460px; margin:0 auto 18px; display:flex; flex-direction:column; gap:10px;
+  }
+  .unlock-benefits li{
+    font-size:14px; color:var(--ink); line-height:1.5; padding-left:26px; position:relative;
+  }
+  .unlock-benefits li::before{
+    content:"✓"; position:absolute; left:0; top:0; color:var(--cyan); font-weight:700;
+  }
   .secret-zone .unlock-form{text-align:left; max-width:440px; margin:0 auto;}
   .secret-zone .mode-note{margin-top:12px;}
   .unlock-teaser{
@@ -801,21 +812,9 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
     <div class="personal-insight" id="personalInsight" hidden></div>
 
     <div class="panel-head">
-      <span>🔒 Детальна розбивка по кожному AI</span>
-      <span class="panel-brand" id="panelBrandName">—</span>
+      <span id="panelBrandName">—</span>
     </div>
-    <div class="locked-block" id="tracksBlurBlock">
-      <div class="locked-block-content">
-        <div class="locked-block-row" style="border-top:none">ChatGPT — вердикт і дослівна цитата</div>
-        <div class="locked-block-row">Claude — вердикт і дослівна цитата</div>
-        <div class="locked-block-row">Gemini — вердикт і дослівна цитата</div>
-        <div class="locked-block-row">Perplexity — вердикт і дослівна цитата</div>
-      </div>
-      <div class="locked-block-overlay">
-        <div class="lk-big">🔒</div>
-        <div class="lk-text">Заповніть форму нижче, щоб побачити <b>вердикт і цитату</b> кожної системи окремо</div>
-      </div>
-    </div>
+    <div class="mode-note" id="nicheInferredNote" hidden></div>
     <div id="tracks" hidden></div>
   </section>
 
@@ -838,45 +837,38 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
   </section>
 
   <section class="axes" id="axes" hidden>
-    <div class="axis-card" id="widthAxisCard" style="max-width:360px;">
+    <div class="axis-card" id="widthAxisCard" hidden>
       <div class="eyebrow-sm">Широта</div>
       <h3>Радять у нішевих запитах</h3>
       <div class="axis-bar"><div class="fill" id="fillWidth"></div></div>
       <div class="axis-pct" id="pctWidth">0%</div>
       <div class="axis-desc">Реальний відсоток: у скількох нішевих запитах AI назвав саме вас (не просто впізнав, а порадив).</div>
     </div>
-  </section>
-
-  <section class="issues" id="issues" hidden>
-    <h3>Зона невидимості — так питають клієнти, і ось кого реально знаходить пошук замість вас</h3>
-    <div class="mode-note" id="nicheInferredNote" hidden></div>
-    <div class="zone-list" id="zoneList"></div>
-
-    <div class="steps-preview-inner" id="stepsPreview">
-      <h3>Що зробити, щоб підняти сигнал</h3>
-      <div class="steps-sub">5 кроків, кожен можна почати сьогодні</div>
-      <div class="locked-block small" id="stepsBlurBlock">
-        <div class="locked-block-content" id="stepsBlurContent">
-          <div class="step-line">1. Зберіть бренд в одну сутність</div>
-          <div class="step-line">2. Потрапте до чужих списків</div>
-          <div class="step-line">3. Зайдіть у живі обговорення</div>
-          <div class="step-line">4. Підсильте контент цифрами</div>
-          <div class="step-line">5. Закрийте реальне питання клієнта</div>
-        </div>
-        <div class="locked-block-overlay">
-          <div class="lk-big">🔒</div>
-          <div class="lk-text">Заповніть форму нижче, щоб побачити <b>покроковий план дій</b></div>
-        </div>
-      </div>
+    <div class="axis-card" id="depthAxisCard" hidden>
+      <div class="eyebrow-sm">Глибина</div>
+      <h3>Цитований контент на сайті</h3>
+      <div class="axis-bar"><div class="fill" id="fillDepth"></div></div>
+      <div class="axis-pct" id="pctDepth">0%</div>
+      <div class="axis-desc">Реальний аналіз сторінки: чи є на сайті конкретні цифри, статистика й цитати, які AI може процитувати.</div>
+    </div>
+    <div class="axis-card axis-card-bridge">
+      <div class="eyebrow-sm">Точка збору</div>
+      <h3>Єдина сутність бренду</h3>
+      <div class="axis-desc">Чи однаково описаний бренд на сайті, в каталогах і соцмережах — це вимагає ручного аудиту (обхід каталогів, соцмереж, довідників), автоматично таке коректно не порахувати. Саме це ми детально розбираємо на консультації.</div>
     </div>
   </section>
 
   <section class="issues" id="issuesOld" hidden>
     <div class="secret-zone" id="secretZoneCard">
       <div class="secret-zone-icon">🔐</div>
-      <h3>Секретна зона</h3>
-      <div class="secret-zone-count" id="secretZoneCount">+3 приховані інсайти</div>
-      <p class="secret-zone-desc">Найцінніша частина звіту: покроковий план дій, реальні конкуренти і причини, що знижують сигнал. Залиште контакт — і все прийде вам на пошту.</p>
+      <h3>Що ви отримаєте в повному звіті</h3>
+      <ul class="unlock-benefits">
+        <li>Детальна розбивка по кожній з 4 AI-систем — вердикт і дослівна цитата</li>
+        <li>Реальні конкуренти, яких AI називає замість вас у ваших нішевих запитах</li>
+        <li>Конкретні причини, які прямо зараз знижують сигнал</li>
+        <li>Покроковий план дій — 5 кроків, кожен можна почати сьогодні</li>
+      </ul>
+      <p class="secret-zone-desc">Усе це — одним PDF-файлом вам на пошту, безкоштовно.</p>
 
       <form id="unlockForm" class="unlock-form">
         <input type="text" id="leadName" placeholder="Ваше ім'я">
@@ -889,10 +881,20 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
     </div>
 
     <div class="unlocked-badge" id="unlockedNote" hidden>✓ Звіт розблоковано. Ми зв'яжемось з вами найближчим часом.</div>
+  </section>
 
-    <div id="detailedSteps" hidden></div>
-
-    <div id="issuesList"></div>
+  <section class="issues" id="consultSection" hidden>
+    <div class="secret-zone" id="consultCard">
+      <div class="secret-zone-icon">📞</div>
+      <h3>Хочете розібрати результати детальніше?</h3>
+      <p class="secret-zone-desc">Особливо якщо йдеться про "Точку збору" — єдиний опис бренду скрізь, від сайту до каталогів. Це саме те, що ми детально розбираємо на консультації з командою Top Marketing.</p>
+      <form id="consultForm" class="unlock-form" style="max-width:340px; margin:0 auto;">
+        <input type="tel" id="consultPhone" placeholder="Телефон" required style="grid-column:1/-1;">
+        <div class="form-error" id="consultFormError" hidden style="grid-column:1/-1;"></div>
+        <button type="submit" id="consultBtn" class="btn-scan">Записатись на консультацію →</button>
+      </form>
+    </div>
+    <div class="unlocked-badge" id="consultDoneNote" hidden>✓ Заявку прийнято. Ми зателефонуємо вам найближчим часом.</div>
   </section>
 
   <section class="cta" id="ctaBlock" hidden>
@@ -932,35 +934,6 @@ function mulberry32(seed){
 
 const ENGINE_LABELS = { chatgpt: 'ChatGPT', gemini: 'Gemini', perplexity: 'Perplexity', claude: 'Claude' };
 
-const DETAILED_STEPS_HTML = `
-  <div class="detailed-steps-block">
-    <h3 style="font-size:15px; margin:24px 0 4px;">Покроковий план дій</h3>
-    <div class="detail-step">
-      <b>1. Зберіть бренд в одну сутність</b>
-      <p>Напишіть один канонічний абзац: хто ви + що робите + для кого + де (місто/ринок/онлайн) + один перевірюваний факт (років на ринку, клієнтів, публікацій). Вставте цей абзац дослівно всюди, де ви є: сайт, LinkedIn, соцмережі, каталоги, профілі на майданчиках. Однакове написання назви — до літери.</p>
-    </div>
-    <div class="detail-step">
-      <b>2. Потрапте до чужих списків</b>
-      <p>Запитайте в ChatGPT і Perplexity: «найкращі [ваша ніша] у [місто/ринок]». Зафіксуйте, на які добірки й рейтинги вони посилаються. Випишіть 5-10 списків, де є конкуренти, а вас немає. Напишіть авторам майданчиків заявку на включення — багато нішевих добірок додають безкоштовно.</p>
-    </div>
-    <div class="detail-step">
-      <b>3. Зайдіть у живі обговорення</b>
-      <p>Знайдіть 2-3 живі майданчики, де реально обговорюють вашу нішу: форуми, галузеві спільноти, Q&A. Дайте там 2-3 розгорнуті корисні відповіді як експерт, без реклами в лоб. Запустіть збір змістовних відгуків від клієнтів — з деталями (послуга, специфіка), а не просто «все супер».</p>
-    </div>
-    <div class="detail-step">
-      <b>4. Підсильте контент цифрами</b>
-      <p>Візьміть головний експертний матеріал і підсильте трьома речами: конкретні цифри й статистика замість загальних слів, цитати з посиланням на ім'я, зазначення джерел даних.</p>
-    </div>
-    <div class="detail-step">
-      <b>5. Закрийте реальне питання клієнта</b>
-      <p>Візьміть реальне формулювання, яким клієнти шукають таких, як ви. Опублікуйте матеріал: заголовок = питання клієнта, перший абзац = пряма відповідь (2-4 речення). Ставте свіжу дату і оновлюйте ключові матеріали раз на квартал.</p>
-    </div>
-    <div class="detail-step bonus">
-      <b>Бонус: зареєструйтесь у Bing Webmaster Tools</b>
-      <p>15 хвилин, безкоштовно. Помітна частка цитат пошукового режиму ChatGPT збігається з органічною видачею Bing, а конкуренція там значно нижча.</p>
-    </div>
-  </div>`;
-
 const ISSUE_POOL = [
   "Назва бренду написана по-різному на сайті, в LinkedIn і в каталогах",
   "Немає жодної згадки у нішевих рейтингах чи добірках «найкращі X»",
@@ -988,10 +961,18 @@ refineToggle.addEventListener('click', () => {
 
 document.getElementById('restartBtn').addEventListener('click', () => {
   document.body.classList.remove('scan-active');
-  ['panel','gapPanel','axes','issues','issuesOld','ctaBlock','restartBlock','scanStatus'].forEach(id => {
+  ['panel','gapPanel','axes','issuesOld','consultSection','ctaBlock','restartBlock','scanStatus'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.hidden = true;
   });
+  document.getElementById('secretZoneCard').hidden = false;
+  document.getElementById('unlockedNote').hidden = true;
+  document.getElementById('consultCard').hidden = false;
+  document.getElementById('consultDoneNote').hidden = true;
+  document.getElementById('consultPhone').value = '';
+  const consultBtnReset = document.getElementById('consultBtn');
+  consultBtnReset.disabled = false;
+  consultBtnReset.textContent = 'Записатись на консультацію →';
   document.getElementById('brandName').value = '';
   document.getElementById('brandCity').value = '';
   document.getElementById('brandNicheField').value = '';
@@ -1003,8 +984,8 @@ document.getElementById('restartBtn').addEventListener('click', () => {
 });
 const panel = document.getElementById('panel');
 const axes = document.getElementById('axes');
-const issuesSection = document.getElementById('issues');
 const issuesOldSection = document.getElementById('issuesOld');
+const consultSection = document.getElementById('consultSection');
 const ctaBlock = document.getElementById('ctaBlock');
 
 // Дані поточного скану, потрібні для форми розблокування (лід-гейт).
@@ -1202,9 +1183,14 @@ form.addEventListener('submit', async function(e){
   let usedReal = false;
   let zoneOfInvisibility = [];
   let nicheWasInferred = false;
+  let depthScore = null;
 
   if(API_URL){
     try{
+      const depthPromise = fetch(API_URL.replace(/\/api\/scan$/, '/api/depth-score'), {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({brand: name})
+      }).then(r => r.json()).catch(() => ({score: null}));
+
       const data = await runLiveScan(name, niche);
       usedReal = true;
       engines = data.engines.map(e => ({...e, pos: 15 + rand()*70}));
@@ -1213,6 +1199,9 @@ form.addEventListener('submit', async function(e){
         niche = data.effectiveNiche;
         nicheWasInferred = true;
       }
+
+      const depthResult = await depthPromise;
+      depthScore = (typeof depthResult.score === 'number') ? depthResult.score : null;
     } catch(err){
       console.warn('Бекенд недоступний, переходжу в демо-режим:', err);
     }
@@ -1300,7 +1289,7 @@ form.addEventListener('submit', async function(e){
   }
 
   const widthScore = Math.round(18 + rand()*72); // лише для демо-формули нижче
-  const depthScore = Math.round(18 + rand()*72); // лише для демо-формули нижче
+  const depthScoreDemo = Math.round(18 + rand()*72); // лише для демо-формули нижче
   const collectScore = Math.round(18 + rand()*72); // лише для демо-формули нижче
   const verdictWeight = { know: 1, confused: 0.5, unknown: 0 };
   const weightedSum = engines.reduce((sum, e) => sum + (verdictWeight[e.verdict] ?? (e.hit ? 1 : 0)), 0);
@@ -1314,13 +1303,14 @@ form.addEventListener('submit', async function(e){
   const zoneMentionsForScore = zoneOfInvisibility.filter(zq => Object.values(zq.engines || {}).some(v => v.mentionedBrand)).length;
   const recommendScoreForOverall = zoneTotalForScore ? Math.round((zoneMentionsForScore/zoneTotalForScore)*100) : null;
 
-  // "Широта" на екрані — РЕАЛЬНИЙ відсоток із зони невидимості в реальному
-  // режимі (не фейковий rand()), і тільки демо-число в демо-режимі.
+  // "Широта"/"Глибина" на екрані — РЕАЛЬНІ значення в реальному режимі
+  // (не фейковий rand()), і тільки демо-числа в демо-режимі.
   const widthDisplayScore = usedReal ? recommendScoreForOverall : widthScore;
+  if(!usedReal) depthScore = depthScoreDemo;
 
   const overall = usedReal
     ? (recommendScoreForOverall !== null ? Math.round(knowScore*0.5 + recommendScoreForOverall*0.5) : knowScore)
-    : Math.round(collectScore*0.4 + widthScore*0.35 + depthScore*0.25);
+    : Math.round(collectScore*0.4 + widthScore*0.35 + depthScoreDemo*0.25);
 
   const shuffled = [...ISSUE_POOL];
   for(let i=shuffled.length-1;i>0;i--){
@@ -1421,10 +1411,11 @@ form.addEventListener('submit', async function(e){
     // ламає, лише ховає деталізацію з безкоштовного перегляду.
 
     panel.hidden = false;
-    axes.hidden = widthDisplayScore === null; // нема ніші — нема реальних даних для "Широти", ховаємо блок замість фейку
-    document.getElementById('stepsPreview').hidden = false;
-    issuesSection.hidden = false;
+    axes.hidden = false; // блок-місток "Точка збору" завжди має що показати, навіть без ніші/сайту
+    document.getElementById('widthAxisCard').hidden = (widthDisplayScore === null);
+    document.getElementById('depthAxisCard').hidden = (depthScore === null);
     issuesOldSection.hidden = false;
+    consultSection.hidden = false;
     ctaBlock.hidden = false;
     document.getElementById('restartBlock').hidden = false;
 
@@ -1484,10 +1475,12 @@ form.addEventListener('submit', async function(e){
           document.getElementById('fillWidth').style.width = widthDisplayScore + '%';
           document.getElementById('pctWidth').textContent = widthDisplayScore + '%';
         }
+        if(depthScore !== null){
+          document.getElementById('fillDepth').style.width = depthScore + '%';
+          document.getElementById('pctDepth').textContent = depthScore + '%';
+        }
       }, 200);
 
-      const issuesList = document.getElementById('issuesList');
-      issuesList.innerHTML = '';
       lastPickedIssues = pickedIssues;
       lastScanMeta = { brand: name, niche, score: overall };
       lastEngines = engines.map(e => ({ label: e.label, verdict: e.verdict || (e.hit ? 'know' : 'unknown'), hit: !!e.hit, score: e.score || 0, snippet: e.snippet || '', error: e.error || null }));
@@ -1508,48 +1501,10 @@ form.addEventListener('submit', async function(e){
         }
       }
 
-      const zoneListEl = document.getElementById('zoneList');
-      zoneListEl.innerHTML = '';
-      lastZoneCompetitors = [];
-      if(zoneOfInvisibility.length === 0){
-        zoneListEl.innerHTML = `<div class="track-snippet">Вкажіть нішу/місто у формі вище, щоб побачити, кого AI називає замість вас за типовими запитами клієнтів.</div>`;
-      } else {
-        const combined = document.createElement('div');
-        combined.className = 'zone-combined';
-
-        zoneOfInvisibility.forEach((zq, idx) => {
-          lastZoneCompetitors[idx] = zq.competitors || [];
-        });
-
-        const allCompetitorsFlat = zoneOfInvisibility.flatMap(zq => zq.competitors || []);
-        const anyFallback = zoneOfInvisibility.some(zq => zq.competitorsSource === 'fallback');
-        const sourceNote = anyFallback ? ' (частину підібрано грубо, пошук був частково недоступний)' : '';
-
-        let competitorsHtml;
-        if(allCompetitorsFlat.length){
-          const fakeNames = ['Компанія А', 'Студія Б', 'Агенція В', 'Бренд Г', 'Сервіс Д', 'Проєкт Е'];
-          const rows = allCompetitorsFlat.map((nm, i) =>
-            `<div class="locked-block-row" style="border-top:${i===0?'none':'1px solid var(--border)'}">${fakeNames[i % fakeNames.length]}</div>`
-          ).join('');
-          competitorsHtml = `
-            <div class="locked-block small" id="zoneBlurBlock">
-              <div class="locked-block-content">${rows}</div>
-              <div class="locked-block-overlay">
-                <div class="lk-big">🔒</div>
-                <div class="lk-text">${allCompetitorsFlat.length} реальн${allCompetitorsFlat.length===1?'ий гравець':'их гравці/ів'} ринку по ваших запитах — розблокуйте нижче${sourceNote}</div>
-              </div>
-            </div>`;
-        } else {
-          competitorsHtml = `<div class="zone-competitors"><span class="none">За цими запитами пошук не знайшов явних гравців — полиця відносно вільна.</span></div>`;
-        }
-
-        combined.innerHTML = competitorsHtml;
-        zoneListEl.appendChild(combined);
-      }
-
-      const totalCompetitors = lastZoneCompetitors.reduce((sum, arr) => sum + (arr ? arr.length : 0), 0);
-      const insightsCount = lastPickedIssues.length + totalCompetitors + 5 + engines.length; // +5 кроків плану, +N — цитати по кожній системі
-      document.getElementById('secretZoneCount').textContent = `+${insightsCount} прихован${insightsCount===1?'ий інсайт':'их інсайти'}`;
+      // Дані по конкурентах більше не рендеримо у DOM (нема куди — секцію
+      // "Зона невидимості" прибрали, все звелось до одного чистого блоку
+      // з пунктами вище). Самі дані для PDF/ліда все одно зберігаємо.
+      lastZoneCompetitors = zoneOfInvisibility.map(zq => zq.competitors || []);
 
       panel.scrollIntoView({behavior:'smooth', block:'start'});
     });
@@ -1560,11 +1515,6 @@ form.addEventListener('submit', async function(e){
 });
 
 function revealLocked(emailSent, leadEmail){
-  ['stepsBlurBlock','zoneBlurBlock','tracksBlurBlock'].forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.hidden = true;
-  });
-
   document.getElementById('secretZoneCard').hidden = true;
   const note = document.getElementById('unlockedNote');
   note.hidden = false;
@@ -1655,6 +1605,56 @@ document.getElementById('unlockForm').addEventListener('submit', async function(
   }
 
   revealLocked(emailSent, leadEmail);
+});
+
+document.getElementById('consultForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const consultPhoneEl = document.getElementById('consultPhone');
+  const consultPhone = consultPhoneEl.value.trim();
+  const consultFormErrorEl = document.getElementById('consultFormError');
+  consultPhoneEl.classList.remove('invalid');
+
+  if(!isValidPhone(consultPhone)){
+    consultFormErrorEl.textContent = 'Перевірте номер телефону — введіть його повністю, з кодом країни/оператора.';
+    consultFormErrorEl.hidden = false;
+    consultPhoneEl.classList.add('invalid');
+    return;
+  }
+  consultFormErrorEl.hidden = true;
+
+  const consultBtn = document.getElementById('consultBtn');
+  consultBtn.disabled = true;
+  consultBtn.textContent = 'Записую...';
+
+  if(API_URL){
+    try{
+      const consultUrl = API_URL.replace(/\/api\/scan$/, '/api/consult-request');
+      const consultRes = await fetch(consultUrl, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          phone: consultPhone,
+          brand: lastScanMeta.brand,
+          niche: lastScanMeta.niche,
+          score: lastScanMeta.score
+        })
+      });
+      if(consultRes.ok){
+        try{
+          if(typeof fbq === 'function'){
+            fbq('track', 'Lead');
+          }
+        } catch(pixelErr){
+          console.warn('Meta Pixel: не вдалось відправити подію Lead (консультація):', pixelErr);
+        }
+      }
+    } catch(err){
+      console.warn('Не вдалось відправити запит на консультацію:', err);
+    }
+  }
+
+  document.getElementById('consultCard').hidden = true;
+  document.getElementById('consultDoneNote').hidden = false;
 });
 </script>
 </body>
