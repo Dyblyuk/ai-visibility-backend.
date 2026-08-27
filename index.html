@@ -663,6 +663,13 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
       <label>Назва компанії, ім'я або сайт
         <input type="text" id="brandName" placeholder="Напр. Top Marketing або topmarketing.com.ua" required>
       </label>
+      <label>Телефон
+        <input type="tel" id="brandPhone" placeholder="+380..." required>
+      </label>
+      <label style="grid-column:1/-1;">Email (сюди прийде PDF-звіт)
+        <input type="email" id="brandEmail" placeholder="you@company.com" required>
+      </label>
+      <div class="form-error" id="heroFormError" hidden style="grid-column:1/-1;"></div>
 
       <div class="refine-block">
         <button type="button" class="refine-toggle" id="refineToggle" aria-expanded="false">
@@ -687,7 +694,7 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
 
       <button type="submit" class="btn-scan" id="scanBtn">Перевірити →</button>
     </form>
-    <div class="hero-helper">Введіть назву або адресу сайту — без цього AI нема кого шукати</div>
+    <div class="hero-helper">Залиште контакт — одразу після скану побачите повний аналіз, і той самий PDF прийде вам на пошту</div>
 
     <div class="hero-meta">Кілька реальних запитів · 4 AI-системи (ChatGPT, Claude, Gemini, Perplexity) · ~1 хвилина</div>
   </section>
@@ -859,28 +866,16 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
   </section>
 
   <section class="issues" id="issuesOld" hidden>
-    <div class="secret-zone" id="secretZoneCard">
-      <div class="secret-zone-icon">🔐</div>
-      <h3>Що ви отримаєте в повному звіті</h3>
-      <ul class="unlock-benefits">
-        <li>Детальна розбивка по кожній з 4 AI-систем — вердикт і дослівна цитата</li>
-        <li>Реальні конкуренти, яких AI називає замість вас у ваших нішевих запитах</li>
-        <li>Конкретні причини, які прямо зараз знижують сигнал</li>
-        <li>Покроковий план дій — 5 кроків, кожен можна почати сьогодні</li>
-      </ul>
-      <p class="secret-zone-desc">Усе це — одним PDF-файлом вам на пошту, безкоштовно.</p>
+    <div class="unlocked-badge" id="unlockedNote">✓ Повний аналіз нижче. PDF-звіт також надіслано вам на пошту.</div>
+  </section>
 
-      <form id="unlockForm" class="unlock-form">
-        <input type="text" id="leadName" placeholder="Ваше ім'я">
-        <input type="tel" id="leadPhone" placeholder="Телефон" required>
-        <input type="email" id="leadEmail" placeholder="Email (сюди прийде PDF-звіт)" required style="grid-column:1/-1;">
-        <div class="form-error" id="formError" hidden style="grid-column:1/-1;"></div>
-        <button type="submit" id="unlockBtn" class="btn-scan">Отримати повний звіт →</button>
-      </form>
-      <div class="mode-note">Без спаму — надішлемо звіт і, за потреби, зв'яжемось щодо консультації Top Marketing.</div>
-    </div>
+  <section class="issues" id="fullReportSection" hidden>
+    <h3>Зона невидимості — реальні гравці ринку по ваших запитах</h3>
+    <div id="zoneList"></div>
 
-    <div class="unlocked-badge" id="unlockedNote" hidden>✓ Звіт розблоковано. Ми зв'яжемось з вами найближчим часом.</div>
+    <h3 style="margin-top:28px;">Покроковий план дій</h3>
+    <div class="steps-sub">5 кроків, кожен можна почати сьогодні</div>
+    <div id="detailedSteps"></div>
   </section>
 
   <section class="issues" id="consultSection" hidden>
@@ -888,11 +883,8 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
       <div class="secret-zone-icon">📞</div>
       <h3>Хочете розібрати результати детальніше?</h3>
       <p class="secret-zone-desc">Особливо якщо йдеться про "Точку збору" — єдиний опис бренду скрізь, від сайту до каталогів. Це саме те, що ми детально розбираємо на консультації з командою Top Marketing.</p>
-      <form id="consultForm" class="unlock-form" style="max-width:340px; margin:0 auto;">
-        <input type="tel" id="consultPhone" placeholder="Телефон" required style="grid-column:1/-1;">
-        <div class="form-error" id="consultFormError" hidden style="grid-column:1/-1;"></div>
-        <button type="submit" id="consultBtn" class="btn-scan">Записатись на консультацію →</button>
-      </form>
+      <div class="form-error" id="consultFormError" hidden></div>
+      <button type="button" id="consultBtn" class="btn-scan">Записатись на консультацію →</button>
     </div>
     <div class="unlocked-badge" id="consultDoneNote" hidden>✓ Заявку прийнято. Ми зателефонуємо вам найближчим часом.</div>
   </section>
@@ -961,19 +953,18 @@ refineToggle.addEventListener('click', () => {
 
 document.getElementById('restartBtn').addEventListener('click', () => {
   document.body.classList.remove('scan-active');
-  ['panel','gapPanel','axes','issuesOld','consultSection','ctaBlock','restartBlock','scanStatus'].forEach(id => {
+  ['panel','gapPanel','axes','issuesOld','fullReportSection','consultSection','ctaBlock','restartBlock','scanStatus'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.hidden = true;
   });
-  document.getElementById('secretZoneCard').hidden = false;
-  document.getElementById('unlockedNote').hidden = true;
   document.getElementById('consultCard').hidden = false;
   document.getElementById('consultDoneNote').hidden = true;
-  document.getElementById('consultPhone').value = '';
   const consultBtnReset = document.getElementById('consultBtn');
   consultBtnReset.disabled = false;
   consultBtnReset.textContent = 'Записатись на консультацію →';
   document.getElementById('brandName').value = '';
+  document.getElementById('brandPhone').value = '';
+  document.getElementById('brandEmail').value = '';
   document.getElementById('brandCity').value = '';
   document.getElementById('brandNicheField').value = '';
   document.getElementById('brandScale').value = 'в місті';
@@ -1159,6 +1150,10 @@ async function runLiveScan(name, niche){
 form.addEventListener('submit', async function(e){
   e.preventDefault();
   const name = document.getElementById('brandName').value.trim();
+  const phoneEl = document.getElementById('brandPhone');
+  const emailEl = document.getElementById('brandEmail');
+  const phone = phoneEl.value.trim();
+  const email = emailEl.value.trim();
   const nicheField = document.getElementById('brandNicheField').value.trim();
   const cityField = document.getElementById('brandCity').value.trim();
   const scaleField = document.getElementById('brandScale').value;
@@ -1166,6 +1161,25 @@ form.addEventListener('submit', async function(e){
   let niche = nicheParts.join(', ');
   if(niche && scaleField && scaleField !== 'в місті') niche += ` (${scaleField})`;
   if(!name) return;
+
+  const heroFormErrorEl = document.getElementById('heroFormError');
+  phoneEl.classList.remove('invalid');
+  emailEl.classList.remove('invalid');
+  const heroErrors = [];
+  if(!isValidPhone(phone)){
+    heroErrors.push('Перевірте номер телефону — введіть його повністю, з кодом країни.');
+    phoneEl.classList.add('invalid');
+  }
+  if(!isValidEmail(email)){
+    heroErrors.push('Перевірте email — здається, там помилка.');
+    emailEl.classList.add('invalid');
+  }
+  if(heroErrors.length){
+    heroFormErrorEl.textContent = heroErrors.join(' ');
+    heroFormErrorEl.hidden = false;
+    return;
+  }
+  heroFormErrorEl.hidden = true;
 
   // Очищаємо поля "Уточнити" одразу після зчитування — щоб стара ніша з
   // попереднього скану випадково не підставилась для наступного бренду.
@@ -1319,16 +1333,14 @@ form.addEventListener('submit', async function(e){
   }
   const pickedIssues = shuffled.slice(0,3);
 
-  setTimeout(() => {
+  setTimeout(async () => {
     document.getElementById('scanStatus').hidden = true;
-    document.getElementById('secretZoneCard').hidden = false;
-    document.getElementById('unlockedNote').hidden = true;
-    document.getElementById('leadName').value = '';
-    document.getElementById('leadPhone').value = '';
-    document.getElementById('leadEmail').value = '';
-    const unlockBtnReset = document.getElementById('unlockBtn');
-    unlockBtnReset.disabled = false;
-    unlockBtnReset.textContent = 'Отримати повний звіт →';
+    document.getElementById('issuesOld').hidden = true;
+    document.getElementById('unlockedNote').textContent = '';
+    document.getElementById('fullReportSection').hidden = true;
+    document.getElementById('consultSection').hidden = true;
+    document.getElementById('consultCard').hidden = false;
+    document.getElementById('consultDoneNote').hidden = true;
 
     document.getElementById('panelBrandName').textContent = name.toUpperCase() + (niche ? ' · ' + niche.toUpperCase() : '');
 
@@ -1404,18 +1416,14 @@ form.addEventListener('submit', async function(e){
     personalInsightEl.innerHTML = `<b>Ваш бал ${overall}/100.</b> ${engineSummary} ${focusText}`;
     personalInsightEl.hidden = false;
 
-    // Розбивку по кожній системі (вердикт + цитата) більше НЕ рендеримо у
-    // видиму DOM — вона тепер частина закритого контенту (за контактом,
-    // у PDF). Реальні дані для PDF/ліда все одно збираються нижче в
-    // lastEngines незалежно від цього — прибирання рендеру тут нічого не
-    // ламає, лише ховає деталізацію з безкоштовного перегляду.
+    // Розбивку по кожній системі, зону невидимості й план дій рендеримо
+    // нижче, у renderFullReport() — одразу після цього блоку, коли вже
+    // відомі emailSent тощо. Тут лише базові секції панелі результатів.
 
     panel.hidden = false;
     axes.hidden = false; // блок-місток "Точка збору" завжди має що показати, навіть без ніші/сайту
     document.getElementById('widthAxisCard').hidden = (widthDisplayScore === null);
     document.getElementById('depthAxisCard').hidden = (depthScore === null);
-    issuesOldSection.hidden = false;
-    consultSection.hidden = false;
     ctaBlock.hidden = false;
     document.getElementById('restartBlock').hidden = false;
 
@@ -1441,7 +1449,7 @@ form.addEventListener('submit', async function(e){
       gapPanelEl.hidden = true;
     }
 
-    requestAnimationFrame(() => {
+    requestAnimationFrame(async () => {
       document.querySelectorAll('.track-bar .sweep').forEach(s => s.style.width = '100%');
       document.querySelectorAll('.track-bar .blip').forEach((b,i) => {
         setTimeout(() => b.classList.add('show'), 500 + i*250);
@@ -1486,25 +1494,55 @@ form.addEventListener('submit', async function(e){
       lastEngines = engines.map(e => ({ label: e.label, verdict: e.verdict || (e.hit ? 'know' : 'unknown'), hit: !!e.hit, score: e.score || 0, snippet: e.snippet || '', error: e.error || null }));
       lastZoneOfInvisibility = zoneOfInvisibility;
 
-      // Записуємо "частковий лід" — сайт/бренд і ніша вже відомі, навіть
-      // якщо людина ще не заповнила (чи взагалі не заповнить) контакти.
-      // Лише для реальних сканів, не для демо-режиму з вигаданими даними.
+      // Реальні дані по конкурентах і кроках тепер рендеримо одразу у
+      // видимому DOM (не блюримо, не ховаємо) — контакти вже зібрані на
+      // самому початку, тому ховати вміст більше нема сенсу.
+      lastZoneCompetitors = zoneOfInvisibility.map(zq => zq.competitors || []);
+      renderFullReport(zoneOfInvisibility, name);
+
+      // Автоматична відправка ліда + PDF на пошту — одразу, без окремої
+      // кнопки, бо контакти вже отримані на самому старті форми вище.
+      let emailSent = false;
       if(usedReal && API_URL){
         try{
-          fetch(API_URL.replace(/\/api\/scan$/, '/api/partial-lead'), {
+          const leadUrl = API_URL.replace(/\/api\/scan$/, '/api/lead');
+          const leadRes = await fetch(leadUrl, {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ brand: name, niche, score: overall })
-          }).catch(err => console.warn('Не вдалось записати частковий лід:', err));
+            body: JSON.stringify({
+              name: '',
+              phone,
+              email,
+              brand: name,
+              niche,
+              score: overall,
+              engines: lastEngines,
+              zoneOfInvisibility: lastZoneOfInvisibility,
+              issues: lastPickedIssues
+            })
+          });
+          const leadData = await leadRes.json().catch(() => ({}));
+          emailSent = !!leadData.emailSent;
+          if(leadRes.ok){
+            try{
+              if(typeof fbq === 'function'){
+                fbq('track', 'Lead');
+              }
+            } catch(pixelErr){
+              console.warn('Meta Pixel: не вдалось відправити подію Lead:', pixelErr);
+            }
+          }
         } catch(err){
-          console.warn('Не вдалось записати частковий лід:', err);
+          console.warn('Не вдалось відправити лід на бекенд:', err);
         }
       }
 
-      // Дані по конкурентах більше не рендеримо у DOM (нема куди — секцію
-      // "Зона невидимості" прибрали, все звелось до одного чистого блоку
-      // з пунктами вище). Самі дані для PDF/ліда все одно зберігаємо.
-      lastZoneCompetitors = zoneOfInvisibility.map(zq => zq.competitors || []);
+      document.getElementById('issuesOld').hidden = false;
+      document.getElementById('unlockedNote').textContent = emailSent
+        ? '✓ Повний аналіз нижче. PDF-звіт також надіслано вам на пошту.'
+        : '✓ Повний аналіз нижче. (Не вдалось автоматично надіслати PDF — але аналіз тут, на сторінці.)';
+      document.getElementById('fullReportSection').hidden = false;
+      document.getElementById('consultSection').hidden = false;
 
       panel.scrollIntoView({behavior:'smooth', block:'start'});
     });
@@ -1514,15 +1552,6 @@ form.addEventListener('submit', async function(e){
   }, usedReal ? 200 : 1400);
 });
 
-function revealLocked(emailSent, leadEmail){
-  document.getElementById('secretZoneCard').hidden = true;
-  const note = document.getElementById('unlockedNote');
-  note.hidden = false;
-  note.innerHTML = emailSent
-    ? `Дякуємо! Ваші дані прийнято.<br>Детальний PDF-звіт із покроковим планом дій і повним аналізом уже надіслано на <b>${leadEmail || 'вашу пошту'}</b> — перевірте, будь ласка, "Вхідні" і, про всяк випадок, папку "Спам".<br>Найближчим часом з вами зв'яжеться команда Top Marketing щодо консультації.`
-    : `Дякуємо! Заявку прийнято.<br>Не вдалось автоматично надіслати PDF на пошту — але ми вже отримали ваші контакти і зв'яжемось із вами найближчим часом.`;
-}
-
 function isValidEmail(email){
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
 }
@@ -1531,93 +1560,96 @@ function isValidPhone(phone){
   return digits.length >= 10 && digits.length <= 15;
 }
 
-document.getElementById('unlockForm').addEventListener('submit', async function(e){
-  e.preventDefault();
-  const leadName = document.getElementById('leadName').value.trim();
-  const leadPhoneEl = document.getElementById('leadPhone');
-  const leadEmailEl = document.getElementById('leadEmail');
-  const leadPhone = leadPhoneEl.value.trim();
-  const leadEmail = leadEmailEl.value.trim();
+const DETAILED_STEPS_HTML = `
+  <div class="detail-step">
+    <b>1. Зберіть бренд в одну сутність</b>
+    <p>Напишіть один канонічний абзац: хто ви + що робите + для кого + де (місто/ринок/онлайн) + один перевірюваний факт (років на ринку, клієнтів, публікацій). Вставте цей абзац дослівно всюди, де ви є: сайт, LinkedIn, соцмережі, каталоги, профілі на майданчиках. Однакове написання назви — до літери.</p>
+  </div>
+  <div class="detail-step">
+    <b>2. Потрапте до чужих списків</b>
+    <p>Запитайте в ChatGPT і Perplexity: «найкращі [ваша ніша] у [місто/ринок]». Зафіксуйте, на які добірки й рейтинги вони посилаються. Випишіть 5-10 списків, де є конкуренти, а вас немає. Напишіть авторам майданчиків заявку на включення — багато нішевих добірок додають безкоштовно.</p>
+  </div>
+  <div class="detail-step">
+    <b>3. Зайдіть у живі обговорення</b>
+    <p>Знайдіть 2-3 живі майданчики, де реально обговорюють вашу нішу: форуми, галузеві спільноти, Q&A. Дайте там 2-3 розгорнуті корисні відповіді як експерт, без реклами в лоб. Запустіть збір змістовних відгуків від клієнтів — з деталями (послуга, специфіка), а не просто «все супер».</p>
+  </div>
+  <div class="detail-step">
+    <b>4. Підсильте контент цифрами</b>
+    <p>Візьміть головний експертний матеріал і підсильте трьома речами: конкретні цифри й статистика замість загальних слів, цитати з посиланням на ім'я, зазначення джерел даних.</p>
+  </div>
+  <div class="detail-step">
+    <b>5. Закрийте реальне питання клієнта</b>
+    <p>Візьміть реальне формулювання, яким клієнти шукають таких, як ви. Опублікуйте матеріал: заголовок = питання клієнта, перший абзац = пряма відповідь (2-4 речення). Ставте свіжу дату і оновлюйте ключові матеріали раз на квартал.</p>
+  </div>
+  <div class="detail-step bonus">
+    <b>Бонус: зареєструйтесь у Bing Webmaster Tools</b>
+    <p>15 хвилин, безкоштовно. Помітна частка цитат пошукового режиму ChatGPT збігається з органічною видачею Bing, а конкуренція там значно нижча.</p>
+  </div>`;
 
-  const formErrorEl = document.getElementById('formError');
-  leadPhoneEl.classList.remove('invalid');
-  leadEmailEl.classList.remove('invalid');
+function renderFullReport(zoneOfInvisibility, brandName){
+  // ---- Розбивка по кожній системі (вердикт + дослівна цитата) ----
+  const tracksEl = document.getElementById('tracks');
+  tracksEl.hidden = false;
+  tracksEl.innerHTML = '';
+  const captionMap = {
+    know: 'Знає і говорить по суті',
+    confused: 'Дає розмиту, невпевнену відповідь',
+    unknown: 'Не орієнтується — жодного натяку'
+  };
+  lastEngines.forEach(eng => {
+    const track = document.createElement('div');
+    track.className = 'track';
+    const vClass = eng.error ? 'err' : (eng.verdict === 'know' ? 'hit' : (eng.verdict === 'confused' ? 'mid' : 'miss'));
+    const vText = eng.error ? 'НЕДОСТУПНО' : (eng.verdict === 'know' ? 'ЗНАЄ' : (eng.verdict === 'confused' ? 'ПЛУТАЄ' : 'НЕ ЧУВ'));
+    const caption = eng.error ? '' : (captionMap[eng.verdict] || '');
+    const scoreNum = (typeof eng.score === 'number') ? `<span class="track-score">${eng.score}/100</span>` : '';
+    track.innerHTML = `
+      <div class="track-label">
+        <span>${eng.label}</span>
+        <span>${scoreNum}<span class="verdict ${vClass}">${vText}</span></span>
+      </div>
+      ${eng.snippet ? `<div class="track-snippet">"${eng.snippet}"</div>` : ''}
+      ${caption ? `<div class="track-caption">${caption}</div>` : ''}
+      ${eng.error ? `<div class="track-snippet">${eng.error}</div>` : ''}`;
+    tracksEl.appendChild(track);
+  });
 
-  const errors = [];
-  if(!isValidPhone(leadPhone)){
-    errors.push('Перевірте номер телефону — введіть його повністю, з кодом країни/оператора.');
-    leadPhoneEl.classList.add('invalid');
+  // ---- Зона невидимості — реальні назви конкурентів, без блюру ----
+  const zoneListEl = document.getElementById('zoneList');
+  zoneListEl.innerHTML = '';
+  if(zoneOfInvisibility.length === 0){
+    zoneListEl.innerHTML = `<div class="track-snippet">Ніша не вказана і не вдалось визначити автоматично — тому конкурентів по нішевих запитах немає.</div>`;
+  } else {
+    zoneOfInvisibility.forEach((zq, idx) => {
+      const card = document.createElement('div');
+      card.className = 'zone-combined';
+      card.style.marginBottom = '10px';
+      const badges = Object.entries(zq.engines || {}).map(([key, val]) => {
+        const label = ENGINE_LABELS[key] || key;
+        if(val.error) return `<span class="zone-badge err"><i class="zdot"></i>${label}</span>`;
+        const cls = val.mentionedBrand ? 'hit' : 'miss';
+        return `<span class="zone-badge ${cls}"><i class="zdot"></i>${label}</span>`;
+      }).join('');
+      const competitors = zq.competitors || [];
+      const compHtml = competitors.length
+        ? `<div class="zone-competitors" style="margin-top:8px;">Замість вас називають: <b>${competitors.join(', ')}</b></div>`
+        : `<div class="zone-competitors" style="margin-top:8px;"><span class="none">Явних гравців пошук не знайшов — полиця відносно вільна.</span></div>`;
+      card.innerHTML = `<div class="zone-query-row" style="border-top:none;"><div class="zq-text">${idx+1}. «${zq.query}»</div><div class="zq-badges">${badges}</div></div>${compHtml}`;
+      zoneListEl.appendChild(card);
+    });
   }
-  if(!isValidEmail(leadEmail)){
-    errors.push('Перевірте email — здається, там помилка (напр. немає "@" або домену).');
-    leadEmailEl.classList.add('invalid');
-  }
-  if(errors.length){
-    formErrorEl.textContent = errors.join(' ');
-    formErrorEl.hidden = false;
-    return;
-  }
-  formErrorEl.hidden = true;
 
-  const unlockBtn = document.getElementById('unlockBtn');
-  unlockBtn.disabled = true;
-  unlockBtn.textContent = 'Розблоковую...';
+  // ---- Повний покроковий план ----
+  document.getElementById('detailedSteps').innerHTML = DETAILED_STEPS_HTML;
+}
 
-  let emailSent = false;
-  let emailError = null;
-
-  if(API_URL){
-    try{
-      const leadUrl = API_URL.replace(/\/api\/scan$/, '/api/lead');
-      const leadRes = await fetch(leadUrl, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          name: leadName,
-          phone: leadPhone,
-          email: leadEmail,
-          brand: lastScanMeta.brand,
-          niche: lastScanMeta.niche,
-          score: lastScanMeta.score,
-          engines: lastEngines,
-          zoneOfInvisibility: lastZoneOfInvisibility,
-          issues: lastPickedIssues
-        })
-      });
-      const leadData = await leadRes.json().catch(() => ({}));
-      emailSent = !!leadData.emailSent;
-      emailError = leadData.emailError || null;
-
-      if(leadRes.ok){
-        // Meta Pixel: подія "Lead" — саме в момент, коли контакт реально
-        // прийнято бекендом, а не при кожному завантаженні сторінки.
-        try{
-          if(typeof fbq === 'function'){
-            fbq('track', 'Lead');
-          }
-        } catch(pixelErr){
-          console.warn('Meta Pixel: не вдалось відправити подію Lead:', pixelErr);
-        }
-      }
-    } catch(err){
-      console.warn('Не вдалось відправити лід на бекенд:', err);
-    }
-  }
-
-  revealLocked(emailSent, leadEmail);
-});
-
-document.getElementById('consultForm').addEventListener('submit', async function(e){
-  e.preventDefault();
-  const consultPhoneEl = document.getElementById('consultPhone');
-  const consultPhone = consultPhoneEl.value.trim();
+document.getElementById('consultBtn').addEventListener('click', async function(){
+  const phone = document.getElementById('brandPhone').value.trim();
   const consultFormErrorEl = document.getElementById('consultFormError');
-  consultPhoneEl.classList.remove('invalid');
 
-  if(!isValidPhone(consultPhone)){
-    consultFormErrorEl.textContent = 'Перевірте номер телефону — введіть його повністю, з кодом країни/оператора.';
+  if(!isValidPhone(phone)){
+    consultFormErrorEl.textContent = 'У полі телефону на початку сторінки, схоже, помилка — перевірте і скануйте ще раз.';
     consultFormErrorEl.hidden = false;
-    consultPhoneEl.classList.add('invalid');
     return;
   }
   consultFormErrorEl.hidden = true;
@@ -1633,7 +1665,7 @@ document.getElementById('consultForm').addEventListener('submit', async function
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({
-          phone: consultPhone,
+          phone,
           brand: lastScanMeta.brand,
           niche: lastScanMeta.niche,
           score: lastScanMeta.score
