@@ -133,6 +133,60 @@ function looksLikeUrl(brand) {
   return /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/.*)?$/i.test(brand.trim());
 }
 
+// ---- Валідація телефону/email проти явно вигаданих чи сміттєвих даних ----
+// Список одноразових/сміттєвих поштових сервісів — не вичерпний, але
+// покриває найпоширеніші. Легко доповнити за потреби.
+const DISPOSABLE_EMAIL_DOMAINS = new Set([
+  'mailinator.com', 'guerrillamail.com', 'guerrillamail.info', '10minutemail.com',
+  'tempmail.com', 'temp-mail.org', 'yopmail.com', 'throwawaymail.com',
+  'trashmail.com', 'fakeinbox.com', 'getnada.com', 'sharklasers.com',
+  'dispostable.com', 'mintemail.com', 'mohmal.com', 'moakt.com',
+  'emailondeck.com', 'maildrop.cc', 'tempinbox.com', 'spamgourmet.com',
+  'burnermail.io', 'inboxbear.com', 'mailnesia.com', 'mailcatch.com',
+  'discard.email', 'discardmail.com', 'tempr.email', 'fakemail.net',
+  'test.com', 'example.com', 'example.org', 'example.net', 'test.ua', 'test.ru'
+]);
+
+function isValidEmailStrict(email) {
+  const trimmed = (email || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)) return { ok: false, reason: 'Некоректний формат email' };
+
+  const [localPart, domainRaw] = trimmed.split('@');
+  const domain = domainRaw.toLowerCase();
+
+  if (DISPOSABLE_EMAIL_DOMAINS.has(domain)) {
+    return { ok: false, reason: 'Схоже на одноразову/тестову поштову адресу' };
+  }
+  // Явно вигадані пари на кшталт test@test.com, asdf@asdf.com, aaa@aaa.com
+  const domainName = domain.split('.')[0];
+  if (localPart.toLowerCase() === domainName && /^(test|asdf|aaa|abc|qwerty|admin|user|noone|nobody|fake|spam|xxx)$/i.test(localPart)) {
+    return { ok: false, reason: 'Схоже на вигадану адресу' };
+  }
+  // Один і той самий символ повторюється по колу (aaaa@aaaa.com тощо)
+  if (/^(.)\1{2,}$/.test(localPart)) {
+    return { ok: false, reason: 'Схоже на вигадану адресу' };
+  }
+  return { ok: true };
+}
+
+function isValidPhoneStrict(phone) {
+  const digits = (phone || '').replace(/\D/g, '');
+  if (digits.length < 10 || digits.length > 15) {
+    return { ok: false, reason: 'Некоректна довжина номера' };
+  }
+  // Усі цифри однакові (0000000000, 1111111111 тощо)
+  if (/^(\d)\1+$/.test(digits)) {
+    return { ok: false, reason: 'Номер виглядає вигаданим' };
+  }
+  // Прості послідовності (1234567890, 0123456789, і у зворотному напрямку)
+  const ascending = '0123456789012345';
+  const descending = '9876543210987654';
+  if (ascending.includes(digits) || descending.includes(digits)) {
+    return { ok: false, reason: 'Номер виглядає вигаданим' };
+  }
+  return { ok: true };
+}
+
 // РЕАЛЬНИЙ (не AI, не вигаданий) аналіз сайту: завантажує сторінку і рахує
 // кількість цифр/статистики, цитат і загальний обсяг тексту. Чистий код,
 // без жодного випадкового числа — або реальний результат, або null,
@@ -1097,13 +1151,16 @@ app.post('/api/depth-score', async (req, res) => {
 // у таблиці, щоб відрізняти від основних лідів (тих, хто хотів PDF).
 app.post('/api/consult-request', async (req, res) => {
   try {
-    const { phone, brand, niche, score } = req.body || {};
+    const { phone, brand, niche, score, website } = req.body || {};
+    if (website) {
+      return res.status(400).json({ error: 'Заявку відхилено' });
+    }
     if (!phone || typeof phone !== 'string' || !phone.trim()) {
       return res.status(400).json({ error: 'Поле "phone" обовʼязкове' });
     }
-    const phoneDigits = phone.replace(/\D/g, '');
-    if (phoneDigits.length < 10 || phoneDigits.length > 15) {
-      return res.status(400).json({ error: 'Некоректний формат телефону' });
+    const phoneCheck = isValidPhoneStrict(phone);
+    if (!phoneCheck.ok) {
+      return res.status(400).json({ error: phoneCheck.reason });
     }
 
     const lead = {
@@ -1140,7 +1197,13 @@ app.post('/api/consult-request', async (req, res) => {
 
 app.post('/api/lead', async (req, res) => {
   try {
-    const { name, phone, email, brand, niche, score, engines, zoneOfInvisibility, issues } = req.body || {};
+    const { name, phone, email, brand, niche, score, engines, zoneOfInvisibility, issues, website } = req.body || {};
+
+    // Honeypot: реальні люди це поле ніколи не бачать і не заповнюють —
+    // заповнене значення означає бота. Тихо відмовляємо, без деталей.
+    if (website) {
+      return res.status(400).json({ error: 'Заявку відхилено' });
+    }
 
     if (!email || typeof email !== 'string' || !email.trim()) {
       return res.status(400).json({ error: 'Поле "email" обовʼязкове' });
@@ -1148,12 +1211,13 @@ app.post('/api/lead', async (req, res) => {
     if (!phone || typeof phone !== 'string' || !phone.trim()) {
       return res.status(400).json({ error: 'Поле "phone" обовʼязкове' });
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
-      return res.status(400).json({ error: 'Некоректний формат email' });
+    const emailCheck = isValidEmailStrict(email);
+    if (!emailCheck.ok) {
+      return res.status(400).json({ error: emailCheck.reason });
     }
-    const phoneDigits = phone.replace(/\D/g, '');
-    if (phoneDigits.length < 10 || phoneDigits.length > 15) {
-      return res.status(400).json({ error: 'Некоректний формат телефону' });
+    const phoneCheck = isValidPhoneStrict(phone);
+    if (!phoneCheck.ok) {
+      return res.status(400).json({ error: phoneCheck.reason });
     }
 
     const lead = {

@@ -509,6 +509,10 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
   .unlock-form input:focus{border-color:var(--orange);}
   .unlock-form input.invalid{border-color:var(--red);}
   .form-error{color:var(--red); font-size:12px; margin-top:-6px;}
+  .honeypot{
+    position:absolute !important; left:-9999px !important; top:-9999px !important;
+    width:1px; height:1px; opacity:0; pointer-events:none;
+  }
   .unlock-form button{grid-column:1/-1;}
   .unlocked-badge{
     background:rgba(79,209,197,.1); border:1px solid rgba(79,209,197,.4); color:var(--cyan);
@@ -685,6 +689,7 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
         <input type="email" id="brandEmail" placeholder="you@company.com" required>
       </label>
       <div class="form-error" id="heroFormError" hidden style="grid-column:1/-1;"></div>
+      <input type="text" id="brandWebsite" name="website" class="honeypot" tabindex="-1" autocomplete="off">
 
       <div class="refine-block">
         <button type="button" class="refine-toggle" id="refineToggle" aria-expanded="false">
@@ -980,6 +985,7 @@ document.getElementById('restartBtn').addEventListener('click', () => {
   document.getElementById('brandName').value = '';
   document.getElementById('brandPhone').value = '';
   document.getElementById('brandEmail').value = '';
+  document.getElementById('brandWebsite').value = '';
   document.getElementById('brandCity').value = '';
   document.getElementById('brandNicheField').value = '';
   document.getElementById('brandScale').value = 'в місті';
@@ -1164,6 +1170,10 @@ async function runLiveScan(name, niche){
 
 form.addEventListener('submit', async function(e){
   e.preventDefault();
+  // Honeypot: якщо це поле заповнене — це бот, тихо ігноруємо відправку.
+  const honeypotVal = document.getElementById('brandWebsite').value.trim();
+  if(honeypotVal) return;
+
   const name = document.getElementById('brandName').value.trim();
   const phoneEl = document.getElementById('brandPhone');
   const emailEl = document.getElementById('brandEmail');
@@ -1533,7 +1543,8 @@ form.addEventListener('submit', async function(e){
               score: overall,
               engines: lastEngines,
               zoneOfInvisibility: lastZoneOfInvisibility,
-              issues: lastPickedIssues
+              issues: lastPickedIssues,
+              website: honeypotVal
             })
           });
           const leadData = await leadRes.json().catch(() => ({}));
@@ -1567,12 +1578,36 @@ form.addEventListener('submit', async function(e){
   }, usedReal ? 200 : 1400);
 });
 
+const DISPOSABLE_EMAIL_DOMAINS = new Set([
+  'mailinator.com', 'guerrillamail.com', 'guerrillamail.info', '10minutemail.com',
+  'tempmail.com', 'temp-mail.org', 'yopmail.com', 'throwawaymail.com',
+  'trashmail.com', 'fakeinbox.com', 'getnada.com', 'sharklasers.com',
+  'dispostable.com', 'mintemail.com', 'mohmal.com', 'moakt.com',
+  'emailondeck.com', 'maildrop.cc', 'tempinbox.com', 'spamgourmet.com',
+  'burnermail.io', 'inboxbear.com', 'mailnesia.com', 'mailcatch.com',
+  'discard.email', 'discardmail.com', 'tempr.email', 'fakemail.net',
+  'test.com', 'example.com', 'example.org', 'example.net', 'test.ua', 'test.ru'
+]);
+
 function isValidEmail(email){
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+  const trimmed = (email || '').trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)) return false;
+  const [localPart, domainRaw] = trimmed.split('@');
+  const domain = domainRaw.toLowerCase();
+  if(DISPOSABLE_EMAIL_DOMAINS.has(domain)) return false;
+  const domainName = domain.split('.')[0];
+  if(localPart.toLowerCase() === domainName && /^(test|asdf|aaa|abc|qwerty|admin|user|noone|nobody|fake|spam|xxx)$/i.test(localPart)) return false;
+  if(/^(.)\1{2,}$/.test(localPart)) return false;
+  return true;
 }
 function isValidPhone(phone){
-  const digits = phone.replace(/\D/g, '');
-  return digits.length >= 10 && digits.length <= 15;
+  const digits = (phone || '').replace(/\D/g, '');
+  if(digits.length < 10 || digits.length > 15) return false;
+  if(/^(\d)\1+$/.test(digits)) return false;
+  const ascending = '0123456789012345';
+  const descending = '9876543210987654';
+  if(ascending.includes(digits) || descending.includes(digits)) return false;
+  return true;
 }
 
 const DETAILED_STEPS_HTML = `
@@ -1659,6 +1694,9 @@ function renderFullReport(zoneOfInvisibility, brandName){
 }
 
 document.getElementById('consultBtn').addEventListener('click', async function(){
+  const honeypotVal = document.getElementById('brandWebsite').value.trim();
+  if(honeypotVal) return;
+
   const phone = document.getElementById('brandPhone').value.trim();
   const consultFormErrorEl = document.getElementById('consultFormError');
 
@@ -1683,7 +1721,8 @@ document.getElementById('consultBtn').addEventListener('click', async function()
           phone,
           brand: lastScanMeta.brand,
           niche: lastScanMeta.niche,
-          score: lastScanMeta.score
+          score: lastScanMeta.score,
+          website: honeypotVal
         })
       });
       if(consultRes.ok){
