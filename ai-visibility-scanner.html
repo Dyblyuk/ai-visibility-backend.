@@ -144,7 +144,16 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
     text-transform:uppercase; border:1px solid rgba(79,209,197,.35); padding:6px 12px; border-radius:2px;
   }
   .hero-badge::before{content:"●"; font-size:8px; color:var(--cyan);}
-  .hero-sub{color:var(--ink-dim); font-size:15px; line-height:1.6; max-width:56ch; margin:14px 0 28px;}
+  .hero-sub{color:var(--ink-dim); font-size:15px; line-height:1.6; max-width:56ch; margin:14px 0 16px;}
+  .hero-benefits{
+    list-style:none; display:flex; flex-direction:column; gap:8px; margin:0 0 30px; max-width:56ch;
+  }
+  .hero-benefits li{
+    font-size:14.5px; color:var(--ink); line-height:1.5; padding-left:26px; position:relative;
+  }
+  .hero-benefits li::before{
+    content:"✓"; position:absolute; left:0; top:0; color:var(--cyan); font-weight:700;
+  }
 
   .refine-block{grid-column:1/-1;}
   .refine-toggle{
@@ -655,9 +664,15 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
   </div>
 
   <section class="hero">
-    <span class="hero-badge">Безкоштовно · без реєстрації</span>
-    <h1>Перевірте, як <span class="accent">AI</span> реально показує ваш сайт і бізнес</h1>
-    <p class="hero-sub">ChatGPT, Claude, Gemini і Perplexity вже радять ваших конкурентів. Дізнайтесь справжню видимість вашого бізнесу на кожній із цих платформ — за хвилину.</p>
+    <span class="hero-badge">Безкоштовно · без картки · PDF за хвилину</span>
+    <h1>Дізнайтесь, чи <span class="accent">AI</span> реально знає і радить ваш бізнес</h1>
+    <p class="hero-sub">ChatGPT, Claude, Gemini і Perplexity вже радять ваших конкурентів. Перевірте свою видимість на кожній із цих платформ — і одразу на екрані отримайте:</p>
+    <ul class="hero-benefits">
+      <li>Реальний бал AI-видимості 0-100</li>
+      <li>Дослівні цитати ChatGPT, Claude, Gemini і Perplexity</li>
+      <li>Конкурентів, яких AI називає замість вас</li>
+      <li>Покроковий план — що виправити вже сьогодні</li>
+    </ul>
 
     <form class="scan-form" id="scanForm">
       <label>Назва компанії, ім'я або сайт
@@ -694,7 +709,7 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
 
       <button type="submit" class="btn-scan" id="scanBtn">Перевірити →</button>
     </form>
-    <div class="hero-helper">Залиште контакт — одразу після скану побачите повний аналіз, і той самий PDF прийде вам на пошту</div>
+    <div class="hero-helper">Ці дані потрібні лише для того, щоб надіслати вам PDF-звіт — після скану побачите все одразу на екрані</div>
 
     <div class="hero-meta">Кілька реальних запитів · 4 AI-системи (ChatGPT, Claude, Gemini, Perplexity) · ~1 хвилина</div>
   </section>
