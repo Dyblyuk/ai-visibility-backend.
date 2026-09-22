@@ -1382,6 +1382,209 @@ app.get('/api/debug-email', async (req, res) => {
   }
 });
 
+// ==================== TELEGRAM-БОТ: доставка звіту + прогрів ====================
+//
+// Бот НЕ може написати першим — людина сама тисне на посилання
+// t.me/<BOT_USERNAME>?start=<token> на сайті, Telegram відкриває чат,
+// вона тисне Start, і бот отримує /start <token> з chat_id.
+//
+// Токен генерується одразу після скану (POST /api/save-report), під ним
+// зберігається повний результат — бот дістає ці дані по токену й формує
+// той самий PDF, що йде на пошту.
+//
+// Прогрів (день 1 / день 3 / день 5) не надсилається сам собою — Render
+// безкоштовний тариф засинає без активності. GET /api/telegram-cron треба
+// пінгувати ззовні раз на ~10 хв (напр. безкоштовний cron-job.org) —
+// кожен пінг одночасно будить сервер і перевіряє чергу.
+
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+const TELEGRAM_LEADS_FILE = path.join(process.cwd(), 'telegram-leads.json');
+
+// Короткочасний in-memory кеш готових звітів — живе лише до моменту, коли
+// людина натисне посилання в Telegram (зазвичай секунди-хвилини після
+// скану). Якщо сервер перезапуститься саме в цю паузу — рідкісний
+// крайній випадок, людина просто скане ще раз.
+const pendingTelegramReports = new Map(); // token -> report data
+
+function telegramSend(method, payload) {
+  if (!TELEGRAM_BOT_TOKEN) return Promise.resolve({ ok: false, error: 'TELEGRAM_BOT_TOKEN не налаштовано' });
+  return fetch(`${TELEGRAM_API}/${method}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(r => r.json()).catch(err => ({ ok: false, error: String(err) }));
+}
+
+function telegramSendDocument(chatId, pdfBuffer, filename, caption) {
+  if (!TELEGRAM_BOT_TOKEN) return Promise.resolve({ ok: false, error: 'TELEGRAM_BOT_TOKEN не налаштовано' });
+  const form = new FormData();
+  form.append('chat_id', String(chatId));
+  if (caption) form.append('caption', caption);
+  form.append('document', new Blob([pdfBuffer], { type: 'application/pdf' }), filename);
+  return fetch(`${TELEGRAM_API}/sendDocument`, { method: 'POST', body: form })
+    .then(r => r.json()).catch(err => ({ ok: false, error: String(err) }));
+}
+
+function loadTelegramLeads() {
+  try {
+    return JSON.parse(fs.readFileSync(TELEGRAM_LEADS_FILE, 'utf8'));
+  } catch (e) {
+    return [];
+  }
+}
+function saveTelegramLeads(list) {
+  try {
+    fs.writeFileSync(TELEGRAM_LEADS_FILE, JSON.stringify(list, null, 2));
+  } catch (e) {
+    console.warn('Не вдалось записати telegram-leads.json:', e);
+  }
+}
+
+// ---- ТЕКСТИ ПРОГРІВУ ----
+// ⚠️ ЗАГЛУШКИ. Тут навмисно НЕ вигадані кейси чи цифри — вставте реальний
+// матеріал клієнта перед тим, як вмикати прогрів по-справжньому.
+const TELEGRAM_DAY1_MESSAGE =
+  `Привіт ще раз! 👋\n\n` +
+  `[ВСТАВТЕ РЕАЛЬНИЙ КЕЙС: коротко опишіть клієнта (ніша, без імені якщо треба), яку проблему з AI-видимістю ви йому вирішили, і конкретний результат — до/після, цифри, факт.]\n\n` +
+  `Якщо у вашій ніші схожа ситуація — можемо розібрати це на консультації.`;
+
+const TELEGRAM_DAY3_MESSAGE =
+  `Ще один момент, який часто зустрічаємо в роботі з клієнтами:\n\n` +
+  `[ВСТАВТЕ РЕАЛЬНИЙ ДРУГИЙ КЕЙС АБО ТИПОВУ ПОМИЛКУ: щось на кшталт "бізнеси у [ніша] зазвичай втрачають клієнтів через X — ось як ми це виправили клієнту Y".]\n\n` +
+  `Актуально для вас?`;
+
+const TELEGRAM_DAY5_MESSAGE =
+  `Якщо досі не встигли застосувати кроки з вашого звіту — це нормально, часу завжди бракує.\n\n` +
+  `Пропоную коротку безкоштовну консультацію: розберемо саме ваш результат і складемо конкретний план, а не загальні поради.\n\n` +
+  `Просто відповідьте на це повідомлення "так" — і ми зв'яжемось для запису.`;
+
+// ---- Крок 1: зберегти готовий результат скану, отримати токен ----
+app.post('/api/save-report', (req, res) => {
+  try {
+    const { brand, niche, score, engines, zoneOfInvisibility, issues } = req.body || {};
+    if (!brand) return res.status(400).json({ error: 'Поле "brand" обовʼязкове' });
+
+    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    pendingTelegramReports.set(token, { brand, niche, score, engines, zoneOfInvisibility, issues, ts: Date.now() });
+
+    // Прибираємо застарілі токени (старші за годину), щоб мапа не росла безмежно
+    for (const [k, v] of pendingTelegramReports) {
+      if (Date.now() - v.ts > 60 * 60 * 1000) pendingTelegramReports.delete(k);
+    }
+
+    const botUsername = process.env.TELEGRAM_BOT_USERNAME || '';
+    res.json({
+      token,
+      telegramLink: botUsername ? `https://t.me/${botUsername}?start=${token}` : null
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Внутрішня помилка сервера' });
+  }
+});
+
+// ---- Крок 2: вебхук, який Telegram викликає на кожне повідомлення ----
+app.post('/telegram-webhook', async (req, res) => {
+  res.sendStatus(200); // Telegram чекає швидку відповідь, обробляємо асинхронно нижче
+  try {
+    const msg = req.body?.message;
+    if (!msg) return;
+    const chatId = msg.chat.id;
+    const text = (msg.text || '').trim();
+
+    if (text.startsWith('/start')) {
+      const token = text.split(' ')[1];
+      const report = token ? pendingTelegramReports.get(token) : null;
+
+      if (!report) {
+        await telegramSend('sendMessage', {
+          chat_id: chatId,
+          text: 'Привіт! Схоже, посилання застаріло або відкрите не з сайту. Зробіть новий скан на services.topmarketing.com.ua і натисніть кнопку "Отримати в Telegram" ще раз.'
+        });
+        return;
+      }
+
+      await telegramSend('sendMessage', {
+        chat_id: chatId,
+        text: `Ваш бал AI-видимості для «${report.brand}»: *${report.score ?? '—'}/100*\n\nПовний PDF-звіт з деталями — нижче 👇`,
+        parse_mode: 'Markdown'
+      });
+
+      try {
+        const pdfBuffer = await buildReportPdf({
+          brand: report.brand,
+          niche: report.niche,
+          score: report.score,
+          engines: report.engines || [],
+          zoneOfInvisibility: report.zoneOfInvisibility || [],
+          issues: report.issues || []
+        });
+        await telegramSendDocument(chatId, pdfBuffer, `AI-Visibility-${report.brand}.pdf`, 'Ваш повний AI-звіт');
+      } catch (pdfErr) {
+        console.error('Помилка генерації PDF для Telegram:', pdfErr);
+      }
+
+      pendingTelegramReports.delete(token);
+
+      // Реєструємо в чергу прогріву
+      const leads = loadTelegramLeads();
+      leads.push({
+        chatId, brand: report.brand, niche: report.niche, score: report.score,
+        startedAt: new Date().toISOString(),
+        sentDay1: false, sentDay3: false, sentDay5: false
+      });
+      saveTelegramLeads(leads);
+
+      if (LEAD_WEBHOOK_URL) {
+        fetch(LEAD_WEBHOOK_URL, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: '', phone: '', email: '', brand: report.brand, niche: report.niche || '',
+            score: report.score ?? null, status: 'Telegram-бот', ts: new Date().toISOString()
+          })
+        }).catch(e => console.warn('Помилка відправки Telegram-ліда на LEAD_WEBHOOK_URL:', e));
+      }
+    }
+  } catch (err) {
+    console.error('Помилка обробки telegram-webhook:', err);
+  }
+});
+
+// ---- Крок 3: чергу прогріву перевіряє зовнішній пінгер ----
+app.get('/api/telegram-cron', async (req, res) => {
+  const leads = loadTelegramLeads();
+  const now = Date.now();
+  let sentCount = 0;
+
+  for (const lead of leads) {
+    const daysSince = (now - new Date(lead.startedAt).getTime()) / (1000 * 60 * 60 * 24);
+
+    if (daysSince >= 1 && !lead.sentDay1) {
+      await telegramSend('sendMessage', { chat_id: lead.chatId, text: TELEGRAM_DAY1_MESSAGE });
+      lead.sentDay1 = true; sentCount++;
+    } else if (daysSince >= 3 && !lead.sentDay3) {
+      await telegramSend('sendMessage', { chat_id: lead.chatId, text: TELEGRAM_DAY3_MESSAGE });
+      lead.sentDay3 = true; sentCount++;
+    } else if (daysSince >= 5 && !lead.sentDay5) {
+      await telegramSend('sendMessage', { chat_id: lead.chatId, text: TELEGRAM_DAY5_MESSAGE });
+      lead.sentDay5 = true; sentCount++;
+    }
+  }
+
+  saveTelegramLeads(leads);
+  res.json({ ok: true, checked: leads.length, sent: sentCount });
+});
+
+// ---- Одноразово: зареєструвати вебхук у Telegram (відкрити раз у браузері) ----
+app.get('/api/telegram-setup', async (req, res) => {
+  if (!TELEGRAM_BOT_TOKEN) return res.json({ ok: false, error: 'TELEGRAM_BOT_TOKEN не налаштовано на сервері' });
+  const baseUrl = process.env.RENDER_EXTERNAL_URL || `https://${req.get('host')}`;
+  const webhookUrl = `${baseUrl}/telegram-webhook`;
+  const result = await telegramSend('setWebhook', { url: webhookUrl });
+  res.json({ webhookUrl, result });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
@@ -1391,7 +1594,8 @@ app.get('/api/health', (req, res) => {
       perplexity: Boolean(PERPLEXITY_API_KEY),
       anthropic: Boolean(ANTHROPIC_API_KEY),
       resend: Boolean(RESEND_API_KEY),
-      leadWebhook: Boolean(LEAD_WEBHOOK_URL)
+      leadWebhook: Boolean(LEAD_WEBHOOK_URL),
+      telegramBot: Boolean(TELEGRAM_BOT_TOKEN)
     },
     leadWebhookUrlPreview: LEAD_WEBHOOK_URL ? LEAD_WEBHOOK_URL.slice(0, 45) + '...' : null
   });

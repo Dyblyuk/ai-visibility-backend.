@@ -887,6 +887,9 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
 
   <section class="issues" id="issuesOld" hidden>
     <div class="unlocked-badge" id="unlockedNote">✓ Повний аналіз нижче. PDF-звіт також надіслано вам на пошту.</div>
+    <div id="telegramBlock" hidden style="text-align:center; margin-top:14px;">
+      <a href="#" id="telegramLink" target="_blank" class="btn-scan" style="display:inline-block; text-decoration:none;">📩 Отримати той самий звіт у Telegram →</a>
+    </div>
   </section>
 
   <section class="issues" id="fullReportSection" hidden>
@@ -1362,6 +1365,7 @@ form.addEventListener('submit', async function(e){
     document.getElementById('scanStatus').hidden = true;
     document.getElementById('issuesOld').hidden = true;
     document.getElementById('unlockedNote').textContent = '';
+    document.getElementById('telegramBlock').hidden = true;
     document.getElementById('fullReportSection').hidden = true;
     document.getElementById('consultSection').hidden = true;
     document.getElementById('consultCard').hidden = false;
@@ -1560,6 +1564,28 @@ form.addEventListener('submit', async function(e){
           }
         } catch(err){
           console.warn('Не вдалось відправити лід на бекенд:', err);
+        }
+      }
+
+      // Готуємо посилання на Telegram-бот (окремо, не блокує основний
+      // потік — якщо бот ще не налаштований, кнопка просто не з'явиться).
+      if(usedReal && API_URL){
+        try{
+          const saveRes = await fetch(API_URL.replace(/\/api\/scan$/, '/api/save-report'), {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+              brand: name, niche, score: overall,
+              engines: lastEngines, zoneOfInvisibility: lastZoneOfInvisibility, issues: lastPickedIssues
+            })
+          });
+          const saveData = await saveRes.json().catch(() => ({}));
+          if(saveData.telegramLink){
+            document.getElementById('telegramLink').href = saveData.telegramLink;
+            document.getElementById('telegramBlock').hidden = false;
+          }
+        } catch(err){
+          console.warn('Не вдалось підготувати посилання на Telegram:', err);
         }
       }
 
