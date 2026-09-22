@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Top Marketing · Розсилка Telegram</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14181d; --panel:#1c222a; --panel-2:#222a34;
+    --ink:#f5f7f9; --ink-dim:#aab5c2; --ink-faint:#818d99;
+    --orange:#f5781e; --orange-light:#ff9a4d; --cream:#f0f0e6;
+    --cyan:#5be0d3; --red:#ff6b70; --border:#2c3440; --border-strong:#3a4453;
+    --font-body:'Outfit',sans-serif; --font-mono:'Outfit',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-body);
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .card{
+    width:100%; max-width:520px; background:var(--panel); border:1px solid var(--border);
+    padding:32px; box-shadow:0 20px 60px -30px rgba(245,120,30,.25);
+  }
+  h1{font-size:20px; margin:0 0 6px;}
+  .sub{color:var(--ink-dim); font-size:13px; margin:0 0 26px; line-height:1.5;}
+  label{display:flex; flex-direction:column; gap:6px; margin-bottom:16px; font-size:13px; color:var(--ink-dim);}
+  input, textarea, select{
+    background:var(--bg); border:1px solid var(--border); color:var(--ink);
+    padding:12px 14px; font-size:14px; font-family:inherit; border-radius:2px;
+  }
+  input:focus, textarea:focus, select:focus{outline:none; border-color:var(--orange);}
+  textarea{min-height:140px; resize:vertical; line-height:1.5;}
+  .btn{
+    width:100%; background:var(--orange); color:#14181d; border:none; padding:14px;
+    font-family:inherit; font-weight:700; font-size:14px; letter-spacing:.02em;
+    cursor:pointer; border-radius:2px; text-transform:uppercase;
+  }
+  .btn:hover{background:var(--orange-light);}
+  .btn:disabled{opacity:.5; cursor:not-allowed;}
+  .result{
+    margin-top:18px; padding:14px 16px; border-radius:2px; font-size:13px; line-height:1.6; display:none;
+  }
+  .result.ok{background:rgba(91,224,211,.08); border:1px solid rgba(91,224,211,.3); color:var(--cyan); display:block;}
+  .result.err{background:rgba(255,107,112,.08); border:1px solid rgba(255,107,112,.3); color:var(--red); display:block;}
+  .hint{font-size:11px; color:var(--ink-faint); margin-top:-10px; margin-bottom:16px;}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>📢 Ручна розсилка в Telegram</h1>
+    <p class="sub">Надсилає повідомлення підписникам бота одразу, окремо від автоматичного прогріву (день 1/3/5). Пароль ніде не зберігається — вводьте щоразу.</p>
+
+    <form id="broadcastForm">
+      <label>Пароль (TELEGRAM_ADMIN_SECRET)
+        <input type="password" id="secret" required autocomplete="off">
+      </label>
+
+      <label>Кому надсилати
+        <select id="source">
+          <option value="">Усім підписникам</option>
+          <option value="ai-scanner">Тільки з AI-Visibility Scanner</option>
+        </select>
+      </label>
+      <div class="hint">Список джерел поповниться автоматично, коли з'являться нові лід-магніти/воронки.</div>
+
+      <label>Текст повідомлення
+        <textarea id="message" placeholder="Текст, який побачать підписники..." required></textarea>
+      </label>
+
+      <button type="submit" class="btn" id="sendBtn">Надіслати →</button>
+    </form>
+
+    <div class="result" id="result"></div>
+  </div>
+
+<script>
+  const API_URL = 'https://ai-visibility-backend-ybg2.onrender.com/api/telegram-broadcast';
+
+  document.getElementById('broadcastForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const secret = document.getElementById('secret').value;
+    const source = document.getElementById('source').value;
+    const message = document.getElementById('message').value.trim();
+    const resultEl = document.getElementById('result');
+    const btn = document.getElementById('sendBtn');
+
+    if(!message) return;
+
+    if(!confirm(`Надіслати це повідомлення ${source ? 'сегменту «' + source + '»' : 'УСІМ підписникам'}?\n\n"${message.slice(0,120)}${message.length>120?'…':''}"`)){
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Надсилаю...';
+    resultEl.className = 'result';
+    resultEl.hidden = true;
+
+    try{
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ secret, message, source: source || undefined })
+      });
+      const data = await res.json();
+
+      if(res.ok){
+        resultEl.className = 'result ok';
+        resultEl.textContent = `✓ Надіслано ${data.sent} з ${data.targeted}.` + (data.failed && data.failed.length ? ` Не вдалось: ${data.failed.length}.` : '');
+        document.getElementById('message').value = '';
+      } else {
+        resultEl.className = 'result err';
+        resultEl.textContent = `Помилка: ${data.error || 'невідома помилка'}`;
+      }
+    } catch(err){
+      resultEl.className = 'result err';
+      resultEl.textContent = `Не вдалось звʼязатись із сервером: ${err}`;
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Надіслати →';
+  });
+</script>
+</body>
+</html>
