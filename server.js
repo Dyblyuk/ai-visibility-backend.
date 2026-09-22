@@ -1398,6 +1398,10 @@ app.get('/api/debug-email', async (req, res) => {
 // кожен пінг одночасно будить сервер і перевіряє чергу.
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+// Пароль для ручних розсилок (/api/telegram-broadcast) — щоб ніхто, хто
+// випадково знайде адресу ендпоінту, не міг розіслати щось усій базі.
+// Встановіть свій на Render: TELEGRAM_ADMIN_SECRET=щось-довге-й-випадкове
+const TELEGRAM_ADMIN_SECRET = process.env.TELEGRAM_ADMIN_SECRET || '';
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 const TELEGRAM_LEADS_FILE = path.join(process.cwd(), 'telegram-leads.json');
 
@@ -1527,14 +1531,21 @@ app.post('/telegram-webhook', async (req, res) => {
 
       pendingTelegramReports.delete(token);
 
-      // Реєструємо в чергу прогріву
+      // Реєструємо в чергу прогріву + загальну базу підписників.
+      // source позначає воронку, з якої прийшла людина — зараз лише
+      // "ai-scanner", але майбутні лід-магніти реєструватимуть людей
+      // сюди ж під своїм source, у ту саму базу.
       const leads = loadTelegramLeads();
-      leads.push({
-        chatId, brand: report.brand, niche: report.niche, score: report.score,
-        startedAt: new Date().toISOString(),
-        sentDay1: false, sentDay3: false, sentDay5: false
-      });
-      saveTelegramLeads(leads);
+      const alreadyExists = leads.some(l => l.chatId === chatId);
+      if (!alreadyExists) {
+        leads.push({
+          chatId, source: 'ai-scanner', tags: ['ai-scanner'],
+          brand: report.brand, niche: report.niche, score: report.score,
+          startedAt: new Date().toISOString(),
+          sentDay1: false, sentDay3: false, sentDay5: false
+        });
+        saveTelegramLeads(leads);
+      }
 
       if (LEAD_WEBHOOK_URL) {
         fetch(LEAD_WEBHOOK_URL, {
@@ -1574,6 +1585,39 @@ app.get('/api/telegram-cron', async (req, res) => {
 
   saveTelegramLeads(leads);
   res.json({ ok: true, checked: leads.length, sent: sentCount });
+});
+
+// ---- Ручна розсилка — окремо від автоматичного прогріву 1/3/5 днів ----
+// Приклад виклику (POST, JSON body):
+// { "secret": "...", "message": "текст", "source": "ai-scanner" }
+// Поле "source" необов'язкове — якщо не вказати, піде всій базі підписників
+// незалежно від того, з якої воронки/лід-магніту вони прийшли.
+app.post('/api/telegram-broadcast', async (req, res) => {
+  if (!TELEGRAM_ADMIN_SECRET) {
+    return res.status(400).json({ error: 'TELEGRAM_ADMIN_SECRET не налаштовано на сервері — розсилка вимкнена' });
+  }
+  const { secret, message, source } = req.body || {};
+  if (secret !== TELEGRAM_ADMIN_SECRET) {
+    return res.status(401).json({ error: 'Невірний пароль' });
+  }
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    return res.status(400).json({ error: 'Поле "message" обовʼязкове' });
+  }
+
+  const leads = loadTelegramLeads();
+  const targets = source ? leads.filter(l => l.source === source || (l.tags || []).includes(source)) : leads;
+
+  let sent = 0;
+  const failed = [];
+  for (const lead of targets) {
+    const result = await telegramSend('sendMessage', { chat_id: lead.chatId, text: message });
+    if (result.ok) sent++;
+    else failed.push({ chatId: lead.chatId, error: result.description || result.error });
+    // Невелика пауза, щоб не впертись у ліміт Telegram (~30 повідомлень/сек)
+    await new Promise(r => setTimeout(r, 50));
+  }
+
+  res.json({ ok: true, targeted: targets.length, sent, failed });
 });
 
 // ---- Одноразово: зареєструвати вебхук у Telegram (відкрити раз у браузері) ----
