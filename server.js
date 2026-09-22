@@ -1523,6 +1523,78 @@ app.post('/api/save-report', (req, res) => {
 });
 
 // ---- Крок 2: вебхук, який Telegram викликає на кожне повідомлення ----
+// Тимчасове зіставлення chatId -> token, поки чекаємо номер телефону
+// (між /start і моментом, коли людина поділилась контактом).
+const awaitingPhone = new Map();
+
+function isPhoneLikeText(text) {
+  const digits = text.replace(/\D/g, '');
+  return digits.length >= 10 && digits.length <= 15;
+}
+
+async function deliverTelegramReport(chatId, token, phone) {
+  const report = pendingTelegramReports.get(token);
+  if (!report) {
+    await telegramSend('sendMessage', {
+      chat_id: chatId,
+      text: 'Схоже, звіт застарів. Зробіть новий скан на services.topmarketing.com.ua і спробуйте ще раз.'
+    });
+    return;
+  }
+
+  await telegramSend('sendMessage', {
+    chat_id: chatId,
+    text: `Дякуємо! Ваш бал AI-видимості для «${report.brand}»: *${report.score ?? '—'}/100*\n\nПовний PDF-звіт з деталями — нижче 👇`,
+    parse_mode: 'Markdown',
+    reply_markup: { remove_keyboard: true }
+  });
+
+  try {
+    const pdfBuffer = await buildReportPdf({
+      brand: report.brand,
+      niche: report.niche,
+      score: report.score,
+      engines: report.engines || [],
+      zoneOfInvisibility: report.zoneOfInvisibility || [],
+      issues: report.issues || []
+    });
+    await telegramSendDocument(chatId, pdfBuffer, `AI-Visibility-${report.brand}.pdf`, 'Ваш повний AI-звіт');
+  } catch (pdfErr) {
+    console.error('Помилка генерації PDF для Telegram:', pdfErr);
+  }
+
+  pendingTelegramReports.delete(token);
+  awaitingPhone.delete(chatId);
+
+  // Реєструємо в чергу прогріву + загальну базу підписників. source
+  // позначає воронку, з якої прийшла людина — зараз лише "ai-scanner",
+  // але майбутні лід-магніти реєструватимуть людей сюди ж під своїм
+  // source, у ту саму базу.
+  const leads = loadTelegramLeads();
+  const existing = leads.find(l => l.chatId === chatId);
+  if (existing) {
+    existing.phone = phone;
+  } else {
+    leads.push({
+      chatId, phone, source: 'ai-scanner', tags: ['ai-scanner'],
+      brand: report.brand, niche: report.niche, score: report.score,
+      startedAt: new Date().toISOString(),
+      sentDay1: false, sentDay3: false, sentDay5: false
+    });
+  }
+  saveTelegramLeads(leads);
+
+  if (LEAD_WEBHOOK_URL) {
+    fetch(LEAD_WEBHOOK_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: '', phone: phone || '', email: '', brand: report.brand, niche: report.niche || '',
+        score: report.score ?? null, status: 'Telegram-бот', ts: new Date().toISOString()
+      })
+    }).catch(e => console.warn('Помилка відправки Telegram-ліда на LEAD_WEBHOOK_URL:', e));
+  }
+}
+
 app.post('/telegram-webhook', async (req, res) => {
   res.sendStatus(200); // Telegram чекає швидку відповідь, обробляємо асинхронно нижче
   try {
@@ -1543,53 +1615,40 @@ app.post('/telegram-webhook', async (req, res) => {
         return;
       }
 
+      // Не надсилаємо звіт одразу — спершу просимо номер телефону через
+      // нативну кнопку Telegram (людина тисне, номер підтягується сам,
+      // нічого вручну вводити не треба).
+      awaitingPhone.set(chatId, token);
       await telegramSend('sendMessage', {
         chat_id: chatId,
-        text: `Ваш бал AI-видимості для «${report.brand}»: *${report.score ?? '—'}/100*\n\nПовний PDF-звіт з деталями — нижче 👇`,
-        parse_mode: 'Markdown'
+        text: `Бачу ваш результат для «${report.brand}»! Щоб надіслати повний аналіз і PDF-звіт, поділіться, будь ласка, номером телефону — кнопкою нижче.`,
+        reply_markup: {
+          keyboard: [[{ text: '📱 Поділитися номером', request_contact: true }]],
+          resize_keyboard: true,
+          one_time_keyboard: true
+        }
       });
+      return;
+    }
 
-      try {
-        const pdfBuffer = await buildReportPdf({
-          brand: report.brand,
-          niche: report.niche,
-          score: report.score,
-          engines: report.engines || [],
-          zoneOfInvisibility: report.zoneOfInvisibility || [],
-          issues: report.issues || []
-        });
-        await telegramSendDocument(chatId, pdfBuffer, `AI-Visibility-${report.brand}.pdf`, 'Ваш повний AI-звіт');
-      } catch (pdfErr) {
-        console.error('Помилка генерації PDF для Telegram:', pdfErr);
+    // Людина поділилась контактом через кнопку — Telegram сам присилає
+    // перевірений номер, підробити його важче, ніж вписати в звичайну форму.
+    if (msg.contact && msg.contact.phone_number) {
+      const token = awaitingPhone.get(chatId);
+      if (!token) {
+        await telegramSend('sendMessage', { chat_id: chatId, text: 'Дякуємо! Але я не бачу активного запиту на звіт — почніть із посилання на сайті.' });
+        return;
       }
+      await deliverTelegramReport(chatId, token, msg.contact.phone_number);
+      return;
+    }
 
-      pendingTelegramReports.delete(token);
-
-      // Реєструємо в чергу прогріву + загальну базу підписників.
-      // source позначає воронку, з якої прийшла людина — зараз лише
-      // "ai-scanner", але майбутні лід-магніти реєструватимуть людей
-      // сюди ж під своїм source, у ту саму базу.
-      const leads = loadTelegramLeads();
-      const alreadyExists = leads.some(l => l.chatId === chatId);
-      if (!alreadyExists) {
-        leads.push({
-          chatId, source: 'ai-scanner', tags: ['ai-scanner'],
-          brand: report.brand, niche: report.niche, score: report.score,
-          startedAt: new Date().toISOString(),
-          sentDay1: false, sentDay3: false, sentDay5: false
-        });
-        saveTelegramLeads(leads);
-      }
-
-      if (LEAD_WEBHOOK_URL) {
-        fetch(LEAD_WEBHOOK_URL, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: '', phone: '', email: '', brand: report.brand, niche: report.niche || '',
-            score: report.score ?? null, status: 'Telegram-бот', ts: new Date().toISOString()
-          })
-        }).catch(e => console.warn('Помилка відправки Telegram-ліда на LEAD_WEBHOOK_URL:', e));
-      }
+    // Запасний варіант — людина просто написала номер текстом, а не
+    // натиснула кнопку. Приймаємо і це, аби не створювати зайвого тертя.
+    if (awaitingPhone.has(chatId) && isPhoneLikeText(text)) {
+      const token = awaitingPhone.get(chatId);
+      await deliverTelegramReport(chatId, token, text);
+      return;
     }
   } catch (err) {
     console.error('Помилка обробки telegram-webhook:', err);

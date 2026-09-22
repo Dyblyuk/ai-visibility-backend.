@@ -668,27 +668,20 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
   </div>
 
   <section class="hero">
-    <span class="hero-badge">Безкоштовно · без картки · PDF за хвилину</span>
+    <span class="hero-badge">Безкоштовно · без картки · за хвилину</span>
     <h1>Дізнайтесь, чи <span class="accent">AI</span> реально знає і радить ваш бізнес</h1>
-    <p class="hero-sub">ChatGPT, Claude, Gemini і Perplexity вже радять ваших конкурентів. Перевірте свою видимість на кожній із цих платформ — і одразу на екрані отримайте:</p>
+    <p class="hero-sub">ChatGPT, Claude, Gemini і Perplexity вже радять ваших конкурентів. Перевірте свою видимість на кожній із цих платформ:</p>
     <ul class="hero-benefits">
-      <li>Реальний бал AI-видимості 0-100</li>
-      <li>Дослівні цитати ChatGPT, Claude, Gemini і Perplexity</li>
-      <li>Конкурентів, яких AI називає замість вас</li>
-      <li>Покроковий план — що виправити вже сьогодні</li>
+      <li>Реальний бал AI-видимості 0-100 — одразу на екрані</li>
+      <li>Дослівні цитати ChatGPT, Claude, Gemini і Perplexity — у Telegram</li>
+      <li>Конкурентів, яких AI називає замість вас — у Telegram</li>
+      <li>Покроковий план — що виправити вже сьогодні — у Telegram</li>
     </ul>
 
     <form class="scan-form" id="scanForm">
-      <label>Назва компанії, ім'я або сайт
+      <label style="grid-column:1/-1;">Назва компанії, ім'я або сайт
         <input type="text" id="brandName" placeholder="Напр. Top Marketing або topmarketing.com.ua" required>
       </label>
-      <label>Телефон
-        <input type="tel" id="brandPhone" placeholder="+380..." required>
-      </label>
-      <label style="grid-column:1/-1;">Email (сюди прийде PDF-звіт)
-        <input type="email" id="brandEmail" placeholder="you@company.com" required>
-      </label>
-      <div class="form-error" id="heroFormError" hidden style="grid-column:1/-1;"></div>
       <input type="text" id="brandWebsite" name="website" class="honeypot" tabindex="-1" autocomplete="off">
 
       <div class="refine-block">
@@ -714,7 +707,7 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
 
       <button type="submit" class="btn-scan" id="scanBtn">Перевірити →</button>
     </form>
-    <div class="hero-helper">Ці дані потрібні лише для того, щоб надіслати вам PDF-звіт — після скану побачите все одразу на екрані</div>
+    <div class="hero-helper">Спершу побачите загальний бал безкоштовно, а весь детальний аналіз надішле Telegram-бот</div>
 
     <div class="hero-meta">Кілька реальних запитів · 4 AI-системи (ChatGPT, Claude, Gemini, Perplexity) · ~1 хвилина</div>
   </section>
@@ -834,71 +827,27 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
       </div>
     </div>
 
-    <div class="gap-headline" id="gapHeadline" hidden></div>
-    <div class="fact-callout" id="factCallout" hidden></div>
-    <div class="personal-insight" id="personalInsight" hidden></div>
-
     <div class="panel-head">
       <span id="panelBrandName">—</span>
     </div>
     <div class="mode-note" id="nicheInferredNote" hidden></div>
-    <div id="tracks" hidden></div>
-  </section>
-
-  <section class="instrument-panel" id="gapPanel" hidden>
-    <div class="panel-head"><span>Вас знають. Але чи радять?</span></div>
-    <p class="section-lede" style="margin-bottom:14px;">Впізнаваність — лише половина гри. Друга половина — чи називає AI саме вас, коли клієнт просить пораду, а не просто підтверджує, що чув про вас.</p>
-    <div class="gap-bars">
-      <div class="gap-bar-item know">
-        <div class="gap-bar-num" id="gapKnowNum">0</div>
-        <div class="gap-bar-track"><div class="gap-bar-fill" id="gapKnowFill"></div></div>
-        <div class="gap-bar-label">Вас знають</div>
-      </div>
-      <div class="gap-bar-item rec">
-        <div class="gap-bar-num" id="gapRecNum">0</div>
-        <div class="gap-bar-track"><div class="gap-bar-fill" id="gapRecFill"></div></div>
-        <div class="gap-bar-label">Вас радять</div>
-      </div>
-    </div>
-    <div class="gap-note" id="gapNote"></div>
-  </section>
-
-  <section class="axes" id="axes" hidden>
-    <div class="axis-card" id="widthAxisCard" hidden>
-      <div class="eyebrow-sm">Широта</div>
-      <h3>Радять у нішевих запитах</h3>
-      <div class="axis-bar"><div class="fill" id="fillWidth"></div></div>
-      <div class="axis-pct" id="pctWidth">0%</div>
-      <div class="axis-desc">Реальний відсоток: у скількох нішевих запитах AI назвав саме вас (не просто впізнав, а порадив).</div>
-    </div>
-    <div class="axis-card" id="depthAxisCard" hidden>
-      <div class="eyebrow-sm">Глибина</div>
-      <h3>Цитований контент на сайті</h3>
-      <div class="axis-bar"><div class="fill" id="fillDepth"></div></div>
-      <div class="axis-pct" id="pctDepth">0%</div>
-      <div class="axis-desc">Реальний аналіз сторінки: чи є на сайті конкретні цифри, статистика й цитати, які AI може процитувати.</div>
-    </div>
-    <div class="axis-card axis-card-bridge">
-      <div class="eyebrow-sm">Точка збору</div>
-      <h3>Єдина сутність бренду</h3>
-      <div class="axis-desc">Чи однаково описаний бренд на сайті, в каталогах і соцмережах — це вимагає ручного аудиту (обхід каталогів, соцмереж, довідників), автоматично таке коректно не порахувати. Саме це ми детально розбираємо на консультації.</div>
-    </div>
   </section>
 
   <section class="issues" id="issuesOld" hidden>
-    <div class="unlocked-badge" id="unlockedNote">✓ Повний аналіз нижче. PDF-звіт також надіслано вам на пошту.</div>
-    <div id="telegramBlock" hidden style="text-align:center; margin-top:14px;">
-      <a href="#" id="telegramLink" target="_blank" class="btn-scan" style="display:inline-block; text-decoration:none;">📩 Отримати той самий звіт у Telegram →</a>
+    <div class="secret-zone" id="telegramGate">
+      <div class="secret-zone-icon">🔒</div>
+      <h3>Детальний аналіз — у Telegram</h3>
+      <ul class="unlock-benefits">
+        <li>Детальна розбивка по кожній з 4 AI-систем — вердикт і дослівна цитата</li>
+        <li>Реальні конкуренти, яких AI називає замість вас у ваших нішевих запитах</li>
+        <li>Конкретні причини, які прямо зараз знижують сигнал</li>
+        <li>Покроковий план дій — 5 кроків, кожен можна почати сьогодні</li>
+      </ul>
+      <p class="secret-zone-desc">Натисніть кнопку нижче, відкриється Telegram-бот — там попросить номер телефону (одним натиском) і одразу надішле PDF з усім вище.</p>
+      <div id="telegramBlock">
+        <a href="#" id="telegramLink" target="_blank" class="btn-scan" style="display:inline-block; text-decoration:none;">📩 Отримати повний аналіз у Telegram →</a>
+      </div>
     </div>
-  </section>
-
-  <section class="issues" id="fullReportSection" hidden>
-    <h3>Зона невидимості — реальні гравці ринку по ваших запитах</h3>
-    <div id="zoneList"></div>
-
-    <h3 style="margin-top:28px;">Покроковий план дій</h3>
-    <div class="steps-sub">5 кроків, кожен можна почати сьогодні</div>
-    <div id="detailedSteps"></div>
   </section>
 
   <section class="issues" id="consultSection" hidden>
@@ -906,8 +855,11 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
       <div class="secret-zone-icon">📞</div>
       <h3>Хочете розібрати результати детальніше?</h3>
       <p class="secret-zone-desc">Особливо якщо йдеться про "Точку збору" — єдиний опис бренду скрізь, від сайту до каталогів. Це саме те, що ми детально розбираємо на консультації з командою Top Marketing.</p>
-      <div class="form-error" id="consultFormError" hidden></div>
-      <button type="button" id="consultBtn" class="btn-scan">Записатись на консультацію →</button>
+      <form id="consultForm" class="unlock-form" style="max-width:340px; margin:0 auto;">
+        <input type="tel" id="consultPhone" placeholder="Телефон" required style="grid-column:1/-1;">
+        <div class="form-error" id="consultFormError" hidden style="grid-column:1/-1;"></div>
+        <button type="submit" id="consultBtn" class="btn-scan">Записатись на консультацію →</button>
+      </form>
     </div>
     <div class="unlocked-badge" id="consultDoneNote" hidden>✓ Заявку прийнято. Ми зателефонуємо вам найближчим часом.</div>
   </section>
@@ -976,7 +928,7 @@ refineToggle.addEventListener('click', () => {
 
 document.getElementById('restartBtn').addEventListener('click', () => {
   document.body.classList.remove('scan-active');
-  ['panel','gapPanel','axes','issuesOld','fullReportSection','consultSection','ctaBlock','restartBlock','scanStatus'].forEach(id => {
+  ['panel','issuesOld','consultSection','ctaBlock','restartBlock','scanStatus'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.hidden = true;
   });
@@ -985,9 +937,8 @@ document.getElementById('restartBtn').addEventListener('click', () => {
   const consultBtnReset = document.getElementById('consultBtn');
   consultBtnReset.disabled = false;
   consultBtnReset.textContent = 'Записатись на консультацію →';
+  document.getElementById('consultPhone').value = '';
   document.getElementById('brandName').value = '';
-  document.getElementById('brandPhone').value = '';
-  document.getElementById('brandEmail').value = '';
   document.getElementById('brandWebsite').value = '';
   document.getElementById('brandCity').value = '';
   document.getElementById('brandNicheField').value = '';
@@ -998,7 +949,6 @@ document.getElementById('restartBtn').addEventListener('click', () => {
   window.scrollTo({top: 0, behavior: 'smooth'});
 });
 const panel = document.getElementById('panel');
-const axes = document.getElementById('axes');
 const issuesOldSection = document.getElementById('issuesOld');
 const consultSection = document.getElementById('consultSection');
 const ctaBlock = document.getElementById('ctaBlock');
@@ -1178,10 +1128,6 @@ form.addEventListener('submit', async function(e){
   if(honeypotVal) return;
 
   const name = document.getElementById('brandName').value.trim();
-  const phoneEl = document.getElementById('brandPhone');
-  const emailEl = document.getElementById('brandEmail');
-  const phone = phoneEl.value.trim();
-  const email = emailEl.value.trim();
   const nicheField = document.getElementById('brandNicheField').value.trim();
   const cityField = document.getElementById('brandCity').value.trim();
   const scaleField = document.getElementById('brandScale').value;
@@ -1189,25 +1135,6 @@ form.addEventListener('submit', async function(e){
   let niche = nicheParts.join(', ');
   if(niche && scaleField && scaleField !== 'в місті') niche += ` (${scaleField})`;
   if(!name) return;
-
-  const heroFormErrorEl = document.getElementById('heroFormError');
-  phoneEl.classList.remove('invalid');
-  emailEl.classList.remove('invalid');
-  const heroErrors = [];
-  if(!isValidPhone(phone)){
-    heroErrors.push('Перевірте номер телефону — введіть його повністю, з кодом країни.');
-    phoneEl.classList.add('invalid');
-  }
-  if(!isValidEmail(email)){
-    heroErrors.push('Перевірте email — здається, там помилка.');
-    emailEl.classList.add('invalid');
-  }
-  if(heroErrors.length){
-    heroFormErrorEl.textContent = heroErrors.join(' ');
-    heroFormErrorEl.hidden = false;
-    return;
-  }
-  heroFormErrorEl.hidden = true;
 
   // Очищаємо поля "Уточнити" одразу після зчитування — щоб стара ніша з
   // попереднього скану випадково не підставилась для наступного бренду.
@@ -1225,14 +1152,9 @@ form.addEventListener('submit', async function(e){
   let usedReal = false;
   let zoneOfInvisibility = [];
   let nicheWasInferred = false;
-  let depthScore = null;
 
   if(API_URL){
     try{
-      const depthPromise = fetch(API_URL.replace(/\/api\/scan$/, '/api/depth-score'), {
-        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({brand: name})
-      }).then(r => r.json()).catch(() => ({score: null}));
-
       const data = await runLiveScan(name, niche);
       usedReal = true;
       engines = data.engines.map(e => ({...e, pos: 15 + rand()*70}));
@@ -1241,9 +1163,6 @@ form.addEventListener('submit', async function(e){
         niche = data.effectiveNiche;
         nicheWasInferred = true;
       }
-
-      const depthResult = await depthPromise;
-      depthScore = (typeof depthResult.score === 'number') ? depthResult.score : null;
     } catch(err){
       console.warn('Бекенд недоступний, переходжу в демо-режим:', err);
     }
@@ -1345,11 +1264,6 @@ form.addEventListener('submit', async function(e){
   const zoneMentionsForScore = zoneOfInvisibility.filter(zq => Object.values(zq.engines || {}).some(v => v.mentionedBrand)).length;
   const recommendScoreForOverall = zoneTotalForScore ? Math.round((zoneMentionsForScore/zoneTotalForScore)*100) : null;
 
-  // "Широта"/"Глибина" на екрані — РЕАЛЬНІ значення в реальному режимі
-  // (не фейковий rand()), і тільки демо-числа в демо-режимі.
-  const widthDisplayScore = usedReal ? recommendScoreForOverall : widthScore;
-  if(!usedReal) depthScore = depthScoreDemo;
-
   const overall = usedReal
     ? (recommendScoreForOverall !== null ? Math.round(knowScore*0.5 + recommendScoreForOverall*0.5) : knowScore)
     : Math.round(collectScore*0.4 + widthScore*0.35 + depthScoreDemo*0.25);
@@ -1364,9 +1278,6 @@ form.addEventListener('submit', async function(e){
   setTimeout(async () => {
     document.getElementById('scanStatus').hidden = true;
     document.getElementById('issuesOld').hidden = true;
-    document.getElementById('unlockedNote').textContent = '';
-    document.getElementById('telegramBlock').hidden = true;
-    document.getElementById('fullReportSection').hidden = true;
     document.getElementById('consultSection').hidden = true;
     document.getElementById('consultCard').hidden = false;
     document.getElementById('consultDoneNote').hidden = true;
@@ -1400,83 +1311,14 @@ form.addEventListener('submit', async function(e){
     document.getElementById('reportBadge').textContent = `${badgeEmoji} ${badgeText}`;
     document.getElementById('reportTagline').textContent = tagline;
 
-    // ---- Розрив "знають vs радять" (реальні дані, не вигадані) ----
-    const zoneTotal = zoneOfInvisibility.length;
-    const zoneMentions = zoneOfInvisibility.filter(zq => Object.values(zq.engines||{}).some(v=>v.mentionedBrand)).length;
-    const recommendPercent = zoneTotal ? Math.round((zoneMentions/zoneTotal)*100) : null;
-
-    const gapHeadlineEl = document.getElementById('gapHeadline');
-    if(recommendPercent !== null){
-      gapHeadlineEl.innerHTML = `AI знає вас на <b>${knowScore}%</b>, але радить замість вас конкурентів у <b>${100-recommendPercent}%</b> клієнтських запитів.`;
-      gapHeadlineEl.hidden = false;
-    } else {
-      gapHeadlineEl.innerHTML = `💡 Вкажіть нішу і місто через "Уточнити" у формі вище — тоді тут з'явиться порівняння з конкурентами: чи радить вас AI, а не лише "знає".`;
-      gapHeadlineEl.hidden = false;
-    }
-
-    // ---- Цікавий факт — найдетальніша реальна цитата серед "ЗНАЄ" ----
-    const factCalloutEl = document.getElementById('factCallout');
-    const knowEngines = engines.filter(e => e.verdict === 'know' && e.snippet);
-    if(knowEngines.length){
-      const best = knowEngines.reduce((a,b) => (b.snippet.length > a.snippet.length ? b : a));
-      factCalloutEl.innerHTML = `<span class="fc-icon">🔍</span>AI реально знає про вас:<blockquote>"${best.snippet}"</blockquote><span class="fc-source">— знайшов ${best.label}</span>`;
-      factCalloutEl.hidden = false;
-    } else {
-      factCalloutEl.hidden = true;
-    }
-
-    // ---- Персоналізована підказка — куди дивитись першим, на основі
-    // реальних даних цього конкретного скану (без розкриття locked-даних) ----
-    const personalInsightEl = document.getElementById('personalInsight');
-    const notKnowLabels = engines.filter(e => e.verdict !== 'know' && !e.error).map(e => e.label);
-    let focusText;
-    if(notKnowLabels.length >= 2){
-      focusText = `Найбільше системи не мають чіткого уявлення про бренд — почніть із <b>кроку 1</b> (єдиний опис бренду скрізь однаково) і <b>кроку 4</b> (факти й джерела в контенті).`;
-    } else if(recommendPercent !== null && recommendPercent < overall - 15){
-      focusText = `Системи вас знають, але рідко радять у нішевих запитах — це різниця між "чути" і "рекомендувати". Почніть із <b>кроку 2</b> (потрапити в чужі списки/рейтинги) і <b>кроку 3</b> (живі обговорення).`;
-    } else if(notKnowLabels.length === 1){
-      focusText = `Майже всі системи знають бренд, окрім <b>${notKnowLabels[0]}</b> — це не привід панікувати, радше сигнал підсилити <b>крок 4</b> (більше перевірюваних фактів у контенті).`;
-    } else {
-      focusText = `Базовий сигнал непоганий — тепер варто закріпити перевагу через <b>крок 5</b> (свіжий контент під конкретні питання клієнтів).`;
-    }
-    const engineSummary = notKnowLabels.length
-      ? `${notKnowLabels.join(', ')} поки ${notKnowLabels.length===1?'не впевнен':'не впевнені'} у бренді.`
-      : `Усі перевірені системи впізнають бренд.`;
-    personalInsightEl.innerHTML = `<b>Ваш бал ${overall}/100.</b> ${engineSummary} ${focusText}`;
-    personalInsightEl.hidden = false;
-
-    // Розбивку по кожній системі, зону невидимості й план дій рендеримо
-    // нижче, у renderFullReport() — одразу після цього блоку, коли вже
-    // відомі emailSent тощо. Тут лише базові секції панелі результатів.
+    // Усе інше (розбивка по системах, розрив "знають/радять", цитати,
+    // персоналізована підказка, конкуренти, план дій) тепер НЕ показуємо
+    // на сторінці взагалі — це і є заблокована частина, яку бот надсилає
+    // в Telegram після того, як людина поділиться номером телефону.
 
     panel.hidden = false;
-    axes.hidden = false; // блок-місток "Точка збору" завжди має що показати, навіть без ніші/сайту
-    document.getElementById('widthAxisCard').hidden = (widthDisplayScore === null);
-    document.getElementById('depthAxisCard').hidden = (depthScore === null);
     ctaBlock.hidden = false;
     document.getElementById('restartBlock').hidden = false;
-
-    const gapPanelEl = document.getElementById('gapPanel');
-    if(recommendPercent !== null){
-      gapPanelEl.hidden = false;
-      document.getElementById('gapKnowNum').textContent = knowScore;
-      document.getElementById('gapRecNum').textContent = recommendPercent;
-      const gapVal = knowScore - recommendPercent;
-      const gapNoteEl = document.getElementById('gapNote');
-      if(gapVal >= 15){
-        gapNoteEl.textContent = `Розрив ${gapVal} балів — це клієнти, які чують про вас… і йдуть до інших.`;
-      } else if(gapVal <= 0){
-        gapNoteEl.textContent = `Вас радять так само часто, як і знають — сильний результат, тримайте темп.`;
-      } else {
-        gapNoteEl.textContent = `Невеликий розрив у ${gapVal} балів — є куди рости, але напрямок правильний.`;
-      }
-      setTimeout(() => {
-        document.getElementById('gapKnowFill').style.width = knowScore + '%';
-        document.getElementById('gapRecFill').style.width = recommendPercent + '%';
-      }, 200);
-    } else {
-      gapPanelEl.hidden = true;
-    }
 
     requestAnimationFrame(async () => {
       document.querySelectorAll('.track-bar .sweep').forEach(s => s.style.width = '100%');
@@ -1507,68 +1349,14 @@ form.addEventListener('submit', async function(e){
       else { tier = 'СТІЙКИЙ СИГНАЛ'; tierText = 'Бренд впізнається — залишається закріпити перевагу.'; }
       document.getElementById('scoreLabel').innerHTML = `<b>${tier}</b><br>${tierText}`;
 
-      setTimeout(() => {
-        if(widthDisplayScore !== null){
-          document.getElementById('fillWidth').style.width = widthDisplayScore + '%';
-          document.getElementById('pctWidth').textContent = widthDisplayScore + '%';
-        }
-        if(depthScore !== null){
-          document.getElementById('fillDepth').style.width = depthScore + '%';
-          document.getElementById('pctDepth').textContent = depthScore + '%';
-        }
-      }, 200);
-
       lastPickedIssues = pickedIssues;
       lastScanMeta = { brand: name, niche, score: overall };
       lastEngines = engines.map(e => ({ label: e.label, verdict: e.verdict || (e.hit ? 'know' : 'unknown'), hit: !!e.hit, score: e.score || 0, snippet: e.snippet || '', error: e.error || null }));
       lastZoneOfInvisibility = zoneOfInvisibility;
-
-      // Реальні дані по конкурентах і кроках тепер рендеримо одразу у
-      // видимому DOM (не блюримо, не ховаємо) — контакти вже зібрані на
-      // самому початку, тому ховати вміст більше нема сенсу.
       lastZoneCompetitors = zoneOfInvisibility.map(zq => zq.competitors || []);
-      renderFullReport(zoneOfInvisibility, name);
 
-      // Автоматична відправка ліда + PDF на пошту — одразу, без окремої
-      // кнопки, бо контакти вже отримані на самому старті форми вище.
-      let emailSent = false;
-      if(usedReal && API_URL){
-        try{
-          const leadUrl = API_URL.replace(/\/api\/scan$/, '/api/lead');
-          const leadRes = await fetch(leadUrl, {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({
-              name: '',
-              phone,
-              email,
-              brand: name,
-              niche,
-              score: overall,
-              engines: lastEngines,
-              zoneOfInvisibility: lastZoneOfInvisibility,
-              issues: lastPickedIssues,
-              website: honeypotVal
-            })
-          });
-          const leadData = await leadRes.json().catch(() => ({}));
-          emailSent = !!leadData.emailSent;
-          if(leadRes.ok){
-            try{
-              if(typeof fbq === 'function'){
-                fbq('track', 'Lead');
-              }
-            } catch(pixelErr){
-              console.warn('Meta Pixel: не вдалось відправити подію Lead:', pixelErr);
-            }
-          }
-        } catch(err){
-          console.warn('Не вдалось відправити лід на бекенд:', err);
-        }
-      }
-
-      // Готуємо посилання на Telegram-бот (окремо, не блокує основний
-      // потік — якщо бот ще не налаштований, кнопка просто не з'явиться).
+      // Готуємо посилання на Telegram-бот — сама доставка (і збір
+      // телефону) тепер відбувається ВСЕРЕДИНІ бота, а не на сайті.
       if(usedReal && API_URL){
         try{
           const saveRes = await fetch(API_URL.replace(/\/api\/scan$/, '/api/save-report'), {
@@ -1582,7 +1370,6 @@ form.addEventListener('submit', async function(e){
           const saveData = await saveRes.json().catch(() => ({}));
           if(saveData.telegramLink){
             document.getElementById('telegramLink').href = saveData.telegramLink;
-            document.getElementById('telegramBlock').hidden = false;
           }
         } catch(err){
           console.warn('Не вдалось підготувати посилання на Telegram:', err);
@@ -1590,10 +1377,6 @@ form.addEventListener('submit', async function(e){
       }
 
       document.getElementById('issuesOld').hidden = false;
-      document.getElementById('unlockedNote').textContent = emailSent
-        ? '✓ Повний аналіз нижче. PDF-звіт також надіслано вам на пошту.'
-        : '✓ Повний аналіз нижче. (Не вдалось автоматично надіслати PDF — але аналіз тут, на сторінці.)';
-      document.getElementById('fullReportSection').hidden = false;
       document.getElementById('consultSection').hidden = false;
 
       panel.scrollIntoView({behavior:'smooth', block:'start'});
@@ -1636,99 +1419,20 @@ function isValidPhone(phone){
   return true;
 }
 
-const DETAILED_STEPS_HTML = `
-  <div class="detail-step">
-    <b>1. Зберіть бренд в одну сутність</b>
-    <p>Напишіть один канонічний абзац: хто ви + що робите + для кого + де (місто/ринок/онлайн) + один перевірюваний факт (років на ринку, клієнтів, публікацій). Вставте цей абзац дослівно всюди, де ви є: сайт, LinkedIn, соцмережі, каталоги, профілі на майданчиках. Однакове написання назви — до літери.</p>
-  </div>
-  <div class="detail-step">
-    <b>2. Потрапте до чужих списків</b>
-    <p>Запитайте в ChatGPT і Perplexity: «найкращі [ваша ніша] у [місто/ринок]». Зафіксуйте, на які добірки й рейтинги вони посилаються. Випишіть 5-10 списків, де є конкуренти, а вас немає. Напишіть авторам майданчиків заявку на включення — багато нішевих добірок додають безкоштовно.</p>
-  </div>
-  <div class="detail-step">
-    <b>3. Зайдіть у живі обговорення</b>
-    <p>Знайдіть 2-3 живі майданчики, де реально обговорюють вашу нішу: форуми, галузеві спільноти, Q&A. Дайте там 2-3 розгорнуті корисні відповіді як експерт, без реклами в лоб. Запустіть збір змістовних відгуків від клієнтів — з деталями (послуга, специфіка), а не просто «все супер».</p>
-  </div>
-  <div class="detail-step">
-    <b>4. Підсильте контент цифрами</b>
-    <p>Візьміть головний експертний матеріал і підсильте трьома речами: конкретні цифри й статистика замість загальних слів, цитати з посиланням на ім'я, зазначення джерел даних.</p>
-  </div>
-  <div class="detail-step">
-    <b>5. Закрийте реальне питання клієнта</b>
-    <p>Візьміть реальне формулювання, яким клієнти шукають таких, як ви. Опублікуйте матеріал: заголовок = питання клієнта, перший абзац = пряма відповідь (2-4 речення). Ставте свіжу дату і оновлюйте ключові матеріали раз на квартал.</p>
-  </div>
-  <div class="detail-step bonus">
-    <b>Бонус: зареєструйтесь у Bing Webmaster Tools</b>
-    <p>15 хвилин, безкоштовно. Помітна частка цитат пошукового режиму ChatGPT збігається з органічною видачею Bing, а конкуренція там значно нижча.</p>
-  </div>`;
-
-function renderFullReport(zoneOfInvisibility, brandName){
-  // ---- Розбивка по кожній системі (вердикт + дослівна цитата) ----
-  const tracksEl = document.getElementById('tracks');
-  tracksEl.hidden = false;
-  tracksEl.innerHTML = '';
-  const captionMap = {
-    know: 'Знає і говорить по суті',
-    confused: 'Дає розмиту, невпевнену відповідь',
-    unknown: 'Не орієнтується — жодного натяку'
-  };
-  lastEngines.forEach(eng => {
-    const track = document.createElement('div');
-    track.className = 'track';
-    const vClass = eng.error ? 'err' : (eng.verdict === 'know' ? 'hit' : (eng.verdict === 'confused' ? 'mid' : 'miss'));
-    const vText = eng.error ? 'НЕДОСТУПНО' : (eng.verdict === 'know' ? 'ЗНАЄ' : (eng.verdict === 'confused' ? 'ПЛУТАЄ' : 'НЕ ЧУВ'));
-    const caption = eng.error ? '' : (captionMap[eng.verdict] || '');
-    const scoreNum = (typeof eng.score === 'number') ? `<span class="track-score">${eng.score}/100</span>` : '';
-    track.innerHTML = `
-      <div class="track-label">
-        <span>${eng.label}</span>
-        <span>${scoreNum}<span class="verdict ${vClass}">${vText}</span></span>
-      </div>
-      ${eng.snippet ? `<div class="track-snippet">"${eng.snippet}"</div>` : ''}
-      ${caption ? `<div class="track-caption">${caption}</div>` : ''}
-      ${eng.error ? `<div class="track-snippet">${eng.error}</div>` : ''}`;
-    tracksEl.appendChild(track);
-  });
-
-  // ---- Зона невидимості — реальні назви конкурентів, без блюру ----
-  const zoneListEl = document.getElementById('zoneList');
-  zoneListEl.innerHTML = '';
-  if(zoneOfInvisibility.length === 0){
-    zoneListEl.innerHTML = `<div class="track-snippet">Ніша не вказана і не вдалось визначити автоматично — тому конкурентів по нішевих запитах немає.</div>`;
-  } else {
-    zoneOfInvisibility.forEach((zq, idx) => {
-      const card = document.createElement('div');
-      card.className = 'zone-combined';
-      card.style.marginBottom = '10px';
-      const badges = Object.entries(zq.engines || {}).map(([key, val]) => {
-        const label = ENGINE_LABELS[key] || key;
-        if(val.error) return `<span class="zone-badge err"><i class="zdot"></i>${label}</span>`;
-        const cls = val.mentionedBrand ? 'hit' : 'miss';
-        return `<span class="zone-badge ${cls}"><i class="zdot"></i>${label}</span>`;
-      }).join('');
-      const competitors = zq.competitors || [];
-      const compHtml = competitors.length
-        ? `<div class="zone-competitors" style="margin-top:8px;">Замість вас називають: <b>${competitors.join(', ')}</b></div>`
-        : `<div class="zone-competitors" style="margin-top:8px;"><span class="none">Явних гравців пошук не знайшов — полиця відносно вільна.</span></div>`;
-      card.innerHTML = `<div class="zone-query-row" style="border-top:none;"><div class="zq-text">${idx+1}. «${zq.query}»</div><div class="zq-badges">${badges}</div></div>${compHtml}`;
-      zoneListEl.appendChild(card);
-    });
-  }
-
-  // ---- Повний покроковий план ----
-  document.getElementById('detailedSteps').innerHTML = DETAILED_STEPS_HTML;
-}
-
-document.getElementById('consultBtn').addEventListener('click', async function(){
+document.getElementById('consultForm').addEventListener('submit', async function(e){
+  e.preventDefault();
   const honeypotVal = document.getElementById('brandWebsite').value.trim();
   if(honeypotVal) return;
 
-  const phone = document.getElementById('brandPhone').value.trim();
+  const consultPhoneEl = document.getElementById('consultPhone');
+  const phone = consultPhoneEl.value.trim();
   const consultFormErrorEl = document.getElementById('consultFormError');
+  consultPhoneEl.classList.remove('invalid');
 
   if(!isValidPhone(phone)){
-    consultFormErrorEl.textContent = 'У полі телефону на початку сторінки, схоже, помилка — перевірте і скануйте ще раз.';
+    consultFormErrorEl.textContent = 'Перевірте номер телефону — введіть його повністю, з кодом країни.';
     consultFormErrorEl.hidden = false;
+    consultPhoneEl.classList.add('invalid');
     return;
   }
   consultFormErrorEl.hidden = true;
