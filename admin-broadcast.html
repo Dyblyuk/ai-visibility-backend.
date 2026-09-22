@@ -66,8 +66,17 @@
       </label>
       <div class="hint">Список джерел поповниться автоматично, коли з'являться нові лід-магніти/воронки.</div>
 
-      <label>Текст повідомлення
+      <label>Текст повідомлення (підпис до медіа, якщо додасте)
         <textarea id="message" placeholder="Текст, який побачать підписники..." required></textarea>
+      </label>
+
+      <label>Посилання на фото/відео (необов'язково)
+        <input type="url" id="mediaUrl" placeholder="https://...">
+      </label>
+      <div class="hint">Або завантажте файл нижче — якщо заповните обидва, пріоритет має файл.</div>
+
+      <label>Файл фото/відео (необов'язково, до 20 МБ)
+        <input type="file" id="mediaFile" accept="image/*,video/*">
       </label>
 
       <button type="submit" class="btn" id="sendBtn">Надіслати →</button>
@@ -84,12 +93,15 @@
     const secret = document.getElementById('secret').value;
     const source = document.getElementById('source').value;
     const message = document.getElementById('message').value.trim();
+    const mediaUrl = document.getElementById('mediaUrl').value.trim();
+    const mediaFile = document.getElementById('mediaFile').files[0];
     const resultEl = document.getElementById('result');
     const btn = document.getElementById('sendBtn');
 
     if(!message) return;
 
-    if(!confirm(`Надіслати це повідомлення ${source ? 'сегменту «' + source + '»' : 'УСІМ підписникам'}?\n\n"${message.slice(0,120)}${message.length>120?'…':''}"`)){
+    const mediaNote = mediaFile ? ` + файл «${mediaFile.name}»` : (mediaUrl ? ' + медіа за посиланням' : '');
+    if(!confirm(`Надіслати це повідомлення${mediaNote} ${source ? 'сегменту «' + source + '»' : 'УСІМ підписникам'}?\n\n"${message.slice(0,120)}${message.length>120?'…':''}"`)){
       return;
     }
 
@@ -99,17 +111,22 @@
     resultEl.hidden = true;
 
     try{
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ secret, message, source: source || undefined })
-      });
+      const formData = new FormData();
+      formData.append('secret', secret);
+      formData.append('message', message);
+      if(source) formData.append('source', source);
+      if(mediaFile) formData.append('file', mediaFile);
+      else if(mediaUrl) formData.append('mediaUrl', mediaUrl);
+
+      const res = await fetch(API_URL, { method: 'POST', body: formData });
       const data = await res.json();
 
       if(res.ok){
         resultEl.className = 'result ok';
         resultEl.textContent = `✓ Надіслано ${data.sent} з ${data.targeted}.` + (data.failed && data.failed.length ? ` Не вдалось: ${data.failed.length}.` : '');
         document.getElementById('message').value = '';
+        document.getElementById('mediaUrl').value = '';
+        document.getElementById('mediaFile').value = '';
       } else {
         resultEl.className = 'result err';
         resultEl.textContent = `Помилка: ${data.error || 'невідома помилка'}`;

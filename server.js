@@ -16,6 +16,12 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import PDFDocument from 'pdfkit';
+import multer from 'multer';
+
+// Файли розсилки тримаємо лише в пам'яті (не на диску) — вони одразу
+// йдуть у Telegram і більше не потрібні. 20 МБ — з запасом під фото й
+// короткі відео, залишаючись у безпечних межах пам'яті Render free tier.
+const uploadMedia = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 dotenv.config();
 
@@ -1430,6 +1436,34 @@ function telegramSendDocument(chatId, pdfBuffer, filename, caption) {
     .then(r => r.json()).catch(err => ({ ok: false, error: String(err) }));
 }
 
+// Фото/відео для розсилки — або посиланням (Telegram сам завантажує з
+// URL, найпростіший шлях), або файлом, який завантажили просто в форму
+// (тоді пересилаємо байти напряму в Telegram через multipart).
+function telegramSendPhoto(chatId, urlOrBuffer, filename, caption) {
+  if (!TELEGRAM_BOT_TOKEN) return Promise.resolve({ ok: false, error: 'TELEGRAM_BOT_TOKEN не налаштовано' });
+  if (typeof urlOrBuffer === 'string') {
+    return telegramSend('sendPhoto', { chat_id: chatId, photo: urlOrBuffer, caption });
+  }
+  const form = new FormData();
+  form.append('chat_id', String(chatId));
+  if (caption) form.append('caption', caption);
+  form.append('photo', new Blob([urlOrBuffer]), filename || 'photo.jpg');
+  return fetch(`${TELEGRAM_API}/sendPhoto`, { method: 'POST', body: form })
+    .then(r => r.json()).catch(err => ({ ok: false, error: String(err) }));
+}
+function telegramSendVideo(chatId, urlOrBuffer, filename, caption) {
+  if (!TELEGRAM_BOT_TOKEN) return Promise.resolve({ ok: false, error: 'TELEGRAM_BOT_TOKEN не налаштовано' });
+  if (typeof urlOrBuffer === 'string') {
+    return telegramSend('sendVideo', { chat_id: chatId, video: urlOrBuffer, caption });
+  }
+  const form = new FormData();
+  form.append('chat_id', String(chatId));
+  if (caption) form.append('caption', caption);
+  form.append('video', new Blob([urlOrBuffer]), filename || 'video.mp4');
+  return fetch(`${TELEGRAM_API}/sendVideo`, { method: 'POST', body: form })
+    .then(r => r.json()).catch(err => ({ ok: false, error: String(err) }));
+}
+
 function loadTelegramLeads() {
   try {
     return JSON.parse(fs.readFileSync(TELEGRAM_LEADS_FILE, 'utf8'));
@@ -1592,16 +1626,34 @@ app.get('/api/telegram-cron', async (req, res) => {
 // { "secret": "...", "message": "текст", "source": "ai-scanner" }
 // Поле "source" необов'язкове — якщо не вказати, піде всій базі підписників
 // незалежно від того, з якої воронки/лід-магніту вони прийшли.
-app.post('/api/telegram-broadcast', async (req, res) => {
+// multer розбирає multipart/form-data — інші поля (secret, message, source,
+// mediaUrl) опиняються у req.body так само, як при JSON, файл — у req.file.
+app.post('/api/telegram-broadcast', uploadMedia.single('file'), async (req, res) => {
   if (!TELEGRAM_ADMIN_SECRET) {
     return res.status(400).json({ error: 'TELEGRAM_ADMIN_SECRET не налаштовано на сервері — розсилка вимкнена' });
   }
-  const { secret, message, source } = req.body || {};
+  const { secret, message, source, mediaUrl } = req.body || {};
   if (secret !== TELEGRAM_ADMIN_SECRET) {
     return res.status(401).json({ error: 'Невірний пароль' });
   }
   if (!message || typeof message !== 'string' || !message.trim()) {
     return res.status(400).json({ error: 'Поле "message" обовʼязкове' });
+  }
+
+  // Визначаємо тип медіа з файлу (MIME) чи розширення URL — окремого
+  // селектора "фото/відео" в формі не треба, вгадуємо самі.
+  const VIDEO_EXT = /\.(mp4|mov|webm|mkv|avi)(\?|$)/i;
+  let mediaKind = null; // 'photo' | 'video' | null
+  let mediaSource = null; // Buffer або URL-рядок
+  let mediaFilename = null;
+
+  if (req.file) {
+    mediaKind = req.file.mimetype.startsWith('video/') ? 'video' : 'photo';
+    mediaSource = req.file.buffer;
+    mediaFilename = req.file.originalname;
+  } else if (mediaUrl && mediaUrl.trim()) {
+    mediaKind = VIDEO_EXT.test(mediaUrl.trim()) ? 'video' : 'photo';
+    mediaSource = mediaUrl.trim();
   }
 
   const leads = loadTelegramLeads();
@@ -1610,14 +1662,21 @@ app.post('/api/telegram-broadcast', async (req, res) => {
   let sent = 0;
   const failed = [];
   for (const lead of targets) {
-    const result = await telegramSend('sendMessage', { chat_id: lead.chatId, text: message });
+    let result;
+    if (mediaKind === 'photo') {
+      result = await telegramSendPhoto(lead.chatId, mediaSource, mediaFilename, message);
+    } else if (mediaKind === 'video') {
+      result = await telegramSendVideo(lead.chatId, mediaSource, mediaFilename, message);
+    } else {
+      result = await telegramSend('sendMessage', { chat_id: lead.chatId, text: message });
+    }
     if (result.ok) sent++;
     else failed.push({ chatId: lead.chatId, error: result.description || result.error });
     // Невелика пауза, щоб не впертись у ліміт Telegram (~30 повідомлень/сек)
     await new Promise(r => setTimeout(r, 50));
   }
 
-  res.json({ ok: true, targeted: targets.length, sent, failed });
+  res.json({ ok: true, targeted: targets.length, sent, failed, mediaKind });
 });
 
 // ---- Одноразово: зареєструвати вебхук у Telegram (відкрити раз у браузері) ----
