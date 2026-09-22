@@ -1480,7 +1480,7 @@ function saveTelegramLeads(list) {
 }
 
 // ---- ТЕКСТИ ПРОГРІВУ ----
-const TELEGRAM_INTRO_IMAGE_PATH = path.join(process.cwd(), 'assets', 'telegram', 'intro-post.png');
+const TELEGRAM_INTRO_IMAGE_PATH = path.join(process.cwd(), 'assets', 'telegram', 'intro-post.jpg');
 const TELEGRAM_INTRO_MESSAGE =
   `Привіт! 👋 Ми - Top Marketing, агенція performance-маркетингу.\n\n` +
   `Займаємось Google Ads, Meta Ads і SEO 🎯 Наш профіль клієнтів - медицина, нерухомість, e-commerce, B2B.\n\n` +
@@ -1674,7 +1674,7 @@ app.get('/api/telegram-cron', async (req, res) => {
     if (hoursSince >= 1 && !lead.sentIntro) {
       try {
         const introBuffer = fs.readFileSync(TELEGRAM_INTRO_IMAGE_PATH);
-        await telegramSendPhoto(lead.chatId, introBuffer, 'intro-post.png', TELEGRAM_INTRO_MESSAGE);
+        await telegramSendPhoto(lead.chatId, introBuffer, 'intro-post.jpg', TELEGRAM_INTRO_MESSAGE);
       } catch (e) {
         console.warn('Не вдалось надіслати вступний пост:', e);
       }
