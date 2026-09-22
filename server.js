@@ -1480,6 +1480,13 @@ function saveTelegramLeads(list) {
 }
 
 // ---- ТЕКСТИ ПРОГРІВУ ----
+const TELEGRAM_INTRO_IMAGE_PATH = path.join(process.cwd(), 'assets', 'telegram', 'intro-post.png');
+const TELEGRAM_INTRO_MESSAGE =
+  `Привіт! 👋 Ми - Top Marketing, агенція performance-маркетингу.\n\n` +
+  `Займаємось Google Ads, Meta Ads і SEO 🎯 Наш профіль клієнтів - медицина, нерухомість, e-commerce, B2B.\n\n` +
+  `7 років у маркетингу, 3 з них - під власним брендом Top Marketing 🚀\n\n` +
+  `У цьому боті ділитимемось кейсами, реальними інсайтами про те, що працює в рекламі та AI-пошуку 💡, і час від часу - пропозиціями, якщо захочете просуватись з нами.`;
+
 // ⚠️ ЗАГЛУШКИ. Тут навмисно НЕ вигадані кейси чи цифри — вставте реальний
 // матеріал клієнта перед тим, як вмикати прогрів по-справжньому.
 const TELEGRAM_DAY1_MESSAGE =
@@ -1579,7 +1586,7 @@ async function deliverTelegramReport(chatId, token, phone) {
       chatId, phone, source: 'ai-scanner', tags: ['ai-scanner'],
       brand: report.brand, niche: report.niche, score: report.score,
       startedAt: new Date().toISOString(),
-      sentDay1: false, sentDay3: false, sentDay5: false
+      sentIntro: false, sentDay1: false, sentDay3: false, sentDay5: false
     });
   }
   saveTelegramLeads(leads);
@@ -1662,15 +1669,23 @@ app.get('/api/telegram-cron', async (req, res) => {
   let sentCount = 0;
 
   for (const lead of leads) {
-    const daysSince = (now - new Date(lead.startedAt).getTime()) / (1000 * 60 * 60 * 24);
+    const hoursSince = (now - new Date(lead.startedAt).getTime()) / (1000 * 60 * 60);
 
-    if (daysSince >= 1 && !lead.sentDay1) {
+    if (hoursSince >= 1 && !lead.sentIntro) {
+      try {
+        const introBuffer = fs.readFileSync(TELEGRAM_INTRO_IMAGE_PATH);
+        await telegramSendPhoto(lead.chatId, introBuffer, 'intro-post.png', TELEGRAM_INTRO_MESSAGE);
+      } catch (e) {
+        console.warn('Не вдалось надіслати вступний пост:', e);
+      }
+      lead.sentIntro = true; sentCount++;
+    } else if (hoursSince >= 24 && !lead.sentDay1) {
       await telegramSend('sendMessage', { chat_id: lead.chatId, text: TELEGRAM_DAY1_MESSAGE });
       lead.sentDay1 = true; sentCount++;
-    } else if (daysSince >= 3 && !lead.sentDay3) {
+    } else if (hoursSince >= 72 && !lead.sentDay3) {
       await telegramSend('sendMessage', { chat_id: lead.chatId, text: TELEGRAM_DAY3_MESSAGE });
       lead.sentDay3 = true; sentCount++;
-    } else if (daysSince >= 5 && !lead.sentDay5) {
+    } else if (hoursSince >= 120 && !lead.sentDay5) {
       await telegramSend('sendMessage', { chat_id: lead.chatId, text: TELEGRAM_DAY5_MESSAGE });
       lead.sentDay5 = true; sentCount++;
     }
