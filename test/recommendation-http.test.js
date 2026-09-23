@@ -23,7 +23,7 @@ test('discovery -> stored report -> SendPulse summary/PDF preserves per-AI evide
  const base='http://127.0.0.1:'+server.address().port;
  const post=async(path,body)=>{const r=await fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});assert.equal(r.status,200);return r.json();};
  try {
-  const plan=await post('/api/discovery-queries',{brand:'Acme',website:'acme.ua',niche:'SEO, Київ'});
+  const plan=await post('/api/discovery-queries',{brand:'Acme',website:'127.0.0.1',niche:'SEO, Київ'});
   assert.equal(plan.querySource,'company_profile');assert.equal(plan.queries.length,3);
   const query=plan.queries[0];
   const zone=await post('/api/zone-query',{brand:'Acme',website:'acme.ua',query});

@@ -21,6 +21,7 @@ import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { drawRecommendations } from './recommendation-pdf.js';
 import {queryPlanPrompt,parseQueryPlan} from './query-planner.js';
+import {fetchSiteContext} from './website-context.js';
 import { createReportStore, validReportToken } from './report-store.js';
 import { targetIdentity, extractionPrompt, parseExtraction, validateAnswer, summarizeRecommendations, enrichReport, recommendationSummary, knowledgeScore } from './recommendation-analysis.js';
 
@@ -795,9 +796,12 @@ async function planCustomerQueries(brand,niche='',website='') {
   if(cached)return {...cached,cached:true};
   try {
     if(!ANTHROPIC_API_KEY)throw Error('Query planner unavailable');
+    const sourceWebsite=website || targetIdentity(brand,'').host;
+    let siteContext=null;
+    if(sourceWebsite)try {siteContext=await fetchSiteContext(sourceWebsite);} catch(error) {console.warn('Site context:',error.message);}
     const response=await fetchWithRetry('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC_API_KEY,'anthropic-version':'2023-06-01'},
-      body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:2200,messages:[{role:'user',content:queryPlanPrompt(brand,website,niche,DISCOVERY_QUERY_COUNT)}],tools:[{type:'web_search_20250305',name:'web_search'}]})
+      body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:2200,messages:[{role:'user',content:queryPlanPrompt(brand,website,niche,DISCOVERY_QUERY_COUNT,siteContext)}],tools:[{type:'web_search_20250305',name:'web_search'}]})
     });
     if(!response.ok)throw Error(`Query planner HTTP ${response.status}`);
     const data=await response.json();
@@ -805,6 +809,8 @@ async function planCustomerQueries(brand,niche='',website='') {
     const text=(data.content||[]).filter(item=>item.type==='text').map(item=>item.text).join(' ');
     const plan={...parseQueryPlan(text,brand,website,DISCOVERY_QUERY_COUNT),inferred:!niche};
     if(niche)plan.niche=niche;
+    plan.siteContextUsed=!!siteContext;
+    plan.sourceWebsite=siteContext?.url || null;
     queryPlanCache.set(key,plan);
     return plan;
   } catch(error) {
@@ -1871,6 +1877,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     analysisVersion: 3,
+    queryPlannerVersion: 2,
     reportStorage: { kind: reportStore.kind, durable: reportStore.durable },
     keys: {
       openai: Boolean(OPENAI_API_KEY),
