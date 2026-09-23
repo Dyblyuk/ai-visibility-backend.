@@ -709,9 +709,12 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
 
       <div class="refine-block">
         <button type="button" class="refine-toggle" id="refineToggle" aria-expanded="false">
-          <span class="refine-icon">＋</span> Уточнити місто і нішу — точніший результат
+          <span class="refine-icon">＋</span> Уточнити сайт, місто і нішу — точніший результат
         </button>
         <div class="refine-panel" id="refinePanel" hidden>
+          <label>Сайт бренду (необов’язково)
+            <input type="text" id="brandSite" placeholder="Напр. topmarketing.com.ua" maxlength="250">
+          </label>
           <label>Місто
             <input type="text" id="brandCity" placeholder="Напр. Київ">
           </label>
@@ -732,12 +735,12 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
     </form>
     <div class="hero-helper">Перевірка безкоштовна. Повний PDF-звіт отримаєте в Telegram після передачі контакту.</div>
 
-    <div class="hero-meta">Кілька реальних запитів · 4 AI-системи (ChatGPT, Claude, Gemini, Perplexity) · ~1 хвилина</div>
+    <div class="hero-meta">Кілька реальних запитів · 4 AI-системи (ChatGPT, Claude, Gemini, Perplexity) · кілька хвилин</div>
   </section>
 
   <section class="scan-status" id="scanStatus" hidden>
     <div class="scan-status-title" id="scanStatusTitle">Питаю AI…</div>
-    <div class="scan-status-sub">Це займає хвилину. Не закривайте сторінку — далі найцікавіше.</div>
+    <div class="scan-status-sub">Це займає кілька хвилин. Не закривайте сторінку — далі найцікавіше.</div>
     <div id="statusList"></div>
   </section>
 
@@ -787,7 +790,7 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
           <span class="v-no">✕ ChatGPT</span><span class="v-mid">～ Gemini</span><span class="v-yes">✓ Claude</span>
         </div>
         <h3>Вердикт кожного AI</h3>
-        <p>ChatGPT, Claude, Gemini, Perplexity: знає / плутає / не чув — з дослівною цитатою.</p>
+        <p>Окремо: чи впізнає бренд і чи рекомендує його або сайт за запитами клієнтів.</p>
       </div>
       <div class="preview-card">
         <div class="preview-visual"><span class="big" style="font-size:22px">"найкращий … у місті"</span></div>
@@ -830,9 +833,9 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
     <h2 id="gateTitle" tabindex="-1">Ваш звіт уже готовий</h2>
     <p class="gate-intro">Зібрали результати перевірки в один PDF. Отримайте його в Telegram — там зручно переглянути, зберегти й повернутися до рекомендацій.</p>
     <ul class="gate-contents">
-      <li><span>01</span> Оцінка AI-видимості вашого бренду</li>
-      <li><span>02</span> Відповіді ChatGPT, Claude, Gemini та Perplexity</li>
-      <li><span>03</span> Згадки бренду й конкурентів у перевірених запитах</li>
+      <li><span>01</span> Оцінка видимості та рекомендацій бренду й сайту</li>
+      <li><span>02</span> Окремі бали ChatGPT, Claude, Gemini та Perplexity</li>
+      <li><span>03</span> Кого рекомендує кожна AI та за якими запитами</li>
       <li><span>04</span> Рекомендації та наступні кроки для покращення видимості</li>
     </ul>
     <p class="gate-error" id="gateError" role="alert" hidden></p>
@@ -848,37 +851,7 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
 </div>
 
 <script>
-// ЩОБ УВІМКНУТИ РЕАЛЬНУ ПЕРЕВІРКУ: впишіть сюди URL задеплоєного бекенду
-// (див. /ai-visibility-backend/README.md). Поки що тут порожньо — тому
-// сканер працює в демо-режимі із симульованими даними.
 const API_URL = 'https://ai-visibility-backend-ybg2.onrender.com/api/scan';
-
-function hashCode(str){
-  let h = 0;
-  for(let i=0;i<str.length;i++){ h = Math.imul(31,h) + str.charCodeAt(i) | 0; }
-  return h;
-}
-function mulberry32(seed){
-  return function(){
-    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
-    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
-    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  }
-}
-
-const ENGINE_LABELS = { chatgpt: 'ChatGPT', gemini: 'Gemini', perplexity: 'Perplexity', claude: 'Claude' };
-
-const ISSUE_POOL = [
-  "Назва бренду написана по-різному на сайті, в LinkedIn і в каталогах",
-  "Немає жодної згадки у нішевих рейтингах чи добірках «найкращі X»",
-  "Останній великий експертний матеріал вийшов понад 3 роки тому",
-  "Відгуки клієнтів короткі й без деталей — AI нема що процитувати",
-  "Сайт не зареєстрований у Bing Webmaster Tools",
-  "На головній сторінці немає жодної перевірюваної цифри чи джерела",
-  "Бренд не бере участі в живих обговореннях на форумах і спільнотах ніші",
-  "Профілі на різних майданчиках ведуть на різні «головні» сторінки"
-];
 
 const form = document.getElementById('scanForm');
 const btn = document.getElementById('scanBtn');
@@ -891,7 +864,7 @@ refineToggle.addEventListener('click', () => {
   refineToggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
   refineToggle.innerHTML = isHidden
     ? '<span class="refine-icon">＋</span> Сховати уточнення'
-    : '<span class="refine-icon">＋</span> Уточнити місто і нішу — точніший результат';
+    : '<span class="refine-icon">＋</span> Уточнити сайт, місто і нішу — точніший результат';
 });
 
 const reportGate = document.getElementById('reportGate');
@@ -1015,10 +988,10 @@ async function fetchDiscoveryQueries(brand, niche){
   return data;
 }
 
-async function fetchZoneQuery(brand, query){
+async function fetchZoneQuery(brand, query, website){
   const res = await fetch(API_BASE + '/api/zone-query', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({brand, query})
+    body: JSON.stringify({brand, query, website})
   });
   if(!res.ok) throw new Error('HTTP ' + res.status);
   return res.json();
@@ -1027,7 +1000,7 @@ async function fetchZoneQuery(brand, query){
 // Реальний скан із живим прогресом: кожен крок — окремий мережевий
 // запит, статус на екрані оновлюється в момент, коли крок дійсно
 // стартував/завершився, а не за вигаданим таймером.
-async function runLiveScan(name, niche){
+async function runLiveScan(name, niche, website){
   document.getElementById('scanStatusTitle').textContent = `Питаю AI про «${name}»`;
   const nicheGiven = Boolean(niche);
 
@@ -1085,7 +1058,7 @@ async function runLiveScan(name, niche){
 
   const zonePromises = discoveryQueries.map(async (q) => {
     try{
-      return await fetchZoneQuery(name, q);
+      return await fetchZoneQuery(name, q, website);
     } catch(err){
       return { query: q, engines: {}, competitors: [], competitorsSource: 'error' };
     }
@@ -1125,6 +1098,7 @@ form.addEventListener('submit', async function(e){
   if(honeypotVal) return;
 
   const name = document.getElementById('brandName').value.trim();
+  const website = document.getElementById('brandSite').value.trim();
   const nicheField = document.getElementById('brandNicheField').value.trim();
   const cityField = document.getElementById('brandCity').value.trim();
   const scaleField = document.getElementById('brandScale').value;
@@ -1149,7 +1123,6 @@ form.addEventListener('submit', async function(e){
   reportPayload = null;
   scanFailed = false;
 
-  const rand = mulberry32(hashCode(name + '::' + niche));
 
   let engines;
   let usedReal = false;
@@ -1158,9 +1131,9 @@ form.addEventListener('submit', async function(e){
 
   if(API_URL){
     try{
-      const data = await runLiveScan(name, niche);
+      const data = await runLiveScan(name, niche, website);
       usedReal = true;
-      engines = data.engines.map(e => ({...e, pos: 15 + rand()*70}));
+      engines = data.engines;
       zoneOfInvisibility = data.zoneOfInvisibility || [];
       if(data.nicheWasInferred && data.effectiveNiche){
         niche = data.effectiveNiche;
@@ -1177,36 +1150,11 @@ form.addEventListener('submit', async function(e){
     return;
   }
 
-  const widthScore = Math.round(18 + rand()*72); // лише для демо-формули нижче
-  const depthScoreDemo = Math.round(18 + rand()*72); // лише для демо-формули нижче
-  const collectScore = Math.round(18 + rand()*72); // лише для демо-формули нижче
-  const verdictWeight = { know: 1, confused: 0.5, unknown: 0 };
-  const weightedSum = engines.reduce((sum, e) => sum + (verdictWeight[e.verdict] ?? (e.hit ? 1 : 0)), 0);
-  const knowScore = Math.round((weightedSum/engines.length)*100);
-
-  // "Знає" — набагато нижча планка, ніж "радить": AI може впізнати назву,
-  // але не називати вас, коли клієнт питає пораду своїми словами. Тому
-  // підсумковий бал враховує обидва сигнали разом (коли є дані по ніші),
-  // а не тільки факт впізнавання — інакше цифра виходить оманливо високою.
-  const zoneTotalForScore = zoneOfInvisibility.length;
-  const zoneMentionsForScore = zoneOfInvisibility.filter(zq => Object.values(zq.engines || {}).some(v => v.mentionedBrand)).length;
-  const recommendScoreForOverall = zoneTotalForScore ? Math.round((zoneMentionsForScore/zoneTotalForScore)*100) : null;
-
-  const overall = usedReal
-    ? (recommendScoreForOverall !== null ? Math.round(knowScore*0.5 + recommendScoreForOverall*0.5) : knowScore)
-    : Math.round(collectScore*0.4 + widthScore*0.35 + depthScoreDemo*0.25);
-
-  const shuffled = [...ISSUE_POOL];
-  for(let i=shuffled.length-1;i>0;i--){
-    const j = Math.floor(rand()*(i+1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  const pickedIssues = shuffled.slice(0,3);
-
+  // Scores and findings are computed on the server from observed answers.
   reportPayload = {
-    brand: name, niche, score: overall,
-    engines: engines.map(engine => ({ label: engine.label, verdict: engine.verdict || (engine.hit ? 'know' : 'unknown'), hit: !!engine.hit, score: engine.score || 0, snippet: engine.snippet || '', error: engine.error || null })),
-    zoneOfInvisibility, issues: pickedIssues
+    brand:name, niche, website,
+    engines:engines.map(engine=>({key:engine.key, label:engine.label, verdict:engine.verdict || (engine.hit?'know':'unknown'), hit:!!engine.hit, snippet:engine.snippet || '', error:engine.error || null})),
+    zoneOfInvisibility
   };
   await saveReportAndShowGate();
   btn.disabled = false;
