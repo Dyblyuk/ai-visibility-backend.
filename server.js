@@ -440,7 +440,7 @@ async function askChatGPT(query) {
       .flatMap(m => (m.content || []).filter(c => c.type === 'output_text').map(c => c.text))
       .join(' ');
   }
-  return { text: text || '' };
+  return { text: text || '', truncated:data.status === 'incomplete' };
 }
 
 async function askGemini(query) {
@@ -465,7 +465,7 @@ async function askGemini(query) {
   }
   const data = await res.json();
   const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join(' ') || '';
-  return { text };
+  return { text, truncated:data?.candidates?.[0]?.finishReason === 'MAX_TOKENS' };
 }
 
 async function askPerplexity(query) {
@@ -483,7 +483,7 @@ async function askPerplexity(query) {
   });
   if (!res.ok) return { error: `Perplexity HTTP ${res.status}` };
   const data = await res.json();
-  return { text: data?.choices?.[0]?.message?.content || '' };
+  return { text: data?.choices?.[0]?.message?.content || '', truncated:data?.choices?.[0]?.finish_reason === 'length' };
 }
 
 async function askClaude(query, { maxTokens = 500 } = {}) {
@@ -508,7 +508,7 @@ async function askClaude(query, { maxTokens = 500 } = {}) {
   }
   const data = await res.json();
   const text = (data?.content || []).filter(b => b.type === 'text').map(b => b.text).join(' ');
-  return { text };
+  return { text, truncated:['max_tokens','model_context_window_exceeded'].includes(data.stop_reason) };
 }
 
 // ---------- Основний ендпоінт ----------
@@ -677,8 +677,8 @@ async function runDiscoveryQuery(query, brand, website = '') {
     // No target brand or domain is injected into these customer questions.
     const response = await caller(query, {maxTokens:1600}).catch(error=>({error:String(error)}));
     const raw = { ...response, model:models[key], searchMode:key === 'claude' || (key === 'gemini' && !GEMINI_USE_SEARCH) ? 'model_knowledge' : 'web_search_enabled' };
-    if (raw.error || !raw.text?.trim()) {
-      engineResults[key] = { error:raw.error || 'Порожня відповідь', analysisStatus:'unavailable', model:models[key] };
+    if (raw.error || raw.truncated || !raw.text?.trim()) {
+      engineResults[key] = { error:raw.error || (raw.truncated ? 'AI повернула неповну відповідь' : 'Порожня відповідь'), analysisStatus:'unavailable', model:models[key] };
     } else if (raw.text.length > 18000) {
       engineResults[key] = {...raw, rawText:raw.text, analysisStatus:'unavailable', analysisError:'Відповідь завелика для надійної перевірки'};
     } else pending[key] = raw;
@@ -687,7 +687,7 @@ async function runDiscoveryQuery(query, brand, website = '') {
     let extracted = {};
     try {
       const response = await askClaude(extractionPrompt(query, target, Object.fromEntries(Object.entries(pending).map(([key,value])=>[key,value.text]))), {maxTokens:7000});
-      if (!response.error) extracted = parseExtraction(response.text);
+      if (!response.error && !response.truncated) extracted = parseExtraction(response.text);
     } catch (error) { console.warn('Recommendation extraction failed:', error.message); }
     for (const [key,raw] of Object.entries(pending)) {
       const result = { ...validateAnswer(raw, extracted[key], target), checkedAt:new Date().toISOString() };

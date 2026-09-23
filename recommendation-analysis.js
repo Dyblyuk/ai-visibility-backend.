@@ -1,6 +1,7 @@
 // Recommendations are measured from unbranded answers, never a separate market search.
 export const ENGINE_LABELS = { chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', perplexity: 'Perplexity' };
 const norm = value => String(value || '').normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim();
+const evidenceText = value => norm(value).replace(/[*_`]/g, '').replace(/\[\d+(?:[, -]+\d+)*\]/g, '').replace(/\s+/g, ' ').trim();
 const compact = value => norm(value).replace(/[^\p{L}\p{N}]/gu, '');
 export function siteHost(value) {
   const text = String(value || '').trim();
@@ -19,7 +20,7 @@ function containsName(text, name) {
 function containsHost(text, host) {
   if (!host) return false;
   const escaped = host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`(?<![a-z0-9.-])(?:www\\.)?${escaped}(?![a-z0-9.-])`, 'i').test(text);
+  return new RegExp(`(?<![a-z0-9.-])(?:www\\.)?${escaped}(?![a-z0-9-]|\\.[a-z0-9])`, 'i').test(text);
 }
 export function targetIdentity(brand, website) {
   const inputHost = siteHost(brand);
@@ -44,7 +45,7 @@ export function parseExtraction(text) {
 }
 
 export function validateAnswer(raw, extracted, target) {
-  if (raw.error || !raw.text?.trim()) return { ...raw, analysisStatus: 'unavailable', recommendedCompanies: [] };
+  if (raw.error || raw.truncated || !raw.text?.trim()) return { ...raw, analysisStatus: 'unavailable', recommendedCompanies: [] };
   const base = { rawText: raw.text, sources: raw.sources || [], model: raw.model || '', searchMode: raw.searchMode || 'unspecified' };
   const unknown = reason => ({ ...base, analysisStatus: 'unavailable', analysisError: reason, recommendedCompanies: [] });
   if (!extracted || extracted.complete !== true || !Array.isArray(extracted.companies) || extracted.companies.length > 12) return unknown('Не вдалося перевірити рекомендації');
@@ -52,7 +53,7 @@ export function validateAnswer(raw, extracted, target) {
   for (const item of extracted.companies) {
     if (typeof item.name !== 'string' || !item.name.trim() || typeof item.evidence !== 'string' || !item.evidence.trim() ||
       item.evidence.length > 1500 || !['recommended','mentioned','negative'].includes(item.stance) ||
-      !norm(raw.text).includes(norm(item.evidence)) || !containsName(item.evidence, item.name)) {
+      !evidenceText(raw.text).includes(evidenceText(item.evidence)) || !containsName(item.evidence, item.name)) {
       return unknown('Цитата або назва не підтверджена відповіддю');
     }
     const host = siteHost(item.website);

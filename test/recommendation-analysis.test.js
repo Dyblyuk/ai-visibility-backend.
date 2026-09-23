@@ -54,3 +54,14 @@ test('scores/findings are computed from evidence, not submitted or random findin
 test('recommendation extraction operates only on supplied answers',()=>{
  const prompt=extractionPrompt('Кого обрати?',target,{chatgpt:'Раджу Beta.'});assert.ok(prompt.includes('Не шукай нових компаній'));assert.ok(prompt.includes('Раджу Beta.'));
 });
+
+test('truncated answers cannot establish a complete recommendation score',()=>{
+ const r=validateAnswer({text:'Раджу Acme.',truncated:true},extract([item('Acme','Раджу Acme.')]),target);
+ assert.equal(r.analysisStatus,'unavailable');
+});
+
+test('rendered Markdown quotes and sentence punctuation around domains preserve evidence',()=>{
+ const text='**Acme** — рекомендую для ремонту.[1] Офіційний сайт: acme.ua.[2]';
+ const r=answer(text,[item('Acme','Acme — рекомендую для ремонту. Офіційний сайт: acme.ua.','recommended','https://acme.ua')]);
+ assert.equal(r.analysisStatus,'ok');assert.equal(r.brandRecommended,true);assert.equal(r.websiteRecommended,true);
+});
