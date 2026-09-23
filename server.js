@@ -1813,7 +1813,8 @@ app.post('/api/sendpulse-report', async (req, res) => {
     else if (score < 85) tier = 'Впізнають';
     else tier = 'Лідер сигналу';
 
-    pendingTelegramReports.delete(token);
+    // Keep the report available: SendPulse's API test and delivery may use
+    // the same token. Expired reports are still cleaned up by /api/save-report.
 
     if (LEAD_WEBHOOK_URL) {
       fetch(LEAD_WEBHOOK_URL, {
