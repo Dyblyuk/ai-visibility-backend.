@@ -667,17 +667,18 @@ async function findRealCompetitorsCached(query, brand) {
 
 async function runDiscoveryQuery(query, brand, website = '') {
   const target = targetIdentity(brand, website);
+  const requestPrompt=`${query}\nПорадь 3–5 конкретних компаній, постачальників або магазинів для цієї потреби. Коротко поясни вибір, вкажи офіційні сайти, якщо знаєш. Не замінюй добірку загальною інструкцією. Якщо не можеш порадити конкретні компанії, прямо скажи про це. Відповідай українською.`;
   const engineResults = {};
   const pending = {};
   const models = { chatgpt:OPENAI_MODEL, gemini:GEMINI_MODEL, perplexity:'sonar', claude:CLAUDE_MODEL };
-  const cacheKey = key => `recommendation-v2::${key}::${brand.trim().toLowerCase()}::${target.host || ''}::${query.trim()}`;
+  const cacheKey = key => `recommendation-v3::${key}::${brand.trim().toLowerCase()}::${target.host || ''}::${query.trim()}`;
   await Promise.all(DISCOVERY_ENGINES.map(async key => {
     const caller = ENGINE_CALLERS[key];
     if (!caller) return;
     const cached = engineCheckCache.get(cacheKey(key));
     if (cached) { engineResults[key] = { ...cached, cached:true }; return; }
     // No target brand or domain is injected into these customer questions.
-    const response = await caller(query, {maxTokens:1600}).catch(error=>({error:String(error)}));
+    const response = await caller(requestPrompt, {maxTokens:1600}).catch(error=>({error:String(error)}));
     const raw = { ...response, model:models[key], searchMode:key === 'claude' || (key === 'gemini' && !GEMINI_USE_SEARCH) ? 'model_knowledge' : 'web_search_enabled' };
     if (raw.error || raw.truncated || !raw.text?.trim()) {
       engineResults[key] = { error:raw.error || (raw.truncated ? 'AI повернула неповну відповідь' : 'Порожня відповідь'), analysisStatus:'unavailable', model:models[key] };
@@ -698,7 +699,7 @@ async function runDiscoveryQuery(query, brand, website = '') {
     }
   }
   const competitors = [...new Set(Object.values(engineResults).flatMap(result=>(result.recommendedCompanies || []).filter(item=>!item.isTarget).map(item=>item.name)))];
-  return { query, analysisVersion:2, engines:engineResults, competitors, competitorsSource:'observed_recommendations' };
+  return { query, requestPrompt, analysisVersion:2, engines:engineResults, competitors, competitorsSource:'observed_recommendations' };
 }
 
 app.post('/api/scan', async (req, res) => {
@@ -1878,6 +1879,7 @@ app.get('/api/health', (req, res) => {
     ok: true,
     analysisVersion: 3,
     queryPlannerVersion: 2,
+    recommendationPromptVersion: 2,
     reportStorage: { kind: reportStore.kind, durable: reportStore.durable },
     keys: {
       openai: Boolean(OPENAI_API_KEY),
