@@ -1526,10 +1526,21 @@ app.post('/api/save-report', (req, res) => {
     }
 
     const botUsername = process.env.TELEGRAM_BOT_USERNAME || '';
-    res.json({
-      token,
-      telegramLink: botUsername ? `https://t.me/${botUsername}?start=${token}` : null
-    });
+    const sendpulseFlowId = process.env.SENDPULSE_FLOW_ID || '';
+
+    // Якщо бот тепер під керуванням SendPulse (окремий вебхук на їхній
+    // стороні), звичайний t.me?start= посилання НЕ передає параметр як
+    // звичайну змінну — SendPulse читає його лише через свій проміжний
+    // домен tg.pulse.is у форматі ?start={flow_id}&{custom_var}=значення.
+    // Без SENDPULSE_FLOW_ID лишаємо старий прямий формат (наша власна
+    // логіка через /telegram-webhook).
+    const telegramLink = !botUsername
+      ? null
+      : sendpulseFlowId
+        ? `https://tg.pulse.is/${botUsername}?start=${sendpulseFlowId}&scan_token=${token}`
+        : `https://t.me/${botUsername}?start=${token}`;
+
+    res.json({ token, telegramLink });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Внутрішня помилка сервера' });
