@@ -650,7 +650,30 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
     .axes{grid-template-columns:1fr;}
     .score-block{flex-direction:column; align-items:flex-start;}
   }
+
+  /* Focused delivery screen. Existing landing sections keep their design. */
+  body.report-ready{background:#141414;}
+  body.report-ready .engines-nav, body.report-ready footer{display:none;}
+  body.report-ready .topbar{border-bottom:0;}
+  .report-gate{position:relative;overflow:hidden;background:#F0F0E6;color:#141414;margin:24px auto 0;padding:48px;max-width:780px;font-family:'Noto Sans',sans-serif;}
+  .report-gate::before{content:'';position:absolute;right:-24px;top:24px;width:150px;height:100px;background-image:radial-gradient(#141414 1px,transparent 1px);background-size:8px 8px;opacity:.1;transform:rotate(-12deg);pointer-events:none;}
+  .gate-eyebrow{display:flex;align-items:center;gap:10px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:26px;}
+  .gate-check{display:grid;place-items:center;width:30px;height:30px;background:#F5781E;color:#141414;font-size:20px;}
+  .report-gate h2{font-family:'Unbounded',sans-serif;font-weight:600;font-size:clamp(26px,4.3vw,40px);line-height:1.25;letter-spacing:-.04em;max-width:600px;margin:0 0 18px;}
+  .gate-intro{font-size:16px;line-height:1.65;max-width:580px;color:#41413c;margin-bottom:26px;}
+  .gate-contents{list-style:none;padding:0;margin:0 0 30px;border-top:1px solid #14141426;}
+  .gate-contents li{display:flex;align-items:baseline;gap:16px;padding:13px 0;border-bottom:1px solid #14141426;font-size:14px;line-height:1.55;}
+  .gate-contents span{color:#9d4300;font-size:11px;font-weight:700;flex:none;}
+  .gate-cta{display:flex;align-items:center;justify-content:center;gap:14px;width:100%;min-height:60px;padding:17px 20px;background:#F5781E;color:#141414;text-decoration:none;border:0;border-radius:0;font-family:'Noto Sans',sans-serif;font-size:15px;font-weight:700;text-align:center;cursor:pointer;transition:background .2s;}
+  .gate-cta:hover{background:#ff8e38;}
+  .gate-cta:focus-visible{outline:3px solid #141414;outline-offset:4px;}
+  .gate-cta[aria-disabled="true"]{opacity:.55;pointer-events:none;}
+  .gate-note{font-size:12px;line-height:1.65;color:#53534c;text-align:center;margin-top:14px;}
+  .gate-error{font-size:14px;line-height:1.6;color:#8d230a;margin:0 0 16px;}
+  @media(max-width:640px){.report-gate{padding:30px 22px;margin-top:10px;}.report-gate h2{font-size:27px;}.gate-intro{font-size:14px;}.gate-contents li{font-size:13px;gap:12px;}.gate-cta{font-size:14px;}.report-gate::before{width:70px;}.page{padding-left:16px;padding-right:16px;}}
+
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Unbounded:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 <div class="page">
@@ -672,7 +695,7 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
     <h1>Дізнайтесь, чи <span class="accent">AI</span> реально знає і радить ваш бізнес</h1>
     <p class="hero-sub">ChatGPT, Claude, Gemini і Perplexity вже радять ваших конкурентів. Перевірте свою видимість на кожній із цих платформ:</p>
     <ul class="hero-benefits">
-      <li>Реальний бал AI-видимості 0-100 — одразу на екрані</li>
+      <li>Оцінка AI-видимості 0–100 — у вашому PDF-звіті</li>
       <li>Дослівні цитати ChatGPT, Claude, Gemini і Perplexity — у Telegram</li>
       <li>Конкурентів, яких AI називає замість вас — у Telegram</li>
       <li>Покроковий план — що виправити вже сьогодні — у Telegram</li>
@@ -707,7 +730,7 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
 
       <button type="submit" class="btn-scan" id="scanBtn">Перевірити →</button>
     </form>
-    <div class="hero-helper">Спершу побачите загальний бал безкоштовно, а весь детальний аналіз надішле Telegram-бот</div>
+    <div class="hero-helper">Перевірка безкоштовна. Повний PDF-звіт отримаєте в Telegram після передачі контакту.</div>
 
     <div class="hero-meta">Кілька реальних запитів · 4 AI-системи (ChatGPT, Claude, Gemini, Perplexity) · ~1 хвилина</div>
   </section>
@@ -720,7 +743,7 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
 
   <section class="section marketing-section">
     <div class="section-eyebrow">Як це працює</div>
-    <h2>Три кроки, і все на екрані</h2>
+    <h2>Три кроки до вашого звіту</h2>
     <div class="how-grid">
       <div class="how-card">
         <div class="how-num">1</div>
@@ -789,7 +812,7 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
       </details>
       <details class="faq-item">
         <summary>Це безкоштовно? В чому підвох?</summary>
-        <p>Безкоштовно і без реєстрації. Підвіх простий і чесний: якщо звіт виявиться корисним — запропонуємо залишити телефон і пошту, щоб отримати повний PDF-звіт і консультацію Top Marketing. Можна цього не робити.</p>
+        <p>Перевірка безкоштовна. Щоб отримати повний PDF-звіт, перейдіть у наш Telegram-бот і поділіться номером телефону через кнопку. Email залишати не потрібно.</p>
       </details>
       <details class="faq-item">
         <summary>Та ну, хто шукає бізнес через AI?</summary>
@@ -802,76 +825,21 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
     </div>
   </section>
 
-  <section class="instrument-panel" id="panel" hidden>
-    <div class="report-header">
-      <div class="report-badge" id="reportBadge">📡 На радарах</div>
-      <div class="report-tagline" id="reportTagline">—</div>
-      <div class="report-date" id="reportDate"></div>
-    </div>
-
-    <div class="score-block">
-      <div class="score-dial">
-        <svg viewBox="0 0 120 120">
-          <circle class="bg" cx="60" cy="60" r="52"></circle>
-          <circle class="fg" id="scoreCircle" cx="60" cy="60" r="52"></circle>
-        </svg>
-        <div class="score-num" id="scoreNum">0</div>
-      </div>
-      <div>
-        <div class="score-label" id="scoreLabel">—</div>
-        <div class="score-text" id="scoreFootnote">попередня оцінка · зафіксовано зараз</div>
-        <details class="score-explain">
-          <summary>Як рахується бал?</summary>
-          <p>Два сигнали порівну: чи <b>«знає»</b> AI бренд напряму (знає=100%, плутає=50%, не чув=0%, середнє по системах), і чи <b>радить</b> вас AI у нішевих запитах клієнтів (без вказаної ніші рахується тільки перше). Знати про бренд і радити його - різні речі, тому бал враховує обидва. Це прозора евристика власної розробки, а не офіційна оцінка від OpenAI, Google, Anthropic чи Perplexity.</p>
-        </details>
-      </div>
-    </div>
-
-    <div class="panel-head">
-      <span id="panelBrandName">—</span>
-    </div>
-    <div class="mode-note" id="nicheInferredNote" hidden></div>
+  <section class="report-gate" id="reportGate" aria-labelledby="gateTitle" hidden>
+    <div class="gate-eyebrow"><span class="gate-check" aria-hidden="true">✓</span> TOP MARKETING / AI-ВИДИМІСТЬ</div>
+    <h2 id="gateTitle" tabindex="-1">Ваш звіт уже готовий</h2>
+    <p class="gate-intro">Зібрали результати перевірки в один PDF. Отримайте його в Telegram — там зручно переглянути, зберегти й повернутися до рекомендацій.</p>
+    <ul class="gate-contents">
+      <li><span>01</span> Оцінка AI-видимості вашого бренду</li>
+      <li><span>02</span> Відповіді ChatGPT, Claude, Gemini та Perplexity</li>
+      <li><span>03</span> Згадки бренду й конкурентів у перевірених запитах</li>
+      <li><span>04</span> Рекомендації та наступні кроки для покращення видимості</li>
+    </ul>
+    <p class="gate-error" id="gateError" role="alert" hidden></p>
+    <a id="telegramLink" class="gate-cta" target="_blank" rel="noopener" aria-disabled="true">Отримати звіт у Telegram <span aria-hidden="true">↗</span></a>
+    <button id="gateRetry" class="gate-cta" type="button" hidden>Спробувати ще раз</button>
+    <p class="gate-note">У боті натисніть «Старт» і поділіться номером телефону.<br>Після цього отримаєте свій PDF-звіт.</p>
   </section>
-
-  <section class="issues" id="issuesOld" hidden>
-    <div class="secret-zone" id="telegramGate">
-      <div class="secret-zone-icon">🔒</div>
-      <h3>Детальний аналіз — у Telegram</h3>
-      <ul class="unlock-benefits">
-        <li>Детальна розбивка по кожній з 4 AI-систем — вердикт і дослівна цитата</li>
-        <li>Реальні конкуренти, яких AI називає замість вас у ваших нішевих запитах</li>
-        <li>Конкретні причини, які прямо зараз знижують сигнал</li>
-        <li>Покроковий план дій — 5 кроків, кожен можна почати сьогодні</li>
-      </ul>
-      <p class="secret-zone-desc">Натисніть кнопку нижче, відкриється Telegram-бот — там попросить номер телефону (одним натиском) і одразу надішле PDF з усім вище.</p>
-      <div id="telegramBlock">
-        <a href="#" id="telegramLink" target="_blank" class="btn-scan" style="display:inline-block; text-decoration:none;">📩 Отримати повний аналіз у Telegram →</a>
-      </div>
-    </div>
-  </section>
-
-  <section class="issues" id="consultSection" hidden>
-    <div class="secret-zone" id="consultCard">
-      <div class="secret-zone-icon">📞</div>
-      <h3>Хочете розібрати результати детальніше?</h3>
-      <p class="secret-zone-desc">Особливо якщо йдеться про "Точку збору" — єдиний опис бренду скрізь, від сайту до каталогів. Це саме те, що ми детально розбираємо на консультації з командою Top Marketing.</p>
-      <form id="consultForm" class="unlock-form" style="max-width:340px; margin:0 auto;">
-        <input type="tel" id="consultPhone" placeholder="Телефон" required style="grid-column:1/-1;">
-        <div class="form-error" id="consultFormError" hidden style="grid-column:1/-1;"></div>
-        <button type="submit" id="consultBtn" class="btn-scan">Записатись на консультацію →</button>
-      </form>
-    </div>
-    <div class="unlocked-badge" id="consultDoneNote" hidden>✓ Заявку прийнято. Ми зателефонуємо вам найближчим часом.</div>
-  </section>
-
-  <section class="cta" id="ctaBlock" hidden>
-    <h2>Це попередній аналіз — із чіткими рекомендаціями</h2>
-    <p>Кроки вище можна застосувати самостійно вже сьогодні — усе прозоро й покроково. А якщо хочете системного результату без витрат часу на це самим — Top Marketing може взяти SEO та GEO-просування в AI-системах на себе.</p>
-  </section>
-
-  <div class="restart-block" id="restartBlock" hidden>
-    <button type="button" class="btn-restart" id="restartBtn">← Повернутися і зробити новий скан</button>
-  </div>
 
   <footer>
     © Top Marketing · Прилад AI-Видимість
@@ -926,39 +894,68 @@ refineToggle.addEventListener('click', () => {
     : '<span class="refine-icon">＋</span> Уточнити місто і нішу — точніший результат';
 });
 
-document.getElementById('restartBtn').addEventListener('click', () => {
-  document.body.classList.remove('scan-active');
-  ['panel','issuesOld','consultSection','ctaBlock','restartBlock','scanStatus'].forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.hidden = true;
-  });
-  document.getElementById('consultCard').hidden = false;
-  document.getElementById('consultDoneNote').hidden = true;
-  const consultBtnReset = document.getElementById('consultBtn');
-  consultBtnReset.disabled = false;
-  consultBtnReset.textContent = 'Записатись на консультацію →';
-  document.getElementById('consultPhone').value = '';
-  document.getElementById('brandName').value = '';
-  document.getElementById('brandWebsite').value = '';
-  document.getElementById('brandCity').value = '';
-  document.getElementById('brandNicheField').value = '';
-  document.getElementById('brandScale').value = 'в місті';
-  refinePanel.hidden = true;
-  refineToggle.setAttribute('aria-expanded', 'false');
-  refineToggle.innerHTML = '<span class="refine-icon">＋</span> Уточнити місто і нішу — точніший результат';
-  window.scrollTo({top: 0, behavior: 'smooth'});
-});
-const panel = document.getElementById('panel');
-const issuesOldSection = document.getElementById('issuesOld');
-const consultSection = document.getElementById('consultSection');
-const ctaBlock = document.getElementById('ctaBlock');
+const reportGate = document.getElementById('reportGate');
+const telegramLink = document.getElementById('telegramLink');
+const gateError = document.getElementById('gateError');
+const gateRetry = document.getElementById('gateRetry');
+let reportPayload = null;
+let scanFailed = false;
+let gateSaving = false;
 
-// Дані поточного скану, потрібні для форми розблокування (лід-гейт).
-let lastZoneCompetitors = []; // масив масивів назв конкурентів, по одному на запит зони невидимості
-let lastPickedIssues = [];
-let lastScanMeta = { brand:'', niche:'', score:null };
-let lastEngines = []; // повний знімок відповідей систем — для PDF-звіту
-let lastZoneOfInvisibility = []; // повний знімок зони невидимості — для PDF-звіту
+function showGateError(message, retryScan = false) {
+  scanFailed = retryScan;
+  document.getElementById('scanStatus').hidden = true;
+  document.body.classList.add('report-ready');
+  reportGate.hidden = false;
+  document.getElementById('gateTitle').textContent = retryScan ? 'Не вдалося завершити перевірку' : 'Не вдалося зберегти звіт';
+  gateError.textContent = message;
+  gateError.hidden = false;
+  telegramLink.removeAttribute('href');
+  telegramLink.hidden = true;
+  gateRetry.hidden = false;
+  reportGate.querySelector('.gate-intro').hidden = true;
+  reportGate.querySelector('.gate-contents').hidden = true;
+  reportGate.querySelector('.gate-note').hidden = true;
+}
+
+async function saveReportAndShowGate() {
+  if (gateSaving || !reportPayload) return;
+  gateSaving = true;
+  gateRetry.disabled = true;
+  gateError.hidden = true;
+  telegramLink.removeAttribute('href');
+  telegramLink.setAttribute('aria-disabled', 'true');
+  try {
+    const res = await fetch(API_BASE + '/api/save-report', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reportPayload)
+    });
+    const data = await res.json();
+    if (!res.ok || !data.telegramLink) throw new Error('Report link unavailable');
+    const url = new URL(data.telegramLink);
+    if (url.protocol !== 'https:' || !['tg.pulse.is','t.me'].includes(url.hostname)) throw new Error('Invalid bot link');
+    telegramLink.href = url.href;
+    telegramLink.removeAttribute('aria-disabled');
+    telegramLink.hidden = false;
+    gateRetry.hidden = true;
+    document.getElementById('gateTitle').textContent = 'Ваш звіт уже готовий';
+    reportGate.querySelector('.gate-intro').hidden = false;
+    reportGate.querySelector('.gate-contents').hidden = false;
+    reportGate.querySelector('.gate-note').hidden = false;
+    document.getElementById('scanStatus').hidden = true;
+    document.body.classList.add('report-ready');
+    reportGate.hidden = false;
+    document.getElementById('gateTitle').focus({preventScroll:true});
+    window.scrollTo({top:0,behavior:'smooth'});
+  } catch (error) {
+    showGateError('Результати перевірки залишилися на цій сторінці. Натисніть кнопку нижче — спробуємо зберегти їх ще раз без повторного сканування.');
+  } finally { gateSaving = false; gateRetry.disabled = false; }
+}
+
+gateRetry.addEventListener('click', () => {
+  if (scanFailed) form.requestSubmit();
+  else saveReportAndShowGate();
+});
 
 // API_URL завжди закінчується на /api/scan — інші гранулярні ендпоінти
 // живуть поруч, на тому самому бекенді.
@@ -1072,7 +1069,7 @@ async function runLiveScan(name, niche){
       const verdict = result.verdict || (result.hit ? 'know' : 'unknown');
       const stateMap = { know: 'done-hit', confused: 'done-mid', unknown: 'done-miss' };
       const labelMap = { know: 'знає', confused: 'плутає', unknown: 'не чув' };
-      setRowDone(id, stateMap[verdict] || 'done-miss', labelMap[verdict] || '');
+      setRowDone(id, 'done-hit', 'перевірено');
       return { ...e, verdict, hit: verdict === 'know', snippet: result.snippet, score: result.score ?? 0 };
     } catch(err){
       setRowDone(id, 'done-err', 'недоступно');
@@ -1108,7 +1105,7 @@ async function runLiveScan(name, niche){
   } else {
     zoneRowLabel = `згадують у ${zoneMentionsCount} з ${zoneOfInvisibility.length}`;
   }
-  setRowDone('st-zone', zoneMentionsCount > 0 ? 'done-hit' : 'done-miss', zoneRowLabel);
+  setRowDone('st-zone', 'done-hit', 'перевірено');
 
   setRowActive('st-score');
   await new Promise(r => setTimeout(r, 300));
@@ -1145,6 +1142,12 @@ form.addEventListener('submit', async function(e){
   btn.disabled = true;
   btn.textContent = 'Сканування...';
   document.body.classList.add('scan-active');
+  document.body.classList.remove('report-ready');
+  reportGate.hidden = true;
+  telegramLink.removeAttribute('href');
+  telegramLink.setAttribute('aria-disabled', 'true');
+  reportPayload = null;
+  scanFailed = false;
 
   const rand = mulberry32(hashCode(name + '::' + niche));
 
@@ -1164,89 +1167,14 @@ form.addEventListener('submit', async function(e){
         nicheWasInferred = true;
       }
     } catch(err){
-      console.warn('Бекенд недоступний, переходжу в демо-режим:', err);
+      console.warn('Перевірка недоступна:', err);
     }
   }
 
-  if(!usedReal){
-    const engineDefs = [
-      {key:'chatgpt', label:'ChatGPT', threshold:0.55, dotId:'dotG'},
-      {key:'gemini', label:'Gemini', threshold:0.60, dotId:'dotM'},
-      {key:'perplexity', label:'Perplexity', threshold:0.45, dotId:'dotP'},
-      {key:'claude', label:'Claude', threshold:0.50, dotId:'dotC'}
-    ];
-    engines = engineDefs.map(e => {
-      const r = rand();
-      const verdict = r > e.threshold ? 'know' : (r > e.threshold - 0.22 ? 'confused' : 'unknown');
-      const demoScoreBase = { know: 55, confused: 20, unknown: 0 };
-      const score = verdict === 'unknown' ? 0 : Math.min(100, demoScoreBase[verdict] + Math.round(rand()*40));
-      return {...e, verdict, hit: verdict === 'know', snippet:'', score, pos: 15 + rand()*70};
-    });
-
-    if(!niche){
-      niche = 'демо-ніша для ' + name;
-      nicheWasInferred = true;
-    }
-    const nicheLabel = niche;
-    const demoQueries = [
-      `Порадь кілька найкращих варіантів: ${nicheLabel}`,
-      `Де знайти або замовити ${nicheLabel}? Порадь 3-5 варіантів`,
-      `Хто топові гравці у сфері «${nicheLabel}»?`
-    ];
-    const FAKE_COMPETITORS = ['Конкурент А', 'Студія Б', 'Агенція В', 'Компанія Г', 'Бренд Д', 'Сервіс Е'];
-    zoneOfInvisibility = demoQueries.map(q => {
-      const engineResults = {};
-      engineDefs.forEach(e => {
-        engineResults[e.key] = { mentionedBrand: rand() > 0.65 };
-      });
-      const competitors = [...FAKE_COMPETITORS].sort(() => rand() - 0.5).slice(0, 2 + Math.floor(rand()*3));
-      return { query: q, engines: engineResults, competitors, competitorsSource: 'demo' };
-    });
-
-    // Демо-режим: та сама жива панель статусу, але кроки завершуються
-    // за таймером, а не реальними мережевими відповідями.
-    const stateMap = { know: 'done-hit', confused: 'done-mid', unknown: 'done-miss' };
-    const labelMap = { know: 'знає', confused: 'плутає', unknown: 'не чув' };
-    document.getElementById('scanStatusTitle').textContent = `Питаю AI про «${name}»`;
-    const engineNarrative = {
-      chatgpt: `Питаю ChatGPT, що він знає про «${name}»…`,
-      claude: `Claude згадує, чи чув про «${name}»…`,
-      gemini: `Gemini перевіряє свої знання про «${name}»…`,
-      perplexity: `Perplexity шукає «${name}» в інтернеті…`
-    };
-    const statusRows = [
-      { id: 'st-recognize', label: `Розпізнаю «${name}»: бізнес, ніша, місто…` },
-      { id: 'st-chatgpt', label: engineNarrative.chatgpt },
-      { id: 'st-claude', label: engineNarrative.claude },
-      { id: 'st-gemini', label: engineNarrative.gemini },
-      { id: 'st-perplexity', label: engineNarrative.perplexity },
-      { id: 'st-zone', label: `Генерую запити, якими вас шукають клієнти…` },
-      { id: 'st-score', label: `Рахую AI-Visibility Score…` },
-      { id: 'st-assemble', label: `Збираю все в один звіт…` }
-    ];
-    renderStatusRows(statusRows);
-    const scanStatusElDemo = document.getElementById('scanStatus');
-    scanStatusElDemo.hidden = false;
-    scanStatusElDemo.scrollIntoView({behavior:'smooth', block:'start'});
-
-    const zoneMentionsCount = zoneOfInvisibility.filter(zq => Object.values(zq.engines).some(v=>v.mentionedBrand)).length;
-
-    await new Promise(resolve => {
-      let i = 0;
-      const allRows = [
-        {id:'st-recognize', state:'done-hit', label:''},
-        ...engineDefs.map((e,idx) => ({id:'st-'+e.key, state: stateMap[engines[idx].verdict], label: labelMap[engines[idx].verdict]})),
-        {id:'st-zone', state: zoneMentionsCount > 0 ? 'done-hit' : 'done-miss', label: `згадують у ${zoneMentionsCount} з ${zoneOfInvisibility.length}`},
-        {id:'st-score', state:'done-hit', label:''},
-        {id:'st-assemble', state:'done-hit', label:''}
-      ];
-      const timer = setInterval(() => {
-        if(i > 0) setRowDone(allRows[i-1].id, allRows[i-1].state, allRows[i-1].label);
-        if(i >= allRows.length){ clearInterval(timer); resolve(); return; }
-        setRowActive(allRows[i].id);
-        i++;
-      }, 320);
-    });
+  if (!usedReal || engines.every(engine => engine.error)) {
+    showGateError('AI-системи тимчасово недоступні. Спробуйте повторити перевірку трохи пізніше.', true);
+    btn.disabled = false;
+    return;
   }
 
   const widthScore = Math.round(18 + rand()*72); // лише для демо-формули нижче
@@ -1275,203 +1203,16 @@ form.addEventListener('submit', async function(e){
   }
   const pickedIssues = shuffled.slice(0,3);
 
-  setTimeout(async () => {
-    document.getElementById('scanStatus').hidden = true;
-    document.getElementById('issuesOld').hidden = true;
-    document.getElementById('consultSection').hidden = true;
-    document.getElementById('consultCard').hidden = false;
-    document.getElementById('consultDoneNote').hidden = true;
-
-    document.getElementById('panelBrandName').textContent = name.toUpperCase() + (niche ? ' · ' + niche.toUpperCase() : '');
-
-    const nicheInferredNoteEl = document.getElementById('nicheInferredNote');
-    if(niche && nicheWasInferred){
-      nicheInferredNoteEl.textContent = `🔍 Нішу й місто ви не вказали — AI сам визначив через пошук: «${niche}». Якщо неточно, вкажіть нішу вручну через "Уточнити" і скануйте ще раз.`;
-      nicheInferredNoteEl.hidden = false;
-    } else if(niche){
-      nicheInferredNoteEl.textContent = `Ніша/місто для цього скану: «${niche}»`;
-      nicheInferredNoteEl.hidden = false;
-    } else {
-      nicheInferredNoteEl.hidden = true;
-    }
-    document.getElementById('scoreFootnote').textContent = usedReal
-      ? 'реальний запит · зафіксовано зараз'
-      : 'демо-оцінка · зафіксовано зараз';
-
-    // ---- Дата перевірки ----
-    const today = new Date();
-    document.getElementById('reportDate').textContent = 'Перевірено ' + today.toLocaleDateString('uk-UA', {day:'numeric', month:'long', year:'numeric'});
-
-    // ---- Бейдж-рівень за балом ----
-    let badgeEmoji, badgeText, tagline;
-    if(overall < 30){ badgeEmoji='🔴'; badgeText='Поза радаром'; tagline='AI майже не бачить бренд — конкуренти займають ваше місце.'; }
-    else if(overall < 60){ badgeEmoji='📡'; badgeText='На радарах'; tagline='Вас видно, але конкуренти дихають у спину.'; }
-    else if(overall < 85){ badgeEmoji='✅'; badgeText='Впізнають'; tagline='Бренд впізнають — є що підсилити для впевненого лідерства.'; }
-    else { badgeEmoji='🏆'; badgeText='Лідер сигналу'; tagline='AI впевнено знає і називає саме вас.'; }
-    document.getElementById('reportBadge').textContent = `${badgeEmoji} ${badgeText}`;
-    document.getElementById('reportTagline').textContent = tagline;
-
-    // Усе інше (розбивка по системах, розрив "знають/радять", цитати,
-    // персоналізована підказка, конкуренти, план дій) тепер НЕ показуємо
-    // на сторінці взагалі — це і є заблокована частина, яку бот надсилає
-    // в Telegram після того, як людина поділиться номером телефону.
-
-    panel.hidden = false;
-    ctaBlock.hidden = false;
-    document.getElementById('restartBlock').hidden = false;
-
-    requestAnimationFrame(async () => {
-      document.querySelectorAll('.track-bar .sweep').forEach(s => s.style.width = '100%');
-      document.querySelectorAll('.track-bar .blip').forEach((b,i) => {
-        setTimeout(() => b.classList.add('show'), 500 + i*250);
-      });
-      engines.forEach(eng => {
-        const dot = document.getElementById(eng.dotId);
-        if(dot) setTimeout(() => { if(eng.verdict === 'know') dot.classList.add('on'); }, 500);
-      });
-
-      const circle = document.getElementById('scoreCircle');
-      const circumference = 326.7;
-      const offset = circumference - (overall/100)*circumference;
-      setTimeout(() => { circle.style.strokeDashoffset = offset; }, 300);
-
-      let current = 0;
-      const numEl = document.getElementById('scoreNum');
-      const timer = setInterval(() => {
-        current += Math.max(1, Math.round(overall/30));
-        if(current >= overall){ current = overall; clearInterval(timer); }
-        numEl.textContent = current;
-      }, 30);
-
-      let tier, tierText;
-      if(overall < 40){ tier = 'СЛАБКИЙ СИГНАЛ'; tierText = 'AI майже не бачить бренд — у більшості відповідей на його місці конкуренти.'; }
-      else if(overall < 70){ tier = 'ЧАСТКОВИЙ СИГНАЛ'; tierText = 'AI бачить бренд фрагментарно — сигнал є, але непослідовний.'; }
-      else { tier = 'СТІЙКИЙ СИГНАЛ'; tierText = 'Бренд впізнається — залишається закріпити перевагу.'; }
-      document.getElementById('scoreLabel').innerHTML = `<b>${tier}</b><br>${tierText}`;
-
-      lastPickedIssues = pickedIssues;
-      lastScanMeta = { brand: name, niche, score: overall };
-      lastEngines = engines.map(e => ({ label: e.label, verdict: e.verdict || (e.hit ? 'know' : 'unknown'), hit: !!e.hit, score: e.score || 0, snippet: e.snippet || '', error: e.error || null }));
-      lastZoneOfInvisibility = zoneOfInvisibility;
-      lastZoneCompetitors = zoneOfInvisibility.map(zq => zq.competitors || []);
-
-      // Готуємо посилання на Telegram-бот — сама доставка (і збір
-      // телефону) тепер відбувається ВСЕРЕДИНІ бота, а не на сайті.
-      if(usedReal && API_URL){
-        try{
-          const saveRes = await fetch(API_URL.replace(/\/api\/scan$/, '/api/save-report'), {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({
-              brand: name, niche, score: overall,
-              engines: lastEngines, zoneOfInvisibility: lastZoneOfInvisibility, issues: lastPickedIssues
-            })
-          });
-          const saveData = await saveRes.json().catch(() => ({}));
-          if(saveData.telegramLink){
-            document.getElementById('telegramLink').href = saveData.telegramLink;
-          }
-        } catch(err){
-          console.warn('Не вдалось підготувати посилання на Telegram:', err);
-        }
-      }
-
-      document.getElementById('issuesOld').hidden = false;
-      document.getElementById('consultSection').hidden = false;
-
-      panel.scrollIntoView({behavior:'smooth', block:'start'});
-    });
-
-    btn.disabled = false;
-    btn.textContent = 'Запустити скан ще раз →';
-  }, usedReal ? 200 : 1400);
+  reportPayload = {
+    brand: name, niche, score: overall,
+    engines: engines.map(engine => ({ label: engine.label, verdict: engine.verdict || (engine.hit ? 'know' : 'unknown'), hit: !!engine.hit, score: engine.score || 0, snippet: engine.snippet || '', error: engine.error || null })),
+    zoneOfInvisibility, issues: pickedIssues
+  };
+  await saveReportAndShowGate();
+  btn.disabled = false;
+  btn.textContent = 'Перевірити →';
 });
 
-const DISPOSABLE_EMAIL_DOMAINS = new Set([
-  'mailinator.com', 'guerrillamail.com', 'guerrillamail.info', '10minutemail.com',
-  'tempmail.com', 'temp-mail.org', 'yopmail.com', 'throwawaymail.com',
-  'trashmail.com', 'fakeinbox.com', 'getnada.com', 'sharklasers.com',
-  'dispostable.com', 'mintemail.com', 'mohmal.com', 'moakt.com',
-  'emailondeck.com', 'maildrop.cc', 'tempinbox.com', 'spamgourmet.com',
-  'burnermail.io', 'inboxbear.com', 'mailnesia.com', 'mailcatch.com',
-  'discard.email', 'discardmail.com', 'tempr.email', 'fakemail.net',
-  'test.com', 'example.com', 'example.org', 'example.net', 'test.ua', 'test.ru'
-]);
-
-function isValidEmail(email){
-  const trimmed = (email || '').trim();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)) return false;
-  const [localPart, domainRaw] = trimmed.split('@');
-  const domain = domainRaw.toLowerCase();
-  if(DISPOSABLE_EMAIL_DOMAINS.has(domain)) return false;
-  const domainName = domain.split('.')[0];
-  if(localPart.toLowerCase() === domainName && /^(test|asdf|aaa|abc|qwerty|admin|user|noone|nobody|fake|spam|xxx)$/i.test(localPart)) return false;
-  if(/^(.)\1{2,}$/.test(localPart)) return false;
-  return true;
-}
-function isValidPhone(phone){
-  const digits = (phone || '').replace(/\D/g, '');
-  if(digits.length < 10 || digits.length > 15) return false;
-  if(/^(\d)\1+$/.test(digits)) return false;
-  const ascending = '0123456789012345';
-  const descending = '9876543210987654';
-  if(ascending.includes(digits) || descending.includes(digits)) return false;
-  return true;
-}
-
-document.getElementById('consultForm').addEventListener('submit', async function(e){
-  e.preventDefault();
-  const honeypotVal = document.getElementById('brandWebsite').value.trim();
-  if(honeypotVal) return;
-
-  const consultPhoneEl = document.getElementById('consultPhone');
-  const phone = consultPhoneEl.value.trim();
-  const consultFormErrorEl = document.getElementById('consultFormError');
-  consultPhoneEl.classList.remove('invalid');
-
-  if(!isValidPhone(phone)){
-    consultFormErrorEl.textContent = 'Перевірте номер телефону — введіть його повністю, з кодом країни.';
-    consultFormErrorEl.hidden = false;
-    consultPhoneEl.classList.add('invalid');
-    return;
-  }
-  consultFormErrorEl.hidden = true;
-
-  const consultBtn = document.getElementById('consultBtn');
-  consultBtn.disabled = true;
-  consultBtn.textContent = 'Записую...';
-
-  if(API_URL){
-    try{
-      const consultUrl = API_URL.replace(/\/api\/scan$/, '/api/consult-request');
-      const consultRes = await fetch(consultUrl, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          phone,
-          brand: lastScanMeta.brand,
-          niche: lastScanMeta.niche,
-          score: lastScanMeta.score,
-          website: honeypotVal
-        })
-      });
-      if(consultRes.ok){
-        try{
-          if(typeof fbq === 'function'){
-            fbq('track', 'Lead');
-          }
-        } catch(pixelErr){
-          console.warn('Meta Pixel: не вдалось відправити подію Lead (консультація):', pixelErr);
-        }
-      }
-    } catch(err){
-      console.warn('Не вдалось відправити запит на консультацію:', err);
-    }
-  }
-
-  document.getElementById('consultCard').hidden = true;
-  document.getElementById('consultDoneNote').hidden = false;
-});
 </script>
 </body>
 </html>

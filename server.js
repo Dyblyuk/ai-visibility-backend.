@@ -17,6 +17,8 @@ import fs from 'fs';
 import path from 'path';
 import PDFDocument from 'pdfkit';
 import multer from 'multer';
+import { randomBytes } from 'node:crypto';
+import { createReportStore, validReportToken } from './report-store.js';
 
 // Файли розсилки тримаємо лише в пам'яті (не на диску) — вони одразу
 // йдуть у Telegram і більше не потрібні. 20 МБ — з запасом під фото й
@@ -25,16 +27,30 @@ const uploadMedia = multer({ storage: multer.memoryStorage(), limits: { fileSize
 
 dotenv.config();
 
+const reportStore = await createReportStore(process.env.REPORT_DATABASE_URL);
+if (!reportStore.durable) console.warn('Reports use temporary memory: configure REPORT_DATABASE_URL for persistence');
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Каталог для тимчасово-публічних PDF-звітів — щоб зовнішні сервіси
-// (напр. SendPulse) могли забрати щойно згенерований файл за посиланням
-// одразу після виклику API, а не отримувати сирі байти напряму.
-const REPORTS_DIR = path.join(process.cwd(), 'public-reports');
-if (!fs.existsSync(REPORTS_DIR)) fs.mkdirSync(REPORTS_DIR, { recursive: true });
-app.use('/reports', express.static(REPORTS_DIR));
+// A stable URL is backed by the database, not Render's ephemeral filesystem.
+app.get('/reports/:filename', async (req, res) => {
+  const token = req.params.filename.replace(/\.pdf$/, '');
+  if (!req.params.filename.endsWith('.pdf') || !validReportToken(token)) return res.sendStatus(404);
+  try {
+    const pdf = await reportStore.getPdf(token);
+    if (!pdf) return res.sendStatus(404);
+    const report = await reportStore.get(token);
+    const brand = String(report?.brand || 'Report').replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄґҐ._-]/gu, '-').slice(0,80);
+    res.set('Cache-Control', 'private, no-store');
+    res.set('Content-Disposition', `attachment; filename="Top-Marketing-AI-Visibility.pdf"; filename*=UTF-8''${encodeURIComponent('Top-Marketing-AI-Visibility-' + brand + '.pdf')}`);
+    res.type('pdf').send(pdf);
+  } catch (error) {
+    console.error('Report download failed:', error.message);
+    res.status(503).json({ ok: false, error: 'Звіт тимчасово недоступний. Спробуйте ще раз.' });
+  }
+});
 
 app.get('/', (req, res) => {
   res.json({
@@ -1422,7 +1438,7 @@ const TELEGRAM_LEADS_FILE = path.join(process.cwd(), 'telegram-leads.json');
 // людина натисне посилання в Telegram (зазвичай секунди-хвилини після
 // скану). Якщо сервер перезапуститься саме в цю паузу — рідкісний
 // крайній випадок, людина просто скане ще раз.
-const pendingTelegramReports = new Map(); // token -> report data
+// Report data and PDFs live in reportStore (PostgreSQL when configured).
 
 function telegramSend(method, payload) {
   if (!TELEGRAM_BOT_TOKEN) return Promise.resolve({ ok: false, error: 'TELEGRAM_BOT_TOKEN не налаштовано' });
@@ -1512,18 +1528,13 @@ const TELEGRAM_DAY5_MESSAGE =
   `Просто відповідьте на це повідомлення "так" — і ми зв'яжемось для запису.`;
 
 // ---- Крок 1: зберегти готовий результат скану, отримати токен ----
-app.post('/api/save-report', (req, res) => {
+app.post('/api/save-report', async (req, res) => {
   try {
     const { brand, niche, score, engines, zoneOfInvisibility, issues } = req.body || {};
     if (!brand) return res.status(400).json({ error: 'Поле "brand" обовʼязкове' });
 
-    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
-    pendingTelegramReports.set(token, { brand, niche, score, engines, zoneOfInvisibility, issues, ts: Date.now() });
-
-    // Прибираємо застарілі токени (старші за годину), щоб мапа не росла безмежно
-    for (const [k, v] of pendingTelegramReports) {
-      if (Date.now() - v.ts > 60 * 60 * 1000) pendingTelegramReports.delete(k);
-    }
+    const token = randomBytes(24).toString('hex');
+    await reportStore.set(token, { brand, niche, score, engines, zoneOfInvisibility, issues, ts: Date.now() });
 
     const botUsername = process.env.TELEGRAM_BOT_USERNAME || '';
     const sendpulseFlowId = process.env.SENDPULSE_FLOW_ID || '';
@@ -1558,7 +1569,7 @@ function isPhoneLikeText(text) {
 }
 
 async function deliverTelegramReport(chatId, token, phone) {
-  const report = pendingTelegramReports.get(token);
+  const report = await reportStore.get(token);
   if (!report) {
     await telegramSend('sendMessage', {
       chat_id: chatId,
@@ -1588,7 +1599,7 @@ async function deliverTelegramReport(chatId, token, phone) {
     console.error('Помилка генерації PDF для Telegram:', pdfErr);
   }
 
-  pendingTelegramReports.delete(token);
+  // Keep the report available for subsequent delivery attempts.
   awaitingPhone.delete(chatId);
 
   // Реєструємо в чергу прогріву + загальну базу підписників. source
@@ -1630,7 +1641,7 @@ app.post('/telegram-webhook', async (req, res) => {
 
     if (text.startsWith('/start')) {
       const token = text.split(' ')[1];
-      const report = token ? pendingTelegramReports.get(token) : null;
+      const report = token ? await reportStore.get(token) : null;
 
       if (!report) {
         await telegramSend('sendMessage', {
@@ -1785,14 +1796,15 @@ app.post('/api/telegram-broadcast', uploadMedia.single('file'), async (req, res)
 app.post('/api/sendpulse-report', async (req, res) => {
   try {
     const { token, phone, chatId } = req.body || {};
-    if (!token) return res.status(400).json({ ok: false, error: 'Поле "token" обовʼязкове' });
+    if (!validReportToken(token)) return res.status(400).json({ ok: false, error: 'Коректний код звіту обов’язковий' });
 
-    const report = pendingTelegramReports.get(token);
+    const report = await reportStore.get(token);
     if (!report) {
       return res.status(404).json({ ok: false, error: 'Звіт застарів або не знайдений — зробіть новий скан на сайті' });
     }
 
-    const pdfBuffer = await buildReportPdf({
+    let pdfBuffer = await reportStore.getPdf(token);
+    if (!pdfBuffer) pdfBuffer = await buildReportPdf({
       brand: report.brand,
       niche: report.niche,
       score: report.score,
@@ -1802,7 +1814,7 @@ app.post('/api/sendpulse-report', async (req, res) => {
     });
 
     const filename = `${token}.pdf`;
-    fs.writeFileSync(path.join(REPORTS_DIR, filename), pdfBuffer);
+    await reportStore.savePdf(token, pdfBuffer);
     const baseUrl = process.env.RENDER_EXTERNAL_URL || `https://${req.get('host')}`;
     const pdfUrl = `${baseUrl}/reports/${filename}`;
 
@@ -1813,20 +1825,31 @@ app.post('/api/sendpulse-report', async (req, res) => {
     else if (score < 85) tier = 'Впізнають';
     else tier = 'Лідер сигналу';
 
-    // Keep the report available: SendPulse's API test and delivery may use
-    // the same token. Expired reports are still cleaned up by /api/save-report.
+    // Generated PDFs and reports remain available for later requests.
 
-    if (LEAD_WEBHOOK_URL) {
+    if (LEAD_WEBHOOK_URL && phone && await reportStore.claimLeadNotification(token)) {
       fetch(LEAD_WEBHOOK_URL, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: '', phone: phone || '', email: '', brand: report.brand, niche: report.niche || '',
           score: report.score ?? null, status: 'Telegram-бот (SendPulse)', ts: new Date().toISOString()
         })
-      }).catch(e => console.warn('Помилка відправки Telegram-ліда (SendPulse) на LEAD_WEBHOOK_URL:', e));
+      }).then(response => { if (!response.ok) throw new Error('Lead webhook failed'); }).catch(async e => {
+        await reportStore.releaseLeadNotification(token).catch(() => {});
+        console.warn('SendPulse lead webhook failed:', e.message);
+      });
     }
 
-    res.json({ ok: true, score: report.score, brand: report.brand, tier, pdfUrl });
+    const interpretation = score < 30
+      ? 'У цій перевірці AI-видимість бренду низька. Почніть із відповідей окремих систем і перевірте, чи правильно вони описують ваш бізнес.'
+      : score < 60
+        ? 'Бренд уже має видимість у частині перевірених відповідей. У звіті подивіться, де AI впізнає вас, а де плутає або не згадує.'
+        : score < 85
+          ? 'У цій перевірці бренд має помітну AI-видимість. Зверніть увагу на різницю між впізнаванням назви та рекомендаціями за запитами клієнтів.'
+          : 'У цій перевірці бренд отримав високий бал AI-видимості. Перегляньте відповіді кожної системи, щоб зрозуміти, де позиції найсильніші.';
+    const reportSummary = `Ваш звіт для «${report.brand}» готовий.\n\nAI-видимість: ${score}/100\nРівень: ${tier}\n\n${interpretation}\n\nЦе знімок відповідей AI на дату перевірки. Бал не є офіційним рейтингом AI-платформ або прогнозом продажів.`;
+    const reportGuide = 'З чого почати\n\n1. Перегляньте, що кожна AI-система говорить про ваш бренд.\n2. Порівняйте впізнавання назви з рекомендаціями за нішевими запитами.\n3. Подивіться, яких конкурентів називає AI, і виберіть перші дії з рекомендацій у PDF.\n\nХочете визначити пріоритети для свого бізнесу? Напишіть «Розібрати звіт» — обговоримо результат і наступні кроки.';
+    res.json({ ok: true, score: report.score, brand: report.brand, tier, pdfUrl, reportSummary, reportGuide });
   } catch (err) {
     console.error('Помилка /api/sendpulse-report:', err);
     res.status(500).json({ ok: false, error: 'Внутрішня помилка сервера' });
@@ -1845,6 +1868,7 @@ app.get('/api/telegram-setup', async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
+    reportStorage: { kind: reportStore.kind, durable: reportStore.durable },
     keys: {
       openai: Boolean(OPENAI_API_KEY),
       gemini: Boolean(GEMINI_API_KEY),

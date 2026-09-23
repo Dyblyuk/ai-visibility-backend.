@@ -3,3 +3,6 @@ node_modules/
 .DS_Store
 *.log
 leads.jsonl
+
+public-reports/
+telegram-leads.json
