@@ -17,6 +17,8 @@ import fs from 'fs';
 import path from 'path';
 import PDFDocument from 'pdfkit';
 import multer from 'multer';
+import { randomBytes } from 'node:crypto';
+import { createSendPulseReportHandler, REPORT_TTL_MS } from './sendpulse-report.js';
 
 // Файли розсилки тримаємо лише в пам'яті (не на диску) — вони одразу
 // йдуть у Telegram і більше не потрібні. 20 МБ — з запасом під фото й
@@ -28,6 +30,19 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// SendPulse owns the bot in this mode. Never let the old setup endpoint
+// replace its webhook, or run the old broadcast/email delivery in parallel.
+const legacyDeliveryRoutes = new Set([
+  '/telegram-webhook', '/api/telegram-setup', '/api/telegram-cron',
+  '/api/telegram-broadcast', '/api/lead', '/api/debug-email'
+]);
+app.use((req, res, next) => {
+  if (process.env.SENDPULSE_FLOW_ID && legacyDeliveryRoutes.has(req.path.replace(/\/+$/, '').toLowerCase())) {
+    return res.status(410).json({ ok: false, error: 'Доставкою звітів керує SendPulse' });
+  }
+  next();
+});
 
 // Каталог для тимчасово-публічних PDF-звітів — щоб зовнішні сервіси
 // (напр. SendPulse) могли забрати щойно згенерований файл за посиланням
@@ -1517,12 +1532,12 @@ app.post('/api/save-report', (req, res) => {
     const { brand, niche, score, engines, zoneOfInvisibility, issues } = req.body || {};
     if (!brand) return res.status(400).json({ error: 'Поле "brand" обовʼязкове' });
 
-    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const token = randomBytes(24).toString('hex');
     pendingTelegramReports.set(token, { brand, niche, score, engines, zoneOfInvisibility, issues, ts: Date.now() });
 
     // Прибираємо застарілі токени (старші за годину), щоб мапа не росла безмежно
     for (const [k, v] of pendingTelegramReports) {
-      if (Date.now() - v.ts > 60 * 60 * 1000) pendingTelegramReports.delete(k);
+      if (Date.now() - v.ts >= REPORT_TTL_MS) pendingTelegramReports.delete(k);
     }
 
     const botUsername = process.env.TELEGRAM_BOT_USERNAME || '';
@@ -1771,66 +1786,38 @@ app.post('/api/telegram-broadcast', uploadMedia.single('file'), async (req, res)
   res.json({ ok: true, targeted: targets.length, sent, failed, mediaKind });
 });
 
-// ==================== SENDPULSE-ІНТЕГРАЦІЯ (для одного бота) ====================
-// Коли Telegram-бот повністю під керуванням SendPulse (їхній вебхук, їхній
-// конструктор), унікальну частину — реальний скан і персональний PDF —
-// SendPulse викликає САМЕ ТУТ через свій блок "API Request" у потоці.
-//
-// Приклад запиту з боку SendPulse (POST, JSON):
-// { "token": "{{start-параметр з deep-link}}", "phone": "{{номер з Request Contact}}", "chatId": "{{chat id}}" }
-//
-// Відповідь:
-// { "ok": true, "score": 62, "brand": "...", "tier": "На радарах", "pdfUrl": "https://.../reports/xxx.pdf" }
-// Підставте ці поля як змінні у наступні кроки потоку (текст балу + "Send file by URL").
-app.post('/api/sendpulse-report', async (req, res) => {
-  try {
-    const { token, phone, chatId } = req.body || {};
-    if (!token) return res.status(400).json({ ok: false, error: 'Поле "token" обовʼязкове' });
-
-    const report = pendingTelegramReports.get(token);
-    if (!report) {
-      return res.status(404).json({ ok: false, error: 'Звіт застарів або не знайдений — зробіть новий скан на сайті' });
-    }
-
+// ==================== SENDPULSE-ІНТЕГРАЦІЯ ====================
+// Invoke only after Share Contact. See SENDPULSE-SETUP.md for the request.
+app.post('/api/sendpulse-report', createSendPulseReportHandler({
+  reports: pendingTelegramReports,
+  secret: process.env.SENDPULSE_API_SECRET || '',
+  generate: async (report, token, req) => {
     const pdfBuffer = await buildReportPdf({
-      brand: report.brand,
-      niche: report.niche,
-      score: report.score,
+      brand: report.brand, niche: report.niche, score: report.score,
       engines: report.engines || [],
       zoneOfInvisibility: report.zoneOfInvisibility || [],
       issues: report.issues || []
     });
-
     const filename = `${token}.pdf`;
     fs.writeFileSync(path.join(REPORTS_DIR, filename), pdfBuffer);
     const baseUrl = process.env.RENDER_EXTERNAL_URL || `https://${req.get('host')}`;
-    const pdfUrl = `${baseUrl}/reports/${filename}`;
-
-    let tier;
     const score = report.score ?? 0;
-    if (score < 30) tier = 'Поза радаром';
-    else if (score < 60) tier = 'На радарах';
-    else if (score < 85) tier = 'Впізнають';
-    else tier = 'Лідер сигналу';
-
-    pendingTelegramReports.delete(token);
-
-    if (LEAD_WEBHOOK_URL) {
-      fetch(LEAD_WEBHOOK_URL, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: '', phone: phone || '', email: '', brand: report.brand, niche: report.niche || '',
-          score: report.score ?? null, status: 'Telegram-бот (SendPulse)', ts: new Date().toISOString()
-        })
-      }).catch(e => console.warn('Помилка відправки Telegram-ліда (SendPulse) на LEAD_WEBHOOK_URL:', e));
-    }
-
-    res.json({ ok: true, score: report.score, brand: report.brand, tier, pdfUrl });
-  } catch (err) {
-    console.error('Помилка /api/sendpulse-report:', err);
-    res.status(500).json({ ok: false, error: 'Внутрішня помилка сервера' });
+    const tier = score < 30 ? 'Поза радаром' : score < 60 ? 'На радарах' : score < 85 ? 'Впізнають' : 'Лідер сигналу';
+    return { ok: true, score, brand: report.brand, tier, pdfUrl: `${baseUrl}/reports/${filename}` };
+  },
+  onReady: async (report, contact) => {
+    if (!LEAD_WEBHOOK_URL) return;
+    // Preserve the existing best-effort CRM integration without blocking PDF delivery.
+    fetch(LEAD_WEBHOOK_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: '', phone: contact.phone, email: '', contactId: contact.contactId,
+        brand: report.brand, niche: report.niche || '', score: report.score ?? null,
+        status: 'Telegram-бот (SendPulse)', ts: new Date().toISOString()
+      })
+    }).catch(() => console.warn('Не вдалося передати лід SendPulse у CRM'));
   }
-});
+}));
 
 // ---- Одноразово: зареєструвати вебхук у Telegram (відкрити раз у браузері) ----
 app.get('/api/telegram-setup', async (req, res) => {

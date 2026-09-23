@@ -845,7 +845,7 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
       </ul>
       <p class="secret-zone-desc">Натисніть кнопку нижче, відкриється Telegram-бот — там попросить номер телефону (одним натиском) і одразу надішле PDF з усім вище.</p>
       <div id="telegramBlock">
-        <a href="#" id="telegramLink" target="_blank" class="btn-scan" style="display:inline-block; text-decoration:none;">📩 Отримати повний аналіз у Telegram →</a>
+        <a href="#" id="telegramLink" target="_blank" rel="noopener" aria-disabled="true" class="btn-scan" style="display:inline-block; text-decoration:none;">📩 Отримати повний аналіз у Telegram →</a>
       </div>
     </div>
   </section>
@@ -1121,6 +1121,16 @@ async function runLiveScan(name, niche){
   return { engines, zoneOfInvisibility, effectiveNiche, nicheWasInferred };
 }
 
+const telegramReportLink = document.getElementById('telegramLink');
+telegramReportLink.addEventListener('click', (event) => {
+  if (telegramReportLink.getAttribute('aria-disabled') === 'true') event.preventDefault();
+});
+function resetTelegramReportLink(message) {
+  telegramReportLink.removeAttribute('href');
+  telegramReportLink.setAttribute('aria-disabled', 'true');
+  telegramReportLink.textContent = message;
+}
+
 form.addEventListener('submit', async function(e){
   e.preventDefault();
   // Honeypot: якщо це поле заповнене — це бот, тихо ігноруємо відправку.
@@ -1135,6 +1145,7 @@ form.addEventListener('submit', async function(e){
   let niche = nicheParts.join(', ');
   if(niche && scaleField && scaleField !== 'в місті') niche += ` (${scaleField})`;
   if(!name) return;
+  resetTelegramReportLink('Готуємо посилання на ваш звіт…');
 
   // Очищаємо поля "Уточнити" одразу після зчитування — щоб стара ніша з
   // попереднього скану випадково не підставилась для наступного бренду.
@@ -1368,10 +1379,16 @@ form.addEventListener('submit', async function(e){
             })
           });
           const saveData = await saveRes.json().catch(() => ({}));
-          if(saveData.telegramLink){
-            document.getElementById('telegramLink').href = saveData.telegramLink;
+          if (!saveRes.ok || !saveData.telegramLink) throw new Error('Report link unavailable');
+          const reportLink = new URL(saveData.telegramLink);
+          if (reportLink.protocol !== 'https:' || !['tg.pulse.is', 't.me'].includes(reportLink.hostname)) {
+            throw new Error('Unexpected report link');
           }
+          telegramReportLink.href = reportLink.href;
+          telegramReportLink.setAttribute('aria-disabled', 'false');
+          telegramReportLink.textContent = '📩 Отримати повний аналіз у Telegram →';
         } catch(err){
+          resetTelegramReportLink('Не вдалося підготувати звіт. Запустіть скан ще раз.');
           console.warn('Не вдалось підготувати посилання на Telegram:', err);
         }
       }
