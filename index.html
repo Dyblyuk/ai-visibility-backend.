@@ -969,10 +969,10 @@ function setRowDone(id, state, verdictText){
   if(verdict) verdict.textContent = verdictText || '';
 }
 
-async function fetchScanEngine(brand, niche, engineKey){
+async function fetchScanEngine(brand, niche, engineKey, website){
   const res = await fetch(API_BASE + '/api/scan-engine', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({brand, niche, engine: engineKey})
+    body: JSON.stringify({brand, niche, website, engine: engineKey})
   });
   if(!res.ok) throw new Error('HTTP ' + res.status);
   return res.json();
@@ -1034,7 +1034,7 @@ async function runLiveScan(name, niche, website){
     const id = 'st-' + e.key;
     setRowActive(id);
     try{
-      const result = await fetchScanEngine(name, niche, e.key);
+      const result = await fetchScanEngine(name, niche, e.key, website);
       if(result.error){
         setRowDone(id, 'done-err', 'помилка');
         return { ...e, verdict: 'unknown', error: result.error };
