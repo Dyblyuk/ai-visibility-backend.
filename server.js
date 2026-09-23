@@ -20,8 +20,9 @@ import multer from 'multer';
 import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { drawRecommendations } from './recommendation-pdf.js';
+import {queryPlanPrompt,parseQueryPlan} from './query-planner.js';
 import { createReportStore, validReportToken } from './report-store.js';
-import { targetIdentity, extractionPrompt, parseExtraction, validateAnswer, summarizeRecommendations, enrichReport, recommendationSummary } from './recommendation-analysis.js';
+import { targetIdentity, extractionPrompt, parseExtraction, validateAnswer, summarizeRecommendations, enrichReport, recommendationSummary, knowledgeScore } from './recommendation-analysis.js';
 
 // Файли розсилки тримаємо лише в пам'яті (не на диску) — вони одразу
 // йдуть у Telegram і більше не потрібні. 20 МБ — з запасом під фото й
@@ -92,7 +93,7 @@ const OPENAI_WEB_SEARCH_TOOL = process.env.OPENAI_WEB_SEARCH_TOOL || 'web_search
 // робиться додатковий виклик Claude, щоб витягти імена конкурентів.
 // Тримайте це число невеликим — це прямо впливає на кількість платних
 // викликів API за один скан (queries × engines × ~2).
-const DISCOVERY_QUERY_COUNT = Number(process.env.DISCOVERY_QUERY_COUNT || 3);
+const DISCOVERY_QUERY_COUNT = Math.max(3,Math.min(6,Number(process.env.DISCOVERY_QUERY_COUNT) || 5));
 const DISCOVERY_ENGINES = (process.env.DISCOVERY_ENGINES || 'chatgpt,gemini,perplexity,claude')
   .split(',').map(s => s.trim()).filter(Boolean);
 
@@ -715,7 +716,8 @@ app.post('/api/scan', async (req, res) => {
       askClaude(query).catch(e => ({ error: String(e) }))
     ]);
 
-    const discoveryQueries = buildDiscoveryQueries(niche);
+    const queryPlan = await planCustomerQueries(brand,niche,website);
+    const discoveryQueries = queryPlan.queries;
     const zoneOfInvisibility = await Promise.all(
       discoveryQueries.map(q => runDiscoveryQuery(q, brand, website))
     );
@@ -736,7 +738,7 @@ app.post('/api/scan', async (req, res) => {
         claude: claudeVerdict
       },
       zoneOfInvisibility,
-      recommendations: summarizeRecommendations(zoneOfInvisibility, brand, website)
+      recommendations: summarizeRecommendations(zoneOfInvisibility, brand, website), queryPlan
     };
 
     res.json(result);
@@ -774,6 +776,7 @@ app.post('/api/scan-engine', async (req, res) => {
       return res.json({ error: resp.error });
     }
     const result = await checkMention(resp.text, brand);
+    result.score = knowledgeScore(result);
     engineCheckCache.set(cacheKey, result);
     res.json(result);
   } catch (err) {
@@ -785,29 +788,37 @@ app.post('/api/scan-engine', async (req, res) => {
 // Повертає лише текст нішевих запитів (без виконання) — щоб фронтенд міг
 // одразу намалювати список кроків прогресу, ще до того, як почнеться сам
 // пошук.
-app.post('/api/discovery-queries', async (req, res) => {
+const queryPlanCache=makeCache(NICHE_CACHE_TTL_MS,500);
+async function planCustomerQueries(brand,niche='',website='') {
+  const key=JSON.stringify([brand,niche,website,DISCOVERY_QUERY_COUNT]);
+  const cached=queryPlanCache.get(key);
+  if(cached)return {...cached,cached:true};
   try {
-    const { brand, niche } = req.body || {};
-    let effectiveNiche = (niche || '').trim();
-    let inferred = false;
-
-    if (!effectiveNiche && brand) {
-      const result = await inferNicheCached(brand);
-      if (result.niche) {
-        effectiveNiche = result.niche;
-        inferred = true;
-      }
-    }
-
-    res.json({
-      queries: buildDiscoveryQueries(effectiveNiche),
-      niche: effectiveNiche,
-      inferred
+    if(!ANTHROPIC_API_KEY)throw Error('Query planner unavailable');
+    const response=await fetchWithRetry('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC_API_KEY,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:2200,messages:[{role:'user',content:queryPlanPrompt(brand,website,niche,DISCOVERY_QUERY_COUNT)}],tools:[{type:'web_search_20250305',name:'web_search'}]})
     });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Внутрішня помилка сервера' });
+    if(!response.ok)throw Error(`Query planner HTTP ${response.status}`);
+    const data=await response.json();
+    if(data.stop_reason==='max_tokens')throw Error('Incomplete query plan');
+    const text=(data.content||[]).filter(item=>item.type==='text').map(item=>item.text).join(' ');
+    const plan={...parseQueryPlan(text,brand,website,DISCOVERY_QUERY_COUNT),inferred:!niche};
+    if(niche)plan.niche=niche;
+    queryPlanCache.set(key,plan);
+    return plan;
+  } catch(error) {
+    console.warn('Customer query planner:',error.message);
+    // Fallback is explicit: never pretend generic niche prompts are a researched service list.
+    return {queries:buildDiscoveryQueries(niche),niche,inferred:false,services:[],querySource:niche?'niche_templates':'unavailable'};
   }
+}
+app.post('/api/discovery-queries', async (req,res)=>{
+  try {
+    const {brand,niche='',website=''}=req.body || {};
+    if(typeof brand!=='string'||!brand.trim()||typeof niche!=='string'||typeof website!=='string')return res.status(400).json({error:'Вкажіть назву бренду'});
+    res.json(await planCustomerQueries(brand,niche,website));
+  } catch(error) {res.status(500).json({error:'Не вдалося скласти запити'});}
 });
 
 app.post('/api/zone-query', async (req, res) => {
@@ -918,34 +929,31 @@ function buildReportPdf(data) {
       doc.font('PT-Sans').fontSize(9).fillColor(PDF_INK_FAINT).text(metaParts.join('   ·   '), mL, y);
       y = doc.y + 22;
 
-      // ---- Картка балу ----
-      const score = data.score;
-      let tier;
-      if (score === null || score === undefined) tier = {label:'НЕДОСТАТНЬО ДАНИХ',text:'Не вдалося обчислити оцінку.'};
-      else if (score < 30) tier = { emoji: '●', label: 'ПОЗА РАДАРОМ', text: 'Низька видимість у перевіреній вибірці відповідей.' };
-      else if (score < 60) tier = { emoji: '●', label: 'НА РАДАРАХ', text: 'Бренд має часткову видимість у перевірених відповідях.' };
-      else if (score < 85) tier = { emoji: '●', label: 'ВПІЗНАЮТЬ', text: 'Бренд впізнають — є що підсилити для лідерства.' };
-      else tier = { emoji: '●', label: 'ЛІДЕР СИГНАЛУ', text: 'Висока видимість у цій вибірці; деталі рекомендацій наведені окремо.' };
-
-      const scoreCardH = 100;
-      y = ensureSpace(y, scoreCardH + 20);
-      card(mL, y, contentW, scoreCardH, { borderTop: PDF_ORANGE });
-      doc.font('PT-Sans-Bold').fontSize(44).fillColor(PDF_ORANGE).text(`${score ?? "—"}`, mL + 26, y + 20, { continued: true });
-      doc.font('PT-Sans').fontSize(15).fillColor(PDF_INK_DIM).text(' / 100', { continued: false });
-      doc.font('PT-Sans-Bold').fontSize(11).fillColor(PDF_INK).text(tier.label, mL + 26, y + 68);
-      doc.font('PT-Sans').fontSize(9.5).fillColor(PDF_INK_DIM).text(tier.text, mL + 190, y + 34, { width: contentW - 220 });
-      y += scoreCardH + 16;
-      doc.font('PT-Sans').fontSize(9).fillColor(PDF_INK_DIM).text('Загальний бал: середнє впізнавання бренду та рекомендацій. Якщо рекомендаційні відповіді недоступні - лише впізнавання. Впізнавання: знає = 100, плутає = 50, не знає = 0; помилки виключені.',mL,y,{width:contentW});
+      // Two independent scores; never average recognition with recommendation.
+      const recognition=data.recognitionScore ?? data.score ?? null;
+      const recommendation=data.recommendationScore ?? data.recommendations?.score ?? null;
+      const half=(contentW-14)/2;
+      const scores=[{label:'ЗНАННЯ БРЕНДУ',value:recognition,note:'Наскільки AI впізнають ваш бренд'},{label:'РЕКОМЕНДАЦІЇ',value:recommendation,note:'Як часто AI радять вас за запитами клієнтів'}];
+      y=ensureSpace(y,140);
+      scores.forEach((item,index)=>{
+        const x=mL+index*(half+14);
+        card(x,y,half,120,{borderTop:PDF_ORANGE});
+        doc.font('PT-Sans-Bold').fontSize(10).fillColor(PDF_INK).text(item.label,x+16,y+14,{width:half-32});
+        doc.font('PT-Sans-Bold').fontSize(32).fillColor(PDF_ORANGE).text(item.value===null?'—':`${item.value}/100`,x+16,y+37,{width:half-32});
+        doc.font('PT-Sans').fontSize(9).fillColor(PDF_INK_DIM).text(item.value===null?'Немає достатніх даних':item.note,x+16,y+83,{width:half-32});
+      });
+      y+=138;
+      doc.font('PT-Sans').fontSize(9).fillColor(PDF_INK_DIM).text('Це два незалежні показники. AI може знати бренд, але не рекомендувати його. Знання: знає = 100, плутає або знає частково = 50, не знає = 0. Загальний бал знання - середнє доступних оцінок AI.',mL,y,{width:contentW});
       y=doc.y+20;
 
       // ---- Результати по AI-системах ----
       doc.font('PT-Sans-Bold').fontSize(14).fillColor(PDF_ORANGE);
       y = ensureSpace(y, 24);
-      doc.text('Результати по AI-системах', mL, y);
+      doc.text('1. Наскільки кожна AI знає бренд', mL, y);
       y = doc.y + 10;
 
       (data.engines || []).forEach((e) => {
-        const v = e.error ? { label: 'НЕДОСТУПНО', color: PDF_INK_FAINT } : verdictStyle(e.verdict || (e.hit ? 'know' : 'unknown'));
+        const v = (e.error || e.classifierError) ? { label: 'НЕДОСТУПНО', color: PDF_INK_FAINT } : verdictStyle(e.verdict || (e.hit ? 'know' : 'unknown'));
         const quote = e.snippet ? `«${e.snippet}»` : (e.error || '');
         doc.font('PT-Sans').fontSize(9.5);
         const quoteH = quote ? doc.heightOfString(quote, { width: contentW - 32 }) : 0;
@@ -953,7 +961,7 @@ function buildReportPdf(data) {
         y = ensureSpace(y, cardH + 10);
         card(mL, y, contentW, cardH, { borderLeft: v.color });
         doc.font('PT-Sans-Bold').fontSize(11).fillColor(PDF_INK).text(e.label, mL + 16, y + 11, { continued: true });
-        doc.font('PT-Sans-Bold').fontSize(10).fillColor(v.color).text('   ' + v.label);
+        doc.font('PT-Sans-Bold').fontSize(10).fillColor(v.color).text('   ' + v.label + (knowledgeScore(e)===null ? '' : ` · ${knowledgeScore(e)}/100`));
         if (quote) {
           doc.font('PT-Sans').fontSize(9.5).fillColor(PDF_INK_DIM).text(quote, mL + 16, y + 30, { width: contentW - 32 });
         }
@@ -1517,11 +1525,11 @@ const TELEGRAM_DAY5_MESSAGE =
 // ---- Крок 1: зберегти готовий результат скану, отримати токен ----
 app.post('/api/save-report', async (req, res) => {
   try {
-    const { brand, niche, website, score, engines, zoneOfInvisibility, issues } = req.body || {};
+    const { brand, niche, website, score, engines, zoneOfInvisibility, issues, queryPlan } = req.body || {};
     if (!brand) return res.status(400).json({ error: 'Поле "brand" обовʼязкове' });
 
     const token = randomBytes(24).toString('hex');
-    const report = enrichReport({ brand, niche, website, score, engines, zoneOfInvisibility, issues, ts: Date.now() });
+    const report = enrichReport({ brand, niche, website, score, engines, zoneOfInvisibility, issues, queryPlan, ts: Date.now() });
     await reportStore.set(token, report);
 
     const botUsername = process.env.TELEGRAM_BOT_USERNAME || '';
@@ -1581,7 +1589,7 @@ async function deliverTelegramReport(chatId, token, phone) {
       engines: report.engines || [],
       zoneOfInvisibility: report.zoneOfInvisibility || [],
       issues: report.issues || [],
-      website: report.website, recommendations: report.recommendations, recognitionScore: report.recognitionScore
+      website: report.website, recommendations: report.recommendations, recognitionScore: report.recognitionScore, recommendationScore:report.recommendationScore, queryPlan:report.queryPlan
     });
     await telegramSendDocument(chatId, pdfBuffer, `AI-Visibility-${report.brand}.pdf`, 'Ваш повний AI-звіт');
   } catch (pdfErr) {
@@ -1801,7 +1809,7 @@ app.post('/api/sendpulse-report', async (req, res) => {
       engines: report.engines || [],
       zoneOfInvisibility: report.zoneOfInvisibility || [],
       issues: report.issues || [],
-      website: report.website, recommendations: report.recommendations, recognitionScore: report.recognitionScore
+      website: report.website, recommendations: report.recommendations, recognitionScore: report.recognitionScore, recommendationScore:report.recommendationScore, queryPlan:report.queryPlan
     });
 
     const filename = `${token}.pdf`;
@@ -1840,10 +1848,10 @@ app.post('/api/sendpulse-report', async (req, res) => {
           ? 'У цій перевірці бренд має помітну AI-видимість. Зверніть увагу на різницю між впізнаванням назви та рекомендаціями за запитами клієнтів.'
           : 'У цій перевірці бренд отримав високий бал AI-видимості. Перегляньте відповіді кожної системи, щоб зрозуміти, де позиції найсильніші.';
     const details = report.recommendations ? recommendationSummary(report.recommendations) : interpretation;
-    const reportSummary = `Ваш звіт для «${String(report.brand).slice(0,100)}» готовий.\n\nAI-видимість: ${score ?? '—'}/100\nРівень: ${tier}\n\n${details}\n\nБал рекомендацій = частка успішно перевірених запитів із рекомендацією. Це знімок відповідей API, а не офіційний рейтинг платформ.`;
+    const reportSummary = `Ваш звіт для «${String(report.brand).slice(0,100)}» готовий.\n\nЗнання бренду: ${score ?? '—'}/100\n\n${details}\n\nЗнання бренду та рекомендації оцінюються окремо. Повний розбір - у PDF.`;
 
     const reportGuide = 'З чого почати\n\n1. Перегляньте, що кожна AI-система говорить про ваш бренд.\n2. Порівняйте впізнавання назви з рекомендаціями за нішевими запитами.\n3. Подивіться, яких конкурентів називає AI, і виберіть перші дії з рекомендацій у PDF.\n\nХочете визначити пріоритети для свого бізнесу? Напишіть «Розібрати звіт» — обговоримо результат і наступні кроки.';
-    res.json({ ok: true, score: report.score, brand: report.brand, tier, pdfUrl, reportSummary, reportGuide, recommendations:report.recommendations || null });
+    res.json({ ok: true, score: report.score, brand: report.brand, tier, pdfUrl, reportSummary, reportGuide, recognitionScore:report.recognitionScore ?? report.score, recommendationScore:report.recommendationScore ?? report.recommendations?.score ?? null, recommendations:report.recommendations || null });
   } catch (err) {
     console.error('Помилка /api/sendpulse-report:', err);
     res.status(500).json({ ok: false, error: 'Внутрішня помилка сервера' });
@@ -1862,7 +1870,7 @@ app.get('/api/telegram-setup', async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
-    analysisVersion: 2,
+    analysisVersion: 3,
     reportStorage: { kind: reportStore.kind, durable: reportStore.durable },
     keys: {
       openai: Boolean(OPENAI_API_KEY),

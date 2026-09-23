@@ -46,19 +46,22 @@ export function parseExtraction(text) {
 
 export function validateAnswer(raw, extracted, target) {
   if (raw.error || raw.truncated || !raw.text?.trim()) return { ...raw, analysisStatus: 'unavailable', recommendedCompanies: [] };
+  const mentionedTarget = containsName(raw.text,target.name) || (target.host && containsHost(raw.text,target.host));
   const base = { rawText: raw.text, sources: raw.sources || [], model: raw.model || '', searchMode: raw.searchMode || 'unspecified' };
   const unknown = reason => ({ ...base, analysisStatus: 'unavailable', analysisError: reason, recommendedCompanies: [] });
-  if (!extracted || extracted.complete !== true || !Array.isArray(extracted.companies) || extracted.companies.length > 12) return unknown('Не вдалося перевірити рекомендації');
+  const noTarget = reason => ({...base,analysisStatus:'ok',mentionedBrand:false,brandRecommended:false,websiteRecommended:target.host?false:null,recommended:false,targetStatus:'not_mentioned',targetEvidence:[],recommendedCompanies:[],competitorAnalysisStatus:'unavailable',competitorAnalysisError:reason});
+  if (!extracted || extracted.complete !== true || !Array.isArray(extracted.companies) || extracted.companies.length > 12) return mentionedTarget ? unknown('Не вдалося перевірити рекомендації') : noTarget('Не вдалося перевірити список конкурентів');
   const companies = [];
+  let rejectedCompanies=0;
   for (const item of extracted.companies) {
     if (typeof item.name !== 'string' || !item.name.trim() || typeof item.evidence !== 'string' || !item.evidence.trim() ||
       item.evidence.length > 1500 || !['recommended','mentioned','negative'].includes(item.stance) ||
       !evidenceText(raw.text).includes(evidenceText(item.evidence)) || !containsName(item.evidence, item.name)) {
-      return unknown('Цитата або назва не підтверджена відповіддю');
+      rejectedCompanies++; continue;
     }
     const host = siteHost(item.website);
     // A citation to an unrelated site must never become a recommended website.
-    if (item.website && (!host || !containsHost(item.evidence, host))) return unknown('Домен не підтверджений цитатою');
+    if (item.website && (!host || !containsHost(item.evidence, host))) {rejectedCompanies++;continue;}
     const isTarget = compact(item.name) === compact(target.name) || (target.host && host === target.host) ||
       (target.host && siteHost(item.name) === target.host);
     companies.push({ name: item.name.trim().slice(0,160), website: host ? `https://${host}` : null,
@@ -76,6 +79,7 @@ export function validateAnswer(raw, extracted, target) {
     recommended: brandRecommended || websiteRecommended === true,
     targetStatus: recommended.length ? 'recommended' : targetItems.some(item=>item.stance==='negative') ? 'negative' : mentionedBrand ? 'mentioned' : 'not_mentioned',
     targetEvidence: targetItems.map(item=>item.evidence),
+    competitorAnalysisStatus:rejectedCompanies?'partial':'ok',
     recommendedCompanies: companies.filter(item=>item.stance==='recommended') };
 }
 
@@ -115,22 +119,25 @@ export function summarizeRecommendations(zones = [], brand = '', website = '') {
     competitors:[...competitors.values()].sort((a,b)=>b.occurrences.length-a.occurrences.length) };
 }
 
+export function knowledgeScore(engine) {
+  if (engine.error || engine.classifierError) return null;
+  return {know:100,confused:50,unknown:0}[engine.verdict] ?? (engine.hit ? 100 : 0);
+}
 export function enrichReport(report) {
   const recommendations = summarizeRecommendations(report.zoneOfInvisibility || [], report.brand, report.website);
-  const validEngines = (report.engines || []).filter(item=>!item.error);
-  const weights = {know:1,confused:0.5,unknown:0};
-  const recognitionScore = validEngines.length ? Math.round(100*validEngines.reduce((sum,item)=>sum+(weights[item.verdict] ?? (item.hit?1:0)),0)/validEngines.length) : null;
-  const score = recommendations.score === null ? recognitionScore : recognitionScore === null ? recommendations.score : Math.round((recognitionScore+recommendations.score)/2);
+  const engines = (report.engines || []).map(engine=>({...engine,knowledgeScore:knowledgeScore(engine)}));
+  const validEngines = engines.filter(engine=>engine.knowledgeScore !== null);
+  const recognitionScore = validEngines.length ? Math.round(validEngines.reduce((sum,engine)=>sum+engine.knowledgeScore,0)/validEngines.length) : null;
   const issues = [];
-  for (const item of Object.values(recommendations.byEngine)) {
-    if (item.checked && !item.recommended) issues.push(`${item.label}: бренд або сайт не рекомендовано в ${item.checked} перевірених запитах.`);
-    else if (item.checked && item.recommended < item.checked) issues.push(`${item.label}: рекомендація є лише в ${item.recommended} з ${item.checked} перевірених запитів.`);
-    if (item.unavailable) issues.push(`${item.label}: для ${item.unavailable} запитів бракує даних; вони не враховані в балі.`);
-  }
-  return {...report, score, recognitionScore, recommendations, issues};
+  if (recommendations.totalSuccessful) issues.push(`Бренд або сайт рекомендовано в ${recommendations.totalRecommended} з ${recommendations.totalSuccessful} перевірених відповідей усіх AI.`);
+  const unavailable=recommendations.queryCount*4-recommendations.totalSuccessful;
+  if(unavailable) issues.push(`Для ${unavailable} відповідей бракує надійних даних; їх не враховано в оцінці рекомендацій.`);
+  // Legacy score stays usable in SendPulse but now means recognition only.
+  // There is deliberately no composite score mixing these two measurements.
+  return {...report,reportVersion:3,engines,score:recognitionScore,recognitionScore,recommendationScore:recommendations.score,recommendations,issues};
 }
 export function recommendationSummary(summary) {
-  if (!summary?.queryCount) return 'Рекомендації: немає даних за нішевими запитами.';
-  const lines = Object.values(summary.byEngine).map(item => `${item.label}: ${item.score === null ? 'немає даних' : `${item.score}/100 (${item.recommended}/${item.checked})`}${item.unavailable ? `; без даних: ${item.unavailable}`:''}`);
-  return `Рекомендації бренду або сайту\n${lines.join('\n')}\n\nУ PDF: окремі бали бренду й сайту, точні запити, конкуренти та цитати.`;
+  if (!summary?.totalSuccessful) return 'Рекомендації: немає достатніх даних для оцінки.';
+  const missing=summary.queryCount*4-summary.totalSuccessful;
+  return `Рекомендації: ${summary.score}/100\nРекомендують у ${summary.totalRecommended} з ${summary.totalSuccessful} перевірених відповідей за ${summary.queryCount} запитами.${missing ? `\nБез даних: ${missing} відповідей.` : ''}\n\nУ PDF: основні запити клієнтів і конкуренти, яких кожна AI рекомендує замість вас.`;
 }

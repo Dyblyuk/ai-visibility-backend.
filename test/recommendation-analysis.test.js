@@ -48,7 +48,7 @@ test('competitors retain the AI, query and exact evidence; target is excluded',(
 });
 test('scores/findings are computed from evidence, not submitted or random findings',()=>{
  const report=enrichReport({brand:'Acme',score:99,engines:[{verdict:'know'},{error:'429'}],zoneOfInvisibility:[zone({chatgpt:answer('Немає даних про компанії.',[])})],issues:['Немає сайту']});
- assert.equal(report.recognitionScore,100);assert.equal(report.recommendations.score,0);assert.equal(report.score,50);assert.ok(!report.issues.includes('Немає сайту'));
+ assert.equal(report.recognitionScore,100);assert.equal(report.recommendations.score,0);assert.equal(report.score,100);assert.equal(report.recommendationScore,0);assert.ok(!report.issues.includes('Немає сайту'));
  assert.equal(enrichReport({engines:[{error:'offline'}]}).score,null);
 });
 test('recommendation extraction operates only on supplied answers',()=>{
@@ -64,4 +64,23 @@ test('rendered Markdown quotes and sentence punctuation around domains preserve 
  const text='**Acme** — рекомендую для ремонту.[1] Офіційний сайт: acme.ua.[2]';
  const r=answer(text,[item('Acme','Acme — рекомендую для ремонту. Офіційний сайт: acme.ua.','recommended','https://acme.ua')]);
  assert.equal(r.analysisStatus,'ok');assert.equal(r.brandRecommended,true);assert.equal(r.websiteRecommended,true);
+});
+
+
+test('all AI knowing a brand never raises its zero recommendation score',()=>{
+ const no=answer('Раджу Beta.',[item('Beta','Раджу Beta.')]);
+ const keys=['chatgpt','claude','gemini','perplexity'];
+ const report=enrichReport({brand:'Acme',engines:keys.map(key=>({key,verdict:'know'})),zoneOfInvisibility:[zone(Object.fromEntries(keys.map(key=>[key,no])))]});
+ assert.equal(report.recognitionScore,100);assert.equal(report.recommendationScore,0);assert.equal(report.score,100);
+});
+test('global recommendation score counts every AI-query pair, not any hit per query',()=>{
+ const yes=answer('Раджу Acme.',[item('Acme','Раджу Acme.')]);const no=answer('Раджу Beta.',[item('Beta','Раджу Beta.')]);
+ const report=enrichReport({brand:'Acme',engines:[{verdict:'unknown'}],zoneOfInvisibility:[zone({chatgpt:yes,claude:no,gemini:no,perplexity:no}),zone({chatgpt:yes,claude:no,gemini:no,perplexity:no})]});
+ assert.equal(report.recognitionScore,0);assert.equal(report.recommendationScore,25);assert.equal(report.recommendations.totalRecommended,2);assert.equal(report.recommendations.totalSuccessful,8);
+});
+test('an absent brand is zero even when competitor extraction fails',()=>{
+ const r=validateAnswer({text:'Не можу назвати агенції. Перевірте рейтинги.'},null,target);
+ assert.equal(r.analysisStatus,'ok');assert.equal(r.recommended,false);assert.equal(r.competitorAnalysisStatus,'unavailable');
+ const partial=answer('Раджу Beta.',[item('Beta','Раджу Beta.'),item('Invented','Раджу Invented.')]);
+ assert.equal(partial.analysisStatus,'ok');assert.equal(partial.recommended,false);assert.equal(partial.competitorAnalysisStatus,'partial');assert.equal(partial.recommendedCompanies.length,1);
 });

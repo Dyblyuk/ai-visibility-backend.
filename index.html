@@ -833,8 +833,8 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
     <h2 id="gateTitle" tabindex="-1">Ваш звіт уже готовий</h2>
     <p class="gate-intro">Зібрали результати перевірки в один PDF. Отримайте його в Telegram — там зручно переглянути, зберегти й повернутися до рекомендацій.</p>
     <ul class="gate-contents">
-      <li><span>01</span> Оцінка видимості та рекомендацій бренду й сайту</li>
-      <li><span>02</span> Окремі бали ChatGPT, Claude, Gemini та Perplexity</li>
+      <li><span>01</span> Два бали: знання бренду та частота рекомендацій</li>
+      <li><span>02</span> Що знають ChatGPT, Claude, Gemini та Perplexity</li>
       <li><span>03</span> Кого рекомендує кожна AI та за якими запитами</li>
       <li><span>04</span> Рекомендації та наступні кроки для покращення видимості</li>
     </ul>
@@ -978,10 +978,10 @@ async function fetchScanEngine(brand, niche, engineKey){
   return res.json();
 }
 
-async function fetchDiscoveryQueries(brand, niche){
+async function fetchDiscoveryQueries(brand, niche, website){
   const res = await fetch(API_BASE + '/api/discovery-queries', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({brand, niche})
+    body: JSON.stringify({brand, niche, website})
   });
   if(!res.ok) throw new Error('HTTP ' + res.status);
   const data = await res.json();
@@ -1028,7 +1028,7 @@ async function runLiveScan(name, niche, website){
   // Невелика затримка перед запуском зони невидимості — щоб виклики до
   // Claude (пряма перевірка + визначення ніші, якщо вона порожня) не
   // стартували абсолютно одночасно й не ловили ліміт швидкості разом.
-  const discoveryQueriesPromise = new Promise(resolve => setTimeout(resolve, 900)).then(() => fetchDiscoveryQueries(name, niche));
+  const discoveryQueriesPromise = new Promise(resolve => setTimeout(resolve, 900)).then(() => fetchDiscoveryQueries(name, niche, website));
 
   const enginePromises = ENGINE_DEFS_LIVE.map(async (e) => {
     const id = 'st-' + e.key;
@@ -1043,7 +1043,7 @@ async function runLiveScan(name, niche, website){
       const stateMap = { know: 'done-hit', confused: 'done-mid', unknown: 'done-miss' };
       const labelMap = { know: 'знає', confused: 'плутає', unknown: 'не чув' };
       setRowDone(id, 'done-hit', 'перевірено');
-      return { ...e, verdict, hit: verdict === 'know', snippet: result.snippet, score: result.score ?? 0 };
+      return { ...e, verdict, hit: verdict === 'know', snippet: result.snippet, score: result.score ?? 0, classifierError:result.classifierError || null };
     } catch(err){
       setRowDone(id, 'done-err', 'недоступно');
       return { ...e, verdict: 'unknown', error: String(err) };
@@ -1088,7 +1088,7 @@ async function runLiveScan(name, niche, website){
   await new Promise(r => setTimeout(r, 300));
   setRowDone('st-assemble', 'done-hit', '');
 
-  return { engines, zoneOfInvisibility, effectiveNiche, nicheWasInferred };
+  return { engines, zoneOfInvisibility, effectiveNiche, nicheWasInferred, queryPlan:discoveryData };
 }
 
 form.addEventListener('submit', async function(e){
@@ -1128,6 +1128,7 @@ form.addEventListener('submit', async function(e){
   let usedReal = false;
   let zoneOfInvisibility = [];
   let nicheWasInferred = false;
+  let queryPlan = null;
 
   if(API_URL){
     try{
@@ -1135,6 +1136,7 @@ form.addEventListener('submit', async function(e){
       usedReal = true;
       engines = data.engines;
       zoneOfInvisibility = data.zoneOfInvisibility || [];
+      queryPlan = data.queryPlan;
       if(data.nicheWasInferred && data.effectiveNiche){
         niche = data.effectiveNiche;
         nicheWasInferred = true;
@@ -1153,8 +1155,8 @@ form.addEventListener('submit', async function(e){
   // Scores and findings are computed on the server from observed answers.
   reportPayload = {
     brand:name, niche, website,
-    engines:engines.map(engine=>({key:engine.key, label:engine.label, verdict:engine.verdict || (engine.hit?'know':'unknown'), hit:!!engine.hit, snippet:engine.snippet || '', error:engine.error || null})),
-    zoneOfInvisibility
+    engines:engines.map(engine=>({key:engine.key, label:engine.label, verdict:engine.verdict || (engine.hit?'know':'unknown'), hit:!!engine.hit, snippet:engine.snippet || '', error:engine.error || null, classifierError:engine.classifierError || null})),
+    zoneOfInvisibility, queryPlan
   };
   await saveReportAndShowGate();
   btn.disabled = false;
