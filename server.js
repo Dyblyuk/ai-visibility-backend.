@@ -101,7 +101,7 @@ const OPENAI_WEB_SEARCH_TOOL = process.env.OPENAI_WEB_SEARCH_TOOL || 'web_search
 // робиться додатковий виклик Claude, щоб витягти імена конкурентів.
 // Тримайте це число невеликим — це прямо впливає на кількість платних
 // викликів API за один скан (queries × engines × ~2).
-const DISCOVERY_QUERY_COUNT = 3;
+const DISCOVERY_QUERY_COUNT = 2;
 const DISCOVERY_ENGINES = (process.env.DISCOVERY_ENGINES || 'chatgpt,gemini,perplexity,claude')
   .split(',').map(s => s.trim()).filter(Boolean);
 
@@ -570,11 +570,12 @@ async function findRealCompetitorsCached(query, brand) {
 async function runDiscoveryQuery(query, brand, website = '') {
   const started=Date.now();
   const target = targetIdentity(brand, website);
-  const requestPrompt=`${query}\nПорадь 3–5 конкретних компаній, постачальників або магазинів для цієї потреби. Коротко поясни вибір, вкажи офіційні сайти, якщо знаєш. Не замінюй добірку загальною інструкцією. Якщо не можеш порадити конкретні компанії, прямо скажи про це. Відповідай українською, до 180 слів: назва, сайт, одне коротке речення на кожну компанію.`;
+  const requestPrompt=`${query}\nПорадь до 3 конкретних компаній, постачальників або магазинів для цієї потреби. Коротко поясни вибір, вкажи офіційні сайти, якщо знаєш. Не замінюй добірку загальною інструкцією. Якщо не можеш порадити конкретні компанії, прямо скажи про це. Відповідай українською, до 100 слів: назва, сайт, одне коротке речення на кожну компанію. Без вступу та висновку.`;
   const engineResults = {};
   const pending = {};
   const models = { chatgpt:OPENAI_MODEL, gemini:GEMINI_MODEL, perplexity:'sonar', claude:CLAUDE_MODEL };
-  const cacheKey = key => `recommendation-v3::${key}::${brand.trim().toLowerCase()}::${target.host || ''}::${query.trim()}`;
+  const cacheKey = key => `recommendation-v4::${key}::${brand.trim().toLowerCase()}::${target.host || ''}::${query.trim()}`;
+  const providerStarted=Date.now();
   await Promise.all(DISCOVERY_ENGINES.map(async key => {
     const caller = ENGINE_CALLERS[key];
     if (!caller) return;
@@ -589,6 +590,8 @@ async function runDiscoveryQuery(query, brand, website = '') {
       engineResults[key] = {...raw, rawText:raw.text, analysisStatus:'unavailable', analysisError:'Відповідь завелика для надійної перевірки'};
     } else pending[key] = raw;
   }));
+  const providerMs=Date.now()-providerStarted;
+  const extractionStarted=Date.now();
   if (Object.keys(pending).length) {
     let extracted = {};
     try {
@@ -602,7 +605,7 @@ async function runDiscoveryQuery(query, brand, website = '') {
     }
   }
   const competitors = [...new Set(Object.values(engineResults).flatMap(result=>(result.recommendedCompanies || []).filter(item=>!item.isTarget).map(item=>item.name)))];
-  return { query, requestPrompt, durationMs:Date.now()-started, analysisVersion:2, engines:engineResults, competitors, competitorsSource:'observed_recommendations' };
+  return { query, requestPrompt, durationMs:Date.now()-started, timings:{providerMs,extractionMs:Date.now()-extractionStarted}, analysisVersion:2, engines:engineResults, competitors, competitorsSource:'observed_recommendations' };
 }
 
 async function scanEngine(brand,niche,engine,website) {
@@ -650,7 +653,7 @@ app.post('/api/scan-engine',async(req,res)=>{
 // пошук.
 const queryPlanCache=makeCache(NICHE_CACHE_TTL_MS,500);
 async function planCustomerQueries(brand,niche='',website='') {
-  const key=JSON.stringify([brand,niche,website,DISCOVERY_QUERY_COUNT]);
+  const key=JSON.stringify(['query-plan-v3',brand,niche,website,DISCOVERY_QUERY_COUNT]);
   const started=Date.now();
   const cached=queryPlanCache.get(key);
   if(cached)return {...cached,cached:true};
@@ -1502,10 +1505,10 @@ app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     analysisVersion: 3,
-    queryPlannerVersion: 2,
-    recommendationPromptVersion: 2, knowledgeVersion: 5,
-    performanceVersion:2,
-    reportLayoutVersion:5,discoveryQueryCount:DISCOVERY_QUERY_COUNT,
+    queryPlannerVersion: 3,
+    recommendationPromptVersion: 3, knowledgeVersion: 5,
+    performanceVersion:3,
+    reportLayoutVersion:6,discoveryQueryCount:DISCOVERY_QUERY_COUNT,
     models:{chatgpt:OPENAI_MODEL,gemini:GEMINI_MODEL,perplexity:"sonar",claude:CLAUDE_MODEL,analysis:ANALYSIS_MODEL},
     deadlinesMs:{provider:PROVIDER_TIMEOUT_MS,analysis:ANALYSIS_TIMEOUT_MS,queryPlan:PLAN_TIMEOUT_MS},
     reportStorage: { kind: reportStore.kind, durable: reportStore.durable },

@@ -24,10 +24,10 @@ test('discovery -> stored report -> SendPulse summary/PDF preserves per-AI evide
  const post=async(path,body)=>{const r=await fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});assert.equal(r.status,200);return r.json();};
  try {
   const plan=await post('/api/discovery-queries',{brand:'Acme',website:'127.0.0.1',niche:'SEO, Київ'});
-  assert.equal(plan.querySource,'company_profile');assert.equal(plan.queries.length,3);
+  assert.equal(plan.querySource,'company_profile');assert.equal(plan.queries.length,2);
   const query=plan.queries[0];
   const zone=await post('/api/zone-query',{brand:'Acme',website:'acme.ua',query});
-  assert.equal(zone.analysisVersion,2);assert.match(zone.requestPrompt,/Порадь 3–5 конкретних компаній/);assert.ok(!zone.requestPrompt.includes('Acme'));assert.deepEqual(zone.competitors,['Beta']);
+  assert.equal(zone.analysisVersion,2);assert.match(zone.requestPrompt,/Порадь до 3 конкретних компаній/);assert.ok(!zone.requestPrompt.includes('Acme'));assert.deepEqual(zone.competitors,['Beta']);
   for(const value of Object.values(zone.engines)){assert.equal(value.brandRecommended,true);assert.equal(value.websiteRecommended,true);assert.equal(value.rawText,raw);}
   // Four independent unbranded answers plus one extraction; no market search.
   assert.equal(calls.length,6);
