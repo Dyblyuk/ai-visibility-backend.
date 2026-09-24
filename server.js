@@ -1,3 +1,4 @@
+import {assessmentStatus} from './assessment-status.js';
 // Top Marketing · AI-Visibility Scanner — backend
 // Реальна перевірка згадки бренду в ChatGPT, Gemini і Perplexity.
 //
@@ -296,7 +297,7 @@ async function checkMention(text, brand, website = '', niche = '') {
     const response=await askClaude(knowledgePrompt(text,brand,website,niche),{model:ANALYSIS_MODEL,maxTokens:700,timeoutMs:ANALYSIS_TIMEOUT_MS});
     if(response.error||response.truncated) return unavailable(response.error || 'Неповна оцінка знання бренду');
     const result={...parseKnowledge(response.text,text),rawText:text,classifierError:null};
-    return {...result,score:knowledgeScore(result)};
+    return {...result,score:knowledgeScore(result),knowledgeStatus:assessmentStatus(knowledgeScore(result)).label};
   } catch(error) {return unavailable('Не вдалося перевірити знання бренду: '+error.message);}
 }
 
@@ -620,7 +621,7 @@ async function scanEngine(brand,niche,engine,website) {
     const result=response.error||response.truncated||!response.text?.trim()
       ? {error:response.error||(response.truncated?'AI повернула неповну відповідь':'Порожня відповідь AI'),verdict:'unavailable',score:null,rawText:response.text||''}
       : await checkMention(response.text,brand,website,niche);
-    Object.assign(result,{model,searchMode,checkedAt:new Date().toISOString(),timings:{providerMs,totalMs:Date.now()-started}});
+    Object.assign(result,{knowledgeStatus:assessmentStatus(knowledgeScore(result)).label,model,searchMode,checkedAt:new Date().toISOString(),timings:{providerMs,totalMs:Date.now()-started}});
     // Transient errors must not be cached as negative knowledge for 24 hours.
     if(!result.error&&!result.classifierError)engineCheckCache.set(cacheKey,result);
     return result;
@@ -773,8 +774,8 @@ function buildReportPdf(data) {
       }
       function verdictStyle(verdict) {
         if (verdict === 'know') return { label: 'ЗНАЄ', color: PDF_CYAN };
-        if (verdict === 'confused') return { label: 'НЕВПЕВНЕНО', color: PDF_ORANGE };
-        return { label: 'НЕ ВПІЗНАЄ', color: PDF_RED };
+        if (verdict === 'confused') return { label: 'ЧАСТКОВО ЗНАЄ', color: PDF_ORANGE };
+        return { label: 'НЕ ЗНАЄ', color: PDF_RED };
       }
 
       paintBg();
@@ -800,18 +801,21 @@ function buildReportPdf(data) {
       const recognition=data.recognitionScore ?? data.score ?? null;
       const recommendation=data.recommendationScore ?? data.recommendations?.score ?? null;
       const half=(contentW-14)/2;
-      const scores=[{label:'ЗНАННЯ БРЕНДУ',value:recognition,note:'Наскільки AI впізнають ваш бренд'},{label:'РЕКОМЕНДАЦІЇ',value:recommendation,note:'Як часто AI радять вас за запитами клієнтів'}];
+      const scores=[{label:'ЗНАННЯ БРЕНДУ',value:recognition,note:assessmentStatus(recognition).label},{label:'РЕКОМЕНДАЦІЇ',value:recommendation,note:assessmentStatus(recommendation,'recommendation').label}];
       y=ensureSpace(y,140);
       scores.forEach((item,index)=>{
         const x=mL+index*(half+14);
         card(x,y,half,120,{borderTop:PDF_ORANGE});
         doc.font('PT-Sans-Bold').fontSize(10).fillColor(PDF_INK).text(item.label,x+16,y+14,{width:half-32});
         doc.font('PT-Sans-Bold').fontSize(32).fillColor(PDF_ORANGE).text(item.value===null?'—':`${item.value}/100`,x+16,y+37,{width:half-32});
-        doc.font('PT-Sans').fontSize(9).fillColor(PDF_INK_DIM).text(item.value===null?'Немає достатніх даних':item.note,x+16,y+83,{width:half-32});
+        doc.font('PT-Sans').fontSize(9).fillColor(PDF_INK_DIM).text(item.note,x+16,y+83,{width:half-32});
       });
       y+=138;
-      doc.font('PT-Sans').fontSize(9).fillColor(PDF_INK_DIM).text('Це два незалежні показники. AI може знати бренд, але не рекомендувати його. Знання: знає = 100, плутає або знає частково = 50, не знає = 0. Загальний бал знання - середнє доступних оцінок AI.',mL,y,{width:contentW});
-      y=doc.y+20;
+      doc.font('PT-Sans').fontSize(9).fillColor(PDF_INK_DIM).text('Це два незалежні показники. AI може знати бренд, але не рекомендувати його. Знання: знає = 100, частково знає = 50, не знає = 0. Загальний бал знання - середнє доступних оцінок AI.',mL,y,{width:contentW});
+      y=doc.y+8;
+      const availableKnowledge=(data.engines||[]).filter(e=>knowledgeScore(e)!==null).length;
+      doc.font('PT-Sans').fontSize(9).fillColor(PDF_INK_DIM).text(`Оцінено ${availableKnowledge} з ${(data.engines||[]).length} AI. Недоступні перевірки не враховуються як нулі.`,mL,y,{width:contentW});
+      y=doc.y+15;
 
       // ---- Результати по AI-системах ----
       doc.font('PT-Sans-Bold').fontSize(14).fillColor(PDF_ORANGE);
@@ -820,8 +824,9 @@ function buildReportPdf(data) {
       y = doc.y + 10;
 
       (data.engines || []).forEach((e) => {
-        const v = (knowledgeScore(e)===null) ? { label: 'НЕДОСТУПНО', color: PDF_INK_FAINT } : verdictStyle(e.verdict || (e.hit ? 'know' : 'unknown'));
-        const quote = [e.snippet ? `«${e.snippet}»` : (e.error || e.classifierError || ''),e.reason ? `Оцінка: ${e.reason}` : '',e.model ? `${e.model} · ${e.searchMode==='model_knowledge'?'знання моделі без веб-пошуку':'веб-пошук увімкнено'}` : ''].filter(Boolean).join('\n');
+        const v = (knowledgeScore(e)===null) ? { label: 'ОЦІНКУ НЕ ОТРИМАНО', color: PDF_INK_FAINT } : verdictStyle(e.verdict || (e.hit ? 'know' : 'unknown'));
+        const short=value=>String(value||'').length>220?String(value).slice(0,217)+'…':String(value||'');
+        const quote = [e.snippet ? `«${short(e.snippet)}»` : (e.error || e.classifierError || ''),e.reason ? short(e.reason) : '',e.model ? `${e.model} · ${e.searchMode==='model_knowledge'?'без веб-пошуку':'веб-пошук увімкнено'}` : ''].filter(Boolean).join('\n');
         doc.font('PT-Sans').fontSize(9.5);
         const quoteH = quote ? doc.heightOfString(quote, { width: contentW - 32 }) : 0;
         const cardH = 34 + (quote ? quoteH + 8 : 0);
@@ -838,90 +843,23 @@ function buildReportPdf(data) {
 
       y = drawRecommendations(doc, data, {newPage,ensureSpace,card,mL,contentW});
 
-      // ---- Що знижує сигнал ----
-      if ((data.issues || []).length) {
-        doc.font('PT-Sans-Bold').fontSize(14).fillColor(PDF_ORANGE);
-        y = ensureSpace(y, 24);
-        doc.text('Що показала перевірка', mL, y);
-        y = doc.y + 10;
-
-        doc.font('PT-Sans').fontSize(10);
-        const issuesH = data.issues.reduce((sum, t) => sum + doc.heightOfString(`X  ${t}`, { width: contentW - 32 }) + 8, 0);
-        y = ensureSpace(y, issuesH + 24);
-        card(mL, y, contentW, issuesH + 24, { borderLeft: PDF_RED });
-        let iy = y + 12;
-        data.issues.forEach((t) => {
-          doc.font('PT-Sans').fontSize(10).fillColor(PDF_INK);
-          doc.fillColor(PDF_RED).text('X', mL + 16, iy, { continued: false });
-          doc.fillColor(PDF_INK).text(t, mL + 32, iy, { width: contentW - 48 });
-          iy = doc.y + 8;
-        });
-        y = iy + 8;
-      }
-
-      // ---- Сторінка 2: покроковий план ----
-      y = newPage();
-      try { doc.image(LOGO_PATH, mL, 42, { width: 88 }); } catch (e) {}
-      y = 108;
-      doc.font('PT-Sans-Bold').fontSize(18).fillColor(PDF_INK).text('Покроковий план дій', mL, y);
-      y = doc.y + 2;
-      doc.font('PT-Sans').fontSize(10).fillColor(PDF_INK_DIM).text('Загальні кроки - перевірте їхню актуальність для свого бізнесу', mL, y);
-      y = doc.y + 20;
-
-      const steps = [
-        {
-          title: '1. Зберіть бренд в одну сутність',
-          body: `Напишіть один канонічний абзац: хто ви + що робите + для кого + де (місто/ринок/онлайн) + один ` +
-            `перевірюваний факт (років на ринку, клієнтів, публікацій). Вставте цей абзац дослівно всюди, де ви є: ` +
-            `сайт, LinkedIn, соцмережі, каталоги, профілі на майданчиках. Однакове написання назви — до літери.`
-        },
-        {
-          title: '2. Потрапте до чужих списків',
-          body: `Запитайте в ChatGPT і Perplexity: «найкращі [ваша ніша] у [місто/ринок]». Зафіксуйте, на які добірки ` +
-            `й рейтинги вони посилаються. Випишіть 5-10 списків, де є конкуренти, а вас немає. Напишіть авторам ` +
-            `майданчиків заявку на включення — багато нішевих добірок додають безкоштовно.`
-        },
-        {
-          title: '3. Зайдіть у живі обговорення',
-          body: `Знайдіть 2-3 живі майданчики, де реально обговорюють вашу нішу: форуми, галузеві спільноти, Q&A. ` +
-            `Дайте там 2-3 розгорнуті корисні відповіді як експерт, без реклами в лоб. Запустіть збір змістовних ` +
-            `відгуків від клієнтів — з деталями (послуга, специфіка), а не просто «все супер».`
-        },
-        {
-          title: '4. Підсильте контент цифрами',
-          body: `Візьміть головний експертний матеріал і підсильте трьома речами: конкретні цифри й статистика ` +
-            `замість загальних слів, цитати з посиланням на ім'я, зазначення джерел даних.`
-        },
-        {
-          title: '5. Закрийте реальне питання клієнта',
-          body: `Візьміть реальне формулювання, яким клієнти шукають таких, як ви. Опублікуйте матеріал: заголовок ` +
-            `= питання клієнта, перший абзац = пряма відповідь (2-4 речення). Ставте свіжу дату і оновлюйте ключові ` +
-            `матеріали раз на квартал.`
-        },
-        {
-          title: 'Бонус: зареєструйтесь у Bing Webmaster Tools',
-          body: `15 хвилин, безкоштовно. Помітна частка цитат пошукового режиму ChatGPT збігається з органічною ` +
-            `видачею Bing, а конкуренція там значно нижча.`,
-          bonus: true
-        }
+      // Compact next steps, with no repeated findings or generic multi-page guide.
+      y=ensureSpace(y+18,230);
+      doc.font('PT-Sans-Bold').fontSize(16).fillColor(PDF_ORANGE).text('3. З чого почати',mL,y,{width:contentW});
+      y=doc.y+12;
+      const steps=[
+        'Уточніть опис компанії на сайті: послуги, географію та факти, за якими вас можна відрізнити від однойменних брендів.',
+        'Виберіть два запити з таблиці, де AI радить конкурентів. Перевірте, чи є на вашому сайті змістовні сторінки про ці послуги.',
+        'Додайте перевірювані кейси й відгуки та повторіть ті самі запити після змін. Порівнюйте однакові моделі й режими пошуку.'
       ];
-
-      steps.forEach((s) => {
-        doc.font('PT-Sans').fontSize(10);
-        const bodyH = doc.heightOfString(s.body, { width: contentW - 40 });
-        const cardH = 28 + bodyH + 16;
-        y = ensureSpace(y, cardH + 12);
-        card(mL, y, contentW, cardH, { borderLeft: s.bonus ? PDF_ORANGE : PDF_CYAN });
-        doc.font('PT-Sans-Bold').fontSize(12).fillColor(s.bonus ? PDF_ORANGE : PDF_INK).text(s.title, mL + 18, y + 12, { width: contentW - 40 });
-        doc.font('PT-Sans').fontSize(10).fillColor(PDF_INK_DIM).text(s.body, mL + 18, doc.y + 4, { width: contentW - 40 });
-        y += cardH + 12;
+      steps.forEach((step,index)=>{
+        doc.font('PT-Sans').fontSize(10).fillColor(PDF_INK_DIM).text(`${index+1}. ${step}`,mL,y,{width:contentW});
+        y=doc.y+10;
       });
 
       // ---- Фінальний CTA ----
       const ctaTitle = 'Перетворіть результати перевірки на план дій';
-      const ctaBody = 'Кроки вище можна застосувати самостійно вже сьогодні — усе прозоро й покроково. А якщо ' +
-        'хочете системного результату без витрат часу на це самим — Top Marketing може взяти SEO та GEO-просування ' +
-        'в AI-системах на себе.';
+      const ctaBody = 'Top Marketing допоможе розібрати результати й визначити пріоритетні дії для вашого сайту.';
       doc.font('PT-Sans').fontSize(10.5);
       const ctaBodyH = doc.heightOfString(ctaBody, { width: contentW - 40 });
       const ctaH = 30 + ctaBodyH + 40;
@@ -1714,10 +1652,10 @@ app.post('/api/sendpulse-report', async (req, res) => {
           ? 'У цій перевірці бренд має помітну AI-видимість. Зверніть увагу на різницю між впізнаванням назви та рекомендаціями за запитами клієнтів.'
           : 'У цій перевірці бренд отримав високий бал AI-видимості. Перегляньте відповіді кожної системи, щоб зрозуміти, де позиції найсильніші.';
     const details = report.recommendations ? recommendationSummary(report.recommendations) : interpretation;
-    const reportSummary = `Ваш звіт для «${String(report.brand).slice(0,100)}» готовий.\n\nЗнання бренду: ${score ?? '—'}/100\n\n${details}\n\nЗнання бренду та рекомендації оцінюються окремо. Повний розбір - у PDF.`;
+    const reportSummary = `Ваш звіт для «${String(report.brand).slice(0,100)}» готовий.\n\nЗнання бренду: ${score ?? '—'}/100 - ${assessmentStatus(score).label}\n\n${details}\n\nЗнання бренду та рекомендації оцінюються окремо. Повний розбір - у PDF.`;
 
     const reportGuide = 'З чого почати\n\n1. Перегляньте, що кожна AI-система говорить про ваш бренд.\n2. Порівняйте впізнавання назви з рекомендаціями за нішевими запитами.\n3. Подивіться, яких конкурентів називає AI, і виберіть перші дії з рекомендацій у PDF.\n\nХочете визначити пріоритети для свого бізнесу? Напишіть «Розібрати звіт» — обговоримо результат і наступні кроки.';
-    res.json({ ok: true, score: report.score, brand: report.brand, tier, pdfUrl, reportSummary, reportGuide, recognitionScore:report.recognitionScore ?? report.score, recommendationScore:report.recommendationScore ?? report.recommendations?.score ?? null, recommendations:report.recommendations || null });
+    res.json({ ok: true, score: report.score, brand: report.brand, tier, pdfUrl, reportSummary, reportGuide, recognitionScore:report.recognitionScore ?? report.score, recognitionStatus:assessmentStatus(report.recognitionScore ?? report.score).label,recommendationStatus:assessmentStatus(report.recommendationScore ?? report.recommendations?.score,'recommendation').label,recommendationScore:report.recommendationScore ?? report.recommendations?.score ?? null, recommendations:report.recommendations || null });
   } catch (err) {
     console.error('Помилка /api/sendpulse-report:', err);
     res.status(500).json({ ok: false, error: 'Внутрішня помилка сервера' });
