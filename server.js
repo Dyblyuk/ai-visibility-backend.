@@ -599,7 +599,7 @@ async function runDiscoveryQuery(query, brand, website = '') {
 
 async function scanEngine(brand,niche,engine,website) {
   const caller=ENGINE_CALLERS[engine];
-  const cacheKey=JSON.stringify(['knowledge-v6',engine,brand.trim().toLowerCase(),niche||'',website||'',ANALYSIS_MODEL]);
+  const cacheKey=JSON.stringify(['knowledge-v7',engine,brand.trim().toLowerCase(),niche||'',website||'',ANALYSIS_MODEL]);
   const cached=engineCheckCache.get(cacheKey);
   if(cached)return {...cached,cached:true};
   return inFlight(cacheKey,async()=>{
@@ -1494,8 +1494,8 @@ app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     analysisVersion: 3,
-    queryPlannerVersion: 3,
-    recommendationPromptVersion: 3, knowledgeVersion: 5,
+    queryPlannerVersion: 4,
+    recommendationPromptVersion: 3, knowledgeVersion: 7,
     performanceVersion:3,
     reportLayoutVersion:6,discoveryQueryCount:DISCOVERY_QUERY_COUNT,
     models:{chatgpt:OPENAI_MODEL,gemini:GEMINI_MODEL,perplexity:"sonar",claude:CLAUDE_MODEL,analysis:ANALYSIS_MODEL},

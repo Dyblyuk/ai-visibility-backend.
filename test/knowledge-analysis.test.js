@@ -41,3 +41,10 @@ test('repeating user context after explicitly denying knowledge is not independe
  const result=parseKnowledge(JSON.stringify({...base,identityMatch:'ambiguous',knowledgeBasis:'user_context',explicitlyUnknown:true,evidence:'Не чув про цей заклад.'}),answer);
  assert.equal(result.verdict,'unknown');
 });
+
+test('evidence IDs select original provider text and cannot invent or rewrite quotes',()=>{
+ const answer='**ZHAK Medical** — медичний центр.[1]\n\nФізіотерапія та масаж в Обухові.[2]';
+ const result=parseKnowledge(JSON.stringify({...base,evidenceId:1,evidence:'invented text'}),answer);
+ assert.equal(result.snippet,'Фізіотерапія та масаж в Обухові.[2]');
+ for(const evidenceId of [-1,2,'1'])assert.throws(()=>parseKnowledge(JSON.stringify({...base,evidenceId}),answer));
+});
