@@ -1,3 +1,4 @@
+import {assessmentStatus} from './assessment-status.js';
 // Recommendations are measured from unbranded answers, never a separate market search.
 export const ENGINE_LABELS = { chatgpt: 'ChatGPT', claude: 'Claude', gemini: 'Gemini', perplexity: 'Perplexity' };
 const norm = value => String(value || '').normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -33,7 +34,7 @@ export function extractionPrompt(query, target, answers) {
 stance: recommended (конкретний варіант для вибору, у тому числі учасник позитивної добірки), mentioned (нейтральна згадка), negative (не радить).
 Не зараховуй заперечення, повтор запиту, приклад, перелік виключень чи сайт-джерело статті як рекомендацію. Умовна позитивна рекомендація під задачу клієнта зараховується.
 companies — усі названі варіанти (до 8), плюс цільовий бренд, якщо згаданий. Якщо немає — [].
-name — точна назва з відповіді. website — лише явно наведений сайт ЦІЄЇ компанії, інакше null. Не вигадуй домен з назви. evidence — дослівний неперервний уривок відповіді з назвою та контекстом рекомендації (до 500 символів); якщо вказано website, він теж має бути у цьому уривку. Не переставляй і не переписуй слова.
+name — точна назва з відповіді. website — лише явно наведений сайт ЦІЄЇ компанії, інакше null. Не вигадуй домен з назви. evidence — дослівний неперервний уривок відповіді з назвою та контекстом рекомендації (до 220 символів); якщо вказано website, він теж має бути у цьому уривку. Не переставляй і не переписуй слова.
 complete:false — лише якщо неможливо однозначно розібрати відповідь. Поверни ТІЛЬКИ JSON {"engines":{"chatgpt":{...},...}} без Markdown.
 ${JSON.stringify({ query, target, answers })}`;
 }
@@ -111,21 +112,21 @@ export function summarizeRecommendations(zones = [], brand = '', website = '') {
     }
     const rate = count => checked ? Math.round(100*count/checked) : null;
     byEngine[key] = { label, total:zones.length, checked, unavailable:zones.length-checked, recommended:hits,
-      score:rate(hits), brandScore:rate(brandHits), websiteScore:target.host ? rate(websiteHits) : null, queryResults };
+      score:rate(hits), status:assessmentStatus(rate(hits),'recommendation').label, brandScore:rate(brandHits), websiteScore:target.host ? rate(websiteHits) : null, queryResults };
     totalSuccessful += checked; totalRecommended += hits;
   }
   return { version:2, website:target.host, queryCount:zones.length, totalSuccessful, totalRecommended,
-    score:totalSuccessful ? Math.round(100*totalRecommended/totalSuccessful) : null, byEngine,
+    score:totalSuccessful ? Math.round(100*totalRecommended/totalSuccessful) : null, status:assessmentStatus(totalSuccessful?Math.round(100*totalRecommended/totalSuccessful):null,'recommendation').label, byEngine,
     competitors:[...competitors.values()].sort((a,b)=>b.occurrences.length-a.occurrences.length) };
 }
 
 export function knowledgeScore(engine) {
-  if (engine.error || engine.classifierError) return null;
-  return {know:100,confused:50,unknown:0}[engine.verdict] ?? (engine.hit ? 100 : 0);
+  if (engine.error || engine.classifierError || engine.verdict==='unavailable') return null;
+  return {know:100,confused:50,unknown:0}[engine.verdict] ?? (engine.hit === true ? 100 : engine.hit === false ? 0 : null);
 }
 export function enrichReport(report) {
   const recommendations = summarizeRecommendations(report.zoneOfInvisibility || [], report.brand, report.website);
-  const engines = (report.engines || []).map(engine=>({...engine,knowledgeScore:knowledgeScore(engine)}));
+  const engines = (report.engines || []).map(engine=>({...engine,knowledgeScore:knowledgeScore(engine),knowledgeStatus:assessmentStatus(knowledgeScore(engine)).label}));
   const validEngines = engines.filter(engine=>engine.knowledgeScore !== null);
   const recognitionScore = validEngines.length ? Math.round(validEngines.reduce((sum,engine)=>sum+engine.knowledgeScore,0)/validEngines.length) : null;
   const issues = [];
@@ -134,10 +135,10 @@ export function enrichReport(report) {
   if(unavailable) issues.push(`Для ${unavailable} відповідей бракує надійних даних; їх не враховано в оцінці рекомендацій.`);
   // Legacy score stays usable in SendPulse but now means recognition only.
   // There is deliberately no composite score mixing these two measurements.
-  return {...report,reportVersion:3,engines,score:recognitionScore,recognitionScore,recommendationScore:recommendations.score,recommendations,issues};
+  return {...report,reportVersion:4,engines,score:recognitionScore,recognitionScore,recognitionStatus:assessmentStatus(recognitionScore).label,recommendationStatus:recommendations.status,recommendationScore:recommendations.score,recommendations,issues};
 }
 export function recommendationSummary(summary) {
   if (!summary?.totalSuccessful) return 'Рекомендації: немає достатніх даних для оцінки.';
   const missing=summary.queryCount*4-summary.totalSuccessful;
-  return `Рекомендації: ${summary.score}/100\nРекомендують у ${summary.totalRecommended} з ${summary.totalSuccessful} перевірених відповідей за ${summary.queryCount} запитами.${missing ? `\nБез даних: ${missing} відповідей.` : ''}\n\nУ PDF: основні запити клієнтів і конкуренти, яких кожна AI рекомендує замість вас.`;
+  return `Рекомендації: ${summary.score}/100 - ${assessmentStatus(summary.score,'recommendation').label}\nРекомендують у ${summary.totalRecommended} з ${summary.totalSuccessful} перевірених відповідей за ${summary.queryCount} запитами.${missing ? `\nБез даних: ${missing} відповідей.` : ''}\n\nУ PDF: основні запити клієнтів і конкуренти, яких кожна AI рекомендує замість вас.`;
 }

@@ -691,7 +691,7 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
   </div>
 
   <section class="hero">
-    <span class="hero-badge">Безкоштовно · без картки · за хвилину</span>
+    <span class="hero-badge">Безкоштовно · без картки · 2 основні запити</span>
     <h1>Дізнайтесь, чи <span class="accent">AI</span> реально знає і радить ваш бізнес</h1>
     <p class="hero-sub">ChatGPT, Claude, Gemini і Perplexity вже радять ваших конкурентів. Перевірте свою видимість на кожній із цих платформ:</p>
     <ul class="hero-benefits">
@@ -733,14 +733,14 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
 
       <button type="submit" class="btn-scan" id="scanBtn">Перевірити →</button>
     </form>
-    <div class="hero-helper">Перевірка безкоштовна. Повний PDF-звіт отримаєте в Telegram після передачі контакту.</div>
+    <div class="hero-helper">Перевірка безкоштовна. Повний PDF-звіт отримаєте в Telegram після того, як поділитеся контактом.</div>
 
     <div class="hero-meta">Кілька реальних запитів · 4 AI-системи (ChatGPT, Claude, Gemini, Perplexity) · кілька хвилин</div>
   </section>
 
   <section class="scan-status" id="scanStatus" hidden>
     <div class="scan-status-title" id="scanStatusTitle">Питаю AI…</div>
-    <div class="scan-status-sub">Це займає кілька хвилин. Не закривайте сторінку — далі найцікавіше.</div>
+    <div class="scan-status-sub">Перевіряємо чотири AI паралельно. Час залежить від швидкості їхніх відповідей.</div>
     <div id="statusList"></div>
   </section>
 
@@ -841,7 +841,7 @@ src="https://www.facebook.com/tr?id=297361415966498&ev=PageView&noscript=1"
     <p class="gate-error" id="gateError" role="alert" hidden></p>
     <a id="telegramLink" class="gate-cta" target="_blank" rel="noopener" aria-disabled="true">Отримати звіт у Telegram <span aria-hidden="true">↗</span></a>
     <button id="gateRetry" class="gate-cta" type="button" hidden>Спробувати ще раз</button>
-    <p class="gate-note">У боті натисніть «Старт» і поділіться номером телефону.<br>Після цього отримаєте свій PDF-звіт.</p>
+    <p class="gate-note">У боті натисніть «Старт» і поділіться контактом.<br>Після цього отримаєте свій PDF-звіт.</p>
   </section>
 
   <footer>
@@ -1022,31 +1022,27 @@ async function runLiveScan(name, niche, website){
   scanStatusEl.scrollIntoView({behavior:'smooth', block:'start'});
 
   setRowActive('st-recognize');
-  await new Promise(r => setTimeout(r, 350));
+
   setRowDone('st-recognize', 'done-hit', '');
 
-  // Невелика затримка перед запуском зони невидимості — щоб виклики до
-  // Claude (пряма перевірка + визначення ніші, якщо вона порожня) не
-  // стартували абсолютно одночасно й не ловили ліміт швидкості разом.
-  const discoveryQueriesPromise = new Promise(resolve => setTimeout(resolve, 900)).then(() => fetchDiscoveryQueries(name, niche, website));
+  // План запитів і знання бренду перевіряємо паралельно.
+  const discoveryQueriesPromise = fetchDiscoveryQueries(name, niche, website).catch(()=>({queries:[],querySource:'unavailable'}));
 
   const enginePromises = ENGINE_DEFS_LIVE.map(async (e) => {
     const id = 'st-' + e.key;
     setRowActive(id);
     try{
       const result = await fetchScanEngine(name, niche, e.key, website);
-      if(result.error){
+      if(result.error || result.classifierError || result.verdict === 'unavailable'){
         setRowDone(id, 'done-err', 'помилка');
-        return { ...e, verdict: 'unknown', error: result.error };
+        return { ...e, ...result, verdict:'unavailable',score:null };
       }
       const verdict = result.verdict || (result.hit ? 'know' : 'unknown');
-      const stateMap = { know: 'done-hit', confused: 'done-mid', unknown: 'done-miss' };
-      const labelMap = { know: 'знає', confused: 'плутає', unknown: 'не чув' };
       setRowDone(id, 'done-hit', 'перевірено');
-      return { ...e, verdict, hit: verdict === 'know', snippet: result.snippet, score: result.score ?? 0, classifierError:result.classifierError || null };
+      return { ...e, ...result, verdict, hit:verdict==='know', score:result.score ?? null };
     } catch(err){
       setRowDone(id, 'done-err', 'недоступно');
-      return { ...e, verdict: 'unknown', error: String(err) };
+      return { ...e, verdict: 'unavailable', score:null, error: String(err) };
     }
   });
 
@@ -1081,11 +1077,11 @@ async function runLiveScan(name, niche, website){
   setRowDone('st-zone', 'done-hit', 'перевірено');
 
   setRowActive('st-score');
-  await new Promise(r => setTimeout(r, 300));
+
   setRowDone('st-score', 'done-hit', '');
 
   setRowActive('st-assemble');
-  await new Promise(r => setTimeout(r, 300));
+
   setRowDone('st-assemble', 'done-hit', '');
 
   return { engines, zoneOfInvisibility, effectiveNiche, nicheWasInferred, queryPlan:discoveryData };
@@ -1146,7 +1142,7 @@ form.addEventListener('submit', async function(e){
     }
   }
 
-  if (!usedReal || engines.every(engine => engine.error)) {
+  if (!usedReal || engines.every(engine => engine.error || engine.classifierError || engine.verdict==='unavailable')) {
     showGateError('AI-системи тимчасово недоступні. Спробуйте повторити перевірку трохи пізніше.', true);
     btn.disabled = false;
     return;
@@ -1155,7 +1151,7 @@ form.addEventListener('submit', async function(e){
   // Scores and findings are computed on the server from observed answers.
   reportPayload = {
     brand:name, niche, website,
-    engines:engines.map(engine=>({key:engine.key, label:engine.label, verdict:engine.verdict || (engine.hit?'know':'unknown'), hit:!!engine.hit, snippet:engine.snippet || '', error:engine.error || null, classifierError:engine.classifierError || null})),
+    engines:engines.map(engine=>({key:engine.key, label:engine.label, verdict:engine.verdict || (engine.hit?'know':'unknown'), hit:!!engine.hit, snippet:engine.snippet || '', error:engine.error || null, classifierError:engine.classifierError || null,reason:engine.reason || '',rawText:engine.rawText || '',model:engine.model,searchMode:engine.searchMode,checkedAt:engine.checkedAt,timings:engine.timings})),
     zoneOfInvisibility, queryPlan
   };
   await saveReportAndShowGate();

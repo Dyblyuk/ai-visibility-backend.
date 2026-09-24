@@ -15,7 +15,7 @@ globalThis.fetch=async(url,options)=>{
  if(String(url).includes('openai.com'))return Response.json({output_text:raw});
  if(String(url).includes('googleapis.com'))return Response.json({candidates:[{content:{parts:[{text:raw}]}}]});
  if(String(url).includes('perplexity.ai'))return Response.json({choices:[{message:{content:raw}}]});
- if(String(url).includes('anthropic.com'))return Response.json({content:[{type:'text',text:body.max_tokens===2200?JSON.stringify(queryPlan):body.max_tokens===7000?JSON.stringify({engines:{chatgpt:extracted,claude:extracted,gemini:extracted,perplexity:extracted}}):raw}]});
+ if(String(url).includes('anthropic.com'))return Response.json({content:[{type:'text',text:body.max_tokens===2200?JSON.stringify(queryPlan):body.max_tokens===4000?JSON.stringify({engines:{chatgpt:extracted,claude:extracted,gemini:extracted,perplexity:extracted}}):raw}]});
  throw new Error('Unexpected external request: '+url);
 };
 test('discovery -> stored report -> SendPulse summary/PDF preserves per-AI evidence and cached scores',async()=>{
@@ -24,14 +24,14 @@ test('discovery -> stored report -> SendPulse summary/PDF preserves per-AI evide
  const post=async(path,body)=>{const r=await fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});assert.equal(r.status,200);return r.json();};
  try {
   const plan=await post('/api/discovery-queries',{brand:'Acme',website:'127.0.0.1',niche:'SEO, Київ'});
-  assert.equal(plan.querySource,'company_profile');assert.equal(plan.queries.length,3);
+  assert.equal(plan.querySource,'company_profile');assert.equal(plan.queries.length,2);
   const query=plan.queries[0];
   const zone=await post('/api/zone-query',{brand:'Acme',website:'acme.ua',query});
-  assert.equal(zone.analysisVersion,2);assert.match(zone.requestPrompt,/Порадь 3–5 конкретних компаній/);assert.ok(!zone.requestPrompt.includes('Acme'));assert.deepEqual(zone.competitors,['Beta']);
+  assert.equal(zone.analysisVersion,2);assert.match(zone.requestPrompt,/Порадь до 3 конкретних компаній/);assert.ok(!zone.requestPrompt.includes('Acme'));assert.deepEqual(zone.competitors,['Beta']);
   for(const value of Object.values(zone.engines)){assert.equal(value.brandRecommended,true);assert.equal(value.websiteRecommended,true);assert.equal(value.rawText,raw);}
   // Four independent unbranded answers plus one extraction; no market search.
   assert.equal(calls.length,6);
-  for(const call of calls.filter(call=>call.body.max_tokens!==7000&&call.body.max_tokens!==2200))assert.ok(!JSON.stringify(call.body).includes('Acme'));
+  for(const call of calls.filter(call=>call.body.max_tokens!==4000&&call.body.max_tokens!==2200))assert.ok(!JSON.stringify(call.body).includes('Acme'));
   const cached=await post('/api/zone-query',{brand:'Acme',website:'acme.ua',query});assert.equal(calls.length,6);assert.equal(cached.engines.chatgpt.cached,true);
   const saved=await post('/api/save-report',{brand:'Acme',website:'acme.ua',niche:'SEO, Київ',score:5,engines:[{label:'ChatGPT',verdict:'know'}],zoneOfInvisibility:[zone],queryPlan:plan});
   const report=await post('/api/sendpulse-report',{token:saved.token});

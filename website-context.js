@@ -12,22 +12,26 @@ export function extractSiteText(html) {
  const body=html.replace(/<(script|style|noscript|svg)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,' ').replace(/<[^>]+>/g,' ');
  return (metas+' '+body).replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#(?:39|x27);/gi,"'").replace(/\s+/g,' ').trim().slice(0,24000);
 }
-export async function fetchSiteContext(website, redirects=0) {
+export async function fetchSiteContext(website, redirects=0,deadline=Date.now()+3500) {
  const url=new URL(/^https?:\/\//i.test(website)?website:`https://${website}`);
  if(url.protocol!=='https:'||url.username||url.password||(url.port&&url.port!=='443')||!url.hostname.includes('.'))throw Error('Unsupported site address');
  // Pin the request to a checked public IPv4 address, including on redirects.
- const addresses=await lookup(url.hostname,{family:4,all:true});
+ const remaining=()=>{const ms=deadline-Date.now();if(ms<=0)throw Error('Site timeout');return ms;};
+ let dnsTimer;
+ let addresses;
+ try {addresses=await Promise.race([lookup(url.hostname,{family:4,all:true}),new Promise((_,reject)=>{dnsTimer=setTimeout(()=>reject(Error('Site DNS timeout')),remaining());})]);}
+ finally {clearTimeout(dnsTimer);}
  if(!addresses.length||addresses.some(item=>!publicIPv4(item.address)))throw Error('Site address is not public');
  const chosen=addresses[0];
  const response=await new Promise((resolve,reject)=>{
-  const request=https.get(url,{headers:{'User-Agent':'TopMarketing-Visibility/3.1','Accept':'text/html,text/plain'},lookup:(host,opts,cb)=>opts.all?cb(null,[chosen]):cb(null,chosen.address,4)},res=>{
+  const request=https.get(url,{signal:AbortSignal.timeout(remaining()),headers:{'User-Agent':'TopMarketing-Visibility/3.1','Accept':'text/html,text/plain'},lookup:(host,opts,cb)=>opts.all?cb(null,[chosen]):cb(null,chosen.address,4)},res=>{
    const chunks=[];let size=0;
    res.on('data',chunk=>{size+=chunk.length;if(size>600000){request.destroy(Error('Site too large'));return;}chunks.push(chunk);});
    res.on('error',reject);res.on('end',()=>resolve({status:res.statusCode,location:res.headers.location,type:res.headers['content-type']||'',body:Buffer.concat(chunks).toString('utf8')}));
   });
-  request.setTimeout(12000,()=>request.destroy(Error('Site timeout')));request.on('error',reject);
+  request.setTimeout(remaining(),()=>request.destroy(Error('Site timeout')));request.on('error',reject);
  });
- if([301,302,303,307,308].includes(response.status)&&response.location&&redirects<3)return fetchSiteContext(new URL(response.location,url).href,redirects+1);
+ if([301,302,303,307,308].includes(response.status)&&response.location&&redirects<3)return fetchSiteContext(new URL(response.location,url).href,redirects+1,deadline);
  if(response.status!==200||!/text\/(html|plain)/i.test(response.type))throw Error('Site content unavailable');
  const text=extractSiteText(response.body);if(text.length<40)throw Error('Site has insufficient text');
  return {url:url.href,text};
