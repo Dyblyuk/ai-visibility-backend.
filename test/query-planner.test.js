@@ -17,5 +17,5 @@ test('unverified or branded-only plans cannot masquerade as customer queries',()
 });
 test('planner requires specific services and respects supplied geography',()=>{
  const prompt=queryPlanPrompt('Acme','acme.ua','Стоматологія, Львів',5);
- assert.ok(prompt.includes('офіційний сайт'));assert.ok(prompt.includes('Стоматологія, Львів'));assert.ok(prompt.includes('Не роби кілька перефразувань'));
+ assert.ok(prompt.includes('Це достатня основа для verified=true'));assert.ok(queryPlanPrompt('Acme','acme.ua','').includes('офіційний сайт'));assert.ok(prompt.includes('Стоматологія, Львів'));assert.ok(prompt.includes('Не роби кілька перефразувань'));
 });

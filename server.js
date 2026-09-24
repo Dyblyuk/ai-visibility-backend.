@@ -135,19 +135,8 @@ function buildQueries(brand, niche, website = '') {
 function buildDiscoveryQueries(niche) {
   const n = niche && niche.trim() ? niche.trim() : null;
   if (!n) return [];
-  // Різні формулювання — так реально гуглять і питають AI: хтось шукає
-  // "найкращі варіанти", хтось "де замовити", хтось перевіряє відгуки.
-  // Ширший набір формулювань ловить більше реальних клієнтських фраз.
-  const templates = [
-    `Порадь кілька найкращих варіантів: ${n}. Назви конкретні компанії чи бренди.`,
-    `Де знайти або замовити ${n}? Порадь 3-5 конкретних варіантів.`,
-    `Хто топові гравці у сфері «${n}»? Перелічи компанії чи бренди.`,
-    `Хто надає послуги «${n}» з хорошими відгуками? Порадь перевірені варіанти.`,
-    `Порівняй кілька компаній у сфері «${n}» — кого порадиш і чому?`,
-    `Яку компанію обрати для «${n}»? Дай конкретні назви з коротким поясненням.`
-  ];
-  return templates.slice(0, Math.max(1, Math.min(DISCOVERY_QUERY_COUNT, templates.length)))
-    .map(query => query + ' Для кожного варіанта коротко поясни вибір і вкажи офіційний сайт, якщо знаєш. Відповідай українською.');
+  // Explicit fallback when a service-specific plan is unavailable.
+  return [`Кого порадите: ${n}?`, `Які компанії порівняти за послугами та відгуками: ${n}?`].slice(0,DISCOVERY_QUERY_COUNT);
 }
 
 // Проста перевірка збігу назви — потрібна лише для витягу цитати
@@ -610,7 +599,7 @@ async function runDiscoveryQuery(query, brand, website = '') {
 
 async function scanEngine(brand,niche,engine,website) {
   const caller=ENGINE_CALLERS[engine];
-  const cacheKey=JSON.stringify(['knowledge-v5',engine,brand.trim().toLowerCase(),niche||'',website||'',ANALYSIS_MODEL]);
+  const cacheKey=JSON.stringify(['knowledge-v6',engine,brand.trim().toLowerCase(),niche||'',website||'',ANALYSIS_MODEL]);
   const cached=engineCheckCache.get(cacheKey);
   if(cached)return {...cached,cached:true};
   return inFlight(cacheKey,async()=>{
@@ -653,7 +642,7 @@ app.post('/api/scan-engine',async(req,res)=>{
 // пошук.
 const queryPlanCache=makeCache(NICHE_CACHE_TTL_MS,500);
 async function planCustomerQueries(brand,niche='',website='') {
-  const key=JSON.stringify(['query-plan-v3',brand,niche,website,DISCOVERY_QUERY_COUNT]);
+  const key=JSON.stringify(['query-plan-v4',brand,niche,website,DISCOVERY_QUERY_COUNT]);
   const started=Date.now();
   const cached=queryPlanCache.get(key);
   if(cached)return {...cached,cached:true};
@@ -664,7 +653,7 @@ async function planCustomerQueries(brand,niche='',website='') {
     if(sourceWebsite)try {siteContext=await fetchSiteContext(sourceWebsite);} catch(error) {console.warn('Site context:',error.message);}
     const response=await fetchWithRetry('https://api.anthropic.com/v1/messages',{
       method:'POST',headers:{'Content-Type':'application/json','x-api-key':ANTHROPIC_API_KEY,'anthropic-version':'2023-06-01'},
-      body:JSON.stringify({model:ANALYSIS_MODEL,max_tokens:2200,messages:[{role:'user',content:queryPlanPrompt(brand,website,niche,DISCOVERY_QUERY_COUNT,siteContext)}],...(siteContext?.text?.length>=200?{}:{tools:[{type:'web_search_20250305',name:'web_search',max_uses:1}]})})
+      body:JSON.stringify({model:ANALYSIS_MODEL,max_tokens:2200,messages:[{role:'user',content:queryPlanPrompt(brand,website,niche,DISCOVERY_QUERY_COUNT,siteContext)}],...((siteContext?.text?.length>=200||niche.trim())?{}:{tools:[{type:'web_search_20250305',name:'web_search',max_uses:1}]})})
     }, PLAN_TIMEOUT_MS);
     if(!response.ok)throw Error(`Query planner HTTP ${response.status}`);
     const data=await response.json();

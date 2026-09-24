@@ -27,3 +27,17 @@ test('ZHAK Medical description is known or partially known, never unknown despit
   assert.equal(result.verdict,expected);assert.ok(knowledgeScore(result)>0);
  }
 });
+
+test('formatting and source markers do not invalidate otherwise verbatim knowledge evidence',()=>{
+ const answer='**ZHAK Medical** — це приватний центр.[1] У них є **фізіотерапія** та масаж.[1][3]';
+ const evidence='ZHAK Medical — це приватний центр. У них є фізіотерапія та масаж.';
+ assert.equal(parseKnowledge(JSON.stringify({...base,evidence}),answer).verdict,'know');
+ assert.throws(()=>parseKnowledge(JSON.stringify({...base,evidence:'ZHAK Medical — це найбільший центр. У них є фізіотерапія та масаж.'}),answer));
+ assert.throws(()=>parseKnowledge(JSON.stringify({...base,evidence:'ZHAK Medical У них є масаж.'}),answer));
+});
+
+test('repeating user context after explicitly denying knowledge is not independent knowledge',()=>{
+ const answer='Не чув про цей заклад. Судячи з вашого опису, це сімейна медицина в Обухові.';
+ const result=parseKnowledge(JSON.stringify({...base,identityMatch:'ambiguous',knowledgeBasis:'user_context',explicitlyUnknown:true,evidence:'Не чув про цей заклад.'}),answer);
+ assert.equal(result.verdict,'unknown');
+});
