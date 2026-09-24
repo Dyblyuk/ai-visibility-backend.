@@ -33,7 +33,7 @@ export function extractionPrompt(query, target, answers) {
 stance: recommended (конкретний варіант для вибору, у тому числі учасник позитивної добірки), mentioned (нейтральна згадка), negative (не радить).
 Не зараховуй заперечення, повтор запиту, приклад, перелік виключень чи сайт-джерело статті як рекомендацію. Умовна позитивна рекомендація під задачу клієнта зараховується.
 companies — усі названі варіанти (до 8), плюс цільовий бренд, якщо згаданий. Якщо немає — [].
-name — точна назва з відповіді. website — лише явно наведений сайт ЦІЄЇ компанії, інакше null. Не вигадуй домен з назви. evidence — дослівний неперервний уривок відповіді з назвою та контекстом рекомендації (до 500 символів); якщо вказано website, він теж має бути у цьому уривку. Не переставляй і не переписуй слова.
+name — точна назва з відповіді. website — лише явно наведений сайт ЦІЄЇ компанії, інакше null. Не вигадуй домен з назви. evidence — дослівний неперервний уривок відповіді з назвою та контекстом рекомендації (до 220 символів); якщо вказано website, він теж має бути у цьому уривку. Не переставляй і не переписуй слова.
 complete:false — лише якщо неможливо однозначно розібрати відповідь. Поверни ТІЛЬКИ JSON {"engines":{"chatgpt":{...},...}} без Markdown.
 ${JSON.stringify({ query, target, answers })}`;
 }
@@ -120,8 +120,8 @@ export function summarizeRecommendations(zones = [], brand = '', website = '') {
 }
 
 export function knowledgeScore(engine) {
-  if (engine.error || engine.classifierError) return null;
-  return {know:100,confused:50,unknown:0}[engine.verdict] ?? (engine.hit ? 100 : 0);
+  if (engine.error || engine.classifierError || engine.verdict==='unavailable') return null;
+  return {know:100,confused:50,unknown:0}[engine.verdict] ?? (engine.hit === true ? 100 : engine.hit === false ? 0 : null);
 }
 export function enrichReport(report) {
   const recommendations = summarizeRecommendations(report.zoneOfInvisibility || [], report.brand, report.website);

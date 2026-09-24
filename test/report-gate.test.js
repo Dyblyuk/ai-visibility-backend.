@@ -6,14 +6,14 @@ const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const mainScript = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
 const tick = () => new Promise(resolve=>setTimeout(resolve,10));
 async function waitUntil(fn) { for(let n=0;n<100;n++) { if(fn()) return; await tick(); } throw new Error('UI did not settle'); }
-function setup({saveFails=false, enginesFail=false, badUrl=false}={}) {
+function setup({saveFails=false, enginesFail=false, badUrl=false,classifiersFail=false}={}) {
  const dom = new JSDOM(html,{runScripts:'outside-only',url:'https://services.topmarketing.com.ua/'});
  const w=dom.window;let saveCount=0,engineCount=0;
  w.scrollTo=()=>{};w.HTMLElement.prototype.scrollIntoView=()=>{};
  const timeout=w.setTimeout.bind(w);w.setTimeout=(fn)=>timeout(fn,1);
  w.console.warn=()=>{};
  w.fetch=async(url,opts)=>{
-  if(url.endsWith('/api/scan-engine')) {engineCount++;return {ok:true,json:async()=>enginesFail?{error:'Offline'}:{verdict:'know',score:63,snippet:'Test'}};}
+  if(url.endsWith('/api/scan-engine')) {engineCount++;return {ok:true,json:async()=>enginesFail?{error:'Offline'}:classifiersFail?{verdict:'unavailable',classifierError:'timeout',score:null}:{verdict:'know',score:63,snippet:'Test'}};}
   if(url.endsWith('/api/discovery-queries')) return {ok:true,json:async()=>({queries:[]})};
   if(url.endsWith('/api/save-report')) {
    saveCount++;
@@ -66,5 +66,12 @@ test('untrusted delivery URL is not presented to users',async()=>{
  const t=setup({badUrl:true});try{
  t.submit();await waitUntil(()=>!t.w.document.getElementById('gateRetry').hidden);
  assert.equal(t.w.document.getElementById('telegramLink').hasAttribute('href'),false);
+ }finally{t.dom.window.close();}
+});
+
+test('classifier outages do not present a completed knowledge report',async()=>{
+ const t=setup({classifiersFail:true});try{
+ t.submit();await waitUntil(()=>!t.w.document.getElementById('gateRetry').hidden);
+ assert.equal(t.counts().saveCount,0);assert.equal(t.w.document.getElementById('gateTitle').textContent,'Не вдалося завершити перевірку');
  }finally{t.dom.window.close();}
 });
