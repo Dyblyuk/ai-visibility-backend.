@@ -19,3 +19,11 @@ test('hallucinated evidence or incomplete extraction cannot become a knowledge s
  assert.equal(knowledgeScore({verdict:'unavailable'}),null);assert.equal(knowledgeScore({}),null);
  const r=enrichReport({engines:[{verdict:'know'},{verdict:'unavailable'}]});assert.equal(r.recognitionScore,100);
 });
+
+test('ZHAK Medical description is known or partially known, never unknown despite an access disclaimer',()=>{
+ const answer='**ZHAK Medical** («ЖАК Медікал») — це приватний медичний центр / кабінет сімейної та реабілітаційної медицини, розташований у м. Обухів (Київська область). Не можу відкрити сайт у реальному часі.';
+ for(const [identityMatch,expected] of [['same','know'],['ambiguous','confused']]){
+  const result=parseKnowledge(JSON.stringify({identityMatch,hasConcreteFacts:true,explicitlyUnknown:false,evidence:answer.split(' Не можу')[0],reason:'Наведено конкретні послуги та місто.'}),answer);
+  assert.equal(result.verdict,expected);assert.ok(knowledgeScore(result)>0);
+ }
+});

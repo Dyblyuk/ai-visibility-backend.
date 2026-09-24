@@ -16,11 +16,10 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
-import PDFDocument from 'pdfkit';
 import multer from 'multer';
 import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { drawRecommendations } from './recommendation-pdf.js';
+import {buildCompactReport} from './compact-report.js';
 import {queryPlanPrompt,parseQueryPlan} from './query-planner.js';
 import {fetchSiteContext} from './website-context.js';
 import {fetchWithDeadline,singleFlight} from './ai-runtime.js';
@@ -102,7 +101,7 @@ const OPENAI_WEB_SEARCH_TOOL = process.env.OPENAI_WEB_SEARCH_TOOL || 'web_search
 // робиться додатковий виклик Claude, щоб витягти імена конкурентів.
 // Тримайте це число невеликим — це прямо впливає на кількість платних
 // викликів API за один скан (queries × engines × ~2).
-const DISCOVERY_QUERY_COUNT = Math.max(3,Math.min(6,Number(process.env.DISCOVERY_QUERY_COUNT) || 5));
+const DISCOVERY_QUERY_COUNT = 3;
 const DISCOVERY_ENGINES = (process.env.DISCOVERY_ENGINES || 'chatgpt,gemini,perplexity,claude')
   .split(',').map(s => s.trim()).filter(Boolean);
 
@@ -608,7 +607,7 @@ async function runDiscoveryQuery(query, brand, website = '') {
 
 async function scanEngine(brand,niche,engine,website) {
   const caller=ENGINE_CALLERS[engine];
-  const cacheKey=JSON.stringify(['knowledge-v4',engine,brand.trim().toLowerCase(),niche||'',website||'',ANALYSIS_MODEL]);
+  const cacheKey=JSON.stringify(['knowledge-v5',engine,brand.trim().toLowerCase(),niche||'',website||'',ANALYSIS_MODEL]);
   const cached=engineCheckCache.get(cacheKey);
   if(cached)return {...cached,cached:true};
   return inFlight(cacheKey,async()=>{
@@ -710,179 +709,7 @@ app.post('/api/zone-query', async (req, res) => {
 
 // Формує PDF-звіт із даних скану, які прислав фронтенд (той самий скан,
 // що вже показаний на сторінці — тут нічого заново не рахується).
-const LOGO_PATH = path.join(process.cwd(), 'assets', 'logo.png');
-const FONT_REGULAR_PATH = path.join(process.cwd(), 'assets', 'fonts', 'PTSans-Regular.ttf');
-const FONT_BOLD_PATH = path.join(process.cwd(), 'assets', 'fonts', 'PTSans-Bold.ttf');
-
-// Темна палітра, узгоджена з фірмовим сайтом Top Marketing.
-const PDF_BG = '#14181D';
-const PDF_PANEL = '#1D232B';
-const PDF_BORDER = '#333B46';
-const PDF_INK = '#EEF1F4';
-const PDF_INK_DIM = '#9AA5B1';
-const PDF_INK_FAINT = '#6B7580';
-const PDF_ORANGE = '#F5781E';
-const PDF_CYAN = '#4FD1C5';
-const PDF_RED = '#FF5A5F';
-
-function buildReportPdf(data) {
-  return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({ margin: 46, size: 'A4', bufferPages: true });
-      const chunks = [];
-      doc.on('data', (c) => chunks.push(c));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
-
-      doc.registerFont('PT-Sans', FONT_REGULAR_PATH);
-      doc.registerFont('PT-Sans-Bold', FONT_BOLD_PATH);
-      doc.font('PT-Sans');
-
-      const pageW = doc.page.width;
-      const pageH = doc.page.height;
-      const mL = doc.page.margins.left;
-      const mR = pageW - doc.page.margins.right;
-      const mB = pageH - doc.page.margins.bottom;
-      const contentW = mR - mL;
-
-      function paintBg() {
-        doc.rect(0, 0, pageW, pageH).fill(PDF_BG);
-      }
-      function newPage() {
-        doc.addPage();
-        paintBg();
-        return doc.page.margins.top;
-      }
-      function ensureSpace(y, needed) {
-        if (y + needed > mB) return newPage();
-        return y;
-      }
-      function card(x, y, w, h, opts = {}) {
-        doc.roundedRect(x, y, w, h, 6).fill(opts.bg || PDF_PANEL);
-        if (opts.borderTop) doc.rect(x, y, w, 3).fill(opts.borderTop);
-        if (opts.borderLeft) doc.rect(x, y, 3, h).fill(opts.borderLeft);
-      }
-      function pillWidth(text) {
-        doc.font('PT-Sans-Bold').fontSize(9);
-        return doc.widthOfString(text.toUpperCase()) + 22;
-      }
-      function pill(x, y, text, color) {
-        const w = pillWidth(text);
-        doc.roundedRect(x, y, w, 20, 10).lineWidth(1).stroke(color);
-        doc.font('PT-Sans-Bold').fontSize(9).fillColor(color).text(text.toUpperCase(), x + 11, y + 6);
-        return w;
-      }
-      function verdictStyle(verdict) {
-        if (verdict === 'know') return { label: 'ЗНАЄ', color: PDF_CYAN };
-        if (verdict === 'confused') return { label: 'ЧАСТКОВО ЗНАЄ', color: PDF_ORANGE };
-        return { label: 'НЕ ЗНАЄ', color: PDF_RED };
-      }
-
-      paintBg();
-
-      // ---- Шапка ----
-      try { doc.image(LOGO_PATH, mL, 42, { width: 108 }); } catch (e) {}
-      const eyebrow = 'AI-ВИДИМІСТЬ';
-      pill(mR - pillWidth(eyebrow), 46, eyebrow, PDF_ORANGE);
-
-      let y = 108;
-      doc.font('PT-Sans-Bold').fontSize(22).fillColor(PDF_INK).text(data.brand || 'Ваш бренд', mL, y, { width: contentW });
-      y = doc.y + 2;
-      doc.font('PT-Sans').fontSize(11).fillColor(PDF_INK_DIM).text('Персональний звіт AI-видимості', mL, y);
-      y = doc.y + 12;
-
-      const metaParts = [];
-      if (data.niche) metaParts.push(`Ніша: ${data.niche}`);
-      metaParts.push(`Перевірено: ${new Date().toLocaleDateString('uk-UA')}`);
-      doc.font('PT-Sans').fontSize(9).fillColor(PDF_INK_FAINT).text(metaParts.join('   ·   '), mL, y);
-      y = doc.y + 22;
-
-      // Two independent scores; never average recognition with recommendation.
-      const recognition=data.recognitionScore ?? data.score ?? null;
-      const recommendation=data.recommendationScore ?? data.recommendations?.score ?? null;
-      const half=(contentW-14)/2;
-      const scores=[{label:'ЗНАННЯ БРЕНДУ',value:recognition,note:assessmentStatus(recognition).label},{label:'РЕКОМЕНДАЦІЇ',value:recommendation,note:assessmentStatus(recommendation,'recommendation').label}];
-      y=ensureSpace(y,140);
-      scores.forEach((item,index)=>{
-        const x=mL+index*(half+14);
-        card(x,y,half,120,{borderTop:PDF_ORANGE});
-        doc.font('PT-Sans-Bold').fontSize(10).fillColor(PDF_INK).text(item.label,x+16,y+14,{width:half-32});
-        doc.font('PT-Sans-Bold').fontSize(32).fillColor(PDF_ORANGE).text(item.value===null?'—':`${item.value}/100`,x+16,y+37,{width:half-32});
-        doc.font('PT-Sans').fontSize(9).fillColor(PDF_INK_DIM).text(item.note,x+16,y+83,{width:half-32});
-      });
-      y+=138;
-      doc.font('PT-Sans').fontSize(9).fillColor(PDF_INK_DIM).text('Це два незалежні показники. AI може знати бренд, але не рекомендувати його. Знання: знає = 100, частково знає = 50, не знає = 0. Загальний бал знання - середнє доступних оцінок AI.',mL,y,{width:contentW});
-      y=doc.y+8;
-      const availableKnowledge=(data.engines||[]).filter(e=>knowledgeScore(e)!==null).length;
-      doc.font('PT-Sans').fontSize(9).fillColor(PDF_INK_DIM).text(`Оцінено ${availableKnowledge} з ${(data.engines||[]).length} AI. Недоступні перевірки не враховуються як нулі.`,mL,y,{width:contentW});
-      y=doc.y+15;
-
-      // ---- Результати по AI-системах ----
-      doc.font('PT-Sans-Bold').fontSize(14).fillColor(PDF_ORANGE);
-      y = ensureSpace(y, 24);
-      doc.text('1. Наскільки кожна AI знає бренд', mL, y);
-      y = doc.y + 10;
-
-      (data.engines || []).forEach((e) => {
-        const v = (knowledgeScore(e)===null) ? { label: 'ОЦІНКУ НЕ ОТРИМАНО', color: PDF_INK_FAINT } : verdictStyle(e.verdict || (e.hit ? 'know' : 'unknown'));
-        const short=value=>String(value||'').length>220?String(value).slice(0,217)+'…':String(value||'');
-        const quote = [e.snippet ? `«${short(e.snippet)}»` : (e.error || e.classifierError || ''),e.reason ? short(e.reason) : '',e.model ? `${e.model} · ${e.searchMode==='model_knowledge'?'без веб-пошуку':'веб-пошук увімкнено'}` : ''].filter(Boolean).join('\n');
-        doc.font('PT-Sans').fontSize(9.5);
-        const quoteH = quote ? doc.heightOfString(quote, { width: contentW - 32 }) : 0;
-        const cardH = 34 + (quote ? quoteH + 8 : 0);
-        y = ensureSpace(y, cardH + 10);
-        card(mL, y, contentW, cardH, { borderLeft: v.color });
-        doc.font('PT-Sans-Bold').fontSize(11).fillColor(PDF_INK).text(e.label, mL + 16, y + 11, { continued: true });
-        doc.font('PT-Sans-Bold').fontSize(10).fillColor(v.color).text('   ' + v.label + (knowledgeScore(e)===null ? '' : ` · ${knowledgeScore(e)}/100`));
-        if (quote) {
-          doc.font('PT-Sans').fontSize(9.5).fillColor(PDF_INK_DIM).text(quote, mL + 16, y + 30, { width: contentW - 32 });
-        }
-        y += cardH + 10;
-      });
-      y += 10;
-
-      y = drawRecommendations(doc, data, {newPage,ensureSpace,card,mL,contentW});
-
-      // Compact next steps, with no repeated findings or generic multi-page guide.
-      y=ensureSpace(y+18,230);
-      doc.font('PT-Sans-Bold').fontSize(16).fillColor(PDF_ORANGE).text('3. З чого почати',mL,y,{width:contentW});
-      y=doc.y+12;
-      const steps=[
-        'Уточніть опис компанії на сайті: послуги, географію та факти, за якими вас можна відрізнити від однойменних брендів.',
-        'Виберіть два запити з таблиці, де AI радить конкурентів. Перевірте, чи є на вашому сайті змістовні сторінки про ці послуги.',
-        'Додайте перевірювані кейси й відгуки та повторіть ті самі запити після змін. Порівнюйте однакові моделі й режими пошуку.'
-      ];
-      steps.forEach((step,index)=>{
-        doc.font('PT-Sans').fontSize(10).fillColor(PDF_INK_DIM).text(`${index+1}. ${step}`,mL,y,{width:contentW});
-        y=doc.y+10;
-      });
-
-      // ---- Фінальний CTA ----
-      const ctaTitle = 'Перетворіть результати перевірки на план дій';
-      const ctaBody = 'Top Marketing допоможе розібрати результати й визначити пріоритетні дії для вашого сайту.';
-      doc.font('PT-Sans').fontSize(10.5);
-      const ctaBodyH = doc.heightOfString(ctaBody, { width: contentW - 40 });
-      const ctaH = 30 + ctaBodyH + 40;
-      y = ensureSpace(y, ctaH + 10);
-      card(mL, y, contentW, ctaH, { bg: PDF_PANEL, borderTop: PDF_ORANGE });
-      doc.font('PT-Sans-Bold').fontSize(13).fillColor(PDF_INK).text(ctaTitle, mL + 20, y + 16, { width: contentW - 40 });
-      doc.font('PT-Sans').fontSize(10.5).fillColor(PDF_INK_DIM).text(ctaBody, mL + 20, doc.y + 6, { width: contentW - 40 });
-      doc.font('PT-Sans-Bold').fontSize(10.5).fillColor(PDF_ORANGE).text('Обговорити просування з Top Marketing  >>  topmarketing.com.ua', mL + 20, doc.y + 12);
-
-      const pages=doc.bufferedPageRange();
-      for(let page=pages.start;page<pages.start+pages.count;page++) {
-        doc.switchToPage(page);
-        const bottomMargin=doc.page.margins.bottom;
-        doc.page.margins.bottom=0;
-        doc.font('PT-Sans').fontSize(8).fillColor(PDF_INK_FAINT).text(`Top Marketing · ${page+1} / ${pages.count}`,mL,pageH-30,{width:contentW,align:'right',lineBreak:false});
-        doc.page.margins.bottom=bottomMargin;
-      }
-      doc.end();
-    } catch (err) {
-      reject(err);
-    }
-  });
-}
+const buildReportPdf = buildCompactReport;
 
 async function sendReportEmail(toEmail, pdfBuffer, meta) {
   if (!RESEND_API_KEY) return { sent: false, error: 'RESEND_API_KEY не налаштовано' };
@@ -1676,8 +1503,9 @@ app.get('/api/health', (req, res) => {
     ok: true,
     analysisVersion: 3,
     queryPlannerVersion: 2,
-    recommendationPromptVersion: 2, knowledgeVersion: 4,
-    performanceVersion:1,
+    recommendationPromptVersion: 2, knowledgeVersion: 5,
+    performanceVersion:2,
+    reportLayoutVersion:5,discoveryQueryCount:DISCOVERY_QUERY_COUNT,
     models:{chatgpt:OPENAI_MODEL,gemini:GEMINI_MODEL,perplexity:"sonar",claude:CLAUDE_MODEL,analysis:ANALYSIS_MODEL},
     deadlinesMs:{provider:PROVIDER_TIMEOUT_MS,analysis:ANALYSIS_TIMEOUT_MS,queryPlan:PLAN_TIMEOUT_MS},
     reportStorage: { kind: reportStore.kind, durable: reportStore.durable },
