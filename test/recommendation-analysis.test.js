@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {targetIdentity,validateAnswer,summarizeRecommendations,enrichReport,extractionPrompt} from '../recommendation-analysis.js';
+import {targetIdentity,validateAnswer,summarizeRecommendations,enrichReport,extractionPrompt,recommendationExcerpts} from '../recommendation-analysis.js';
+import {readFileSync} from 'node:fs';
 const target=targetIdentity('Acme','https://www.acme.ua/about');
 const extract=companies=>({complete:true,companies});
 const item=(name,evidence,stance='recommended',website=null)=>({name,evidence,stance,website});
@@ -83,4 +84,26 @@ test('an absent brand is zero even when competitor extraction fails',()=>{
  assert.equal(r.analysisStatus,'ok');assert.equal(r.recommended,false);assert.equal(r.competitorAnalysisStatus,'unavailable');
  const partial=answer('Раджу Beta.',[item('Beta','Раджу Beta.'),item('Invented','Раджу Invented.')]);
  assert.equal(partial.analysisStatus,'ok');assert.equal(partial.recommended,false);assert.equal(partial.competitorAnalysisStatus,'partial');assert.equal(partial.recommendedCompanies.length,1);
+});
+
+test('ParkWill live responses retain named alternatives via original excerpt IDs',()=>{
+ const answers=JSON.parse(readFileSync(new URL('./fixtures/parkwill-recommendations.json',import.meta.url),'utf8'));
+ const expected={chatgpt:['Lisnyky House','GREENBOR','Balaton Village'],gemini:['Smart Development','Evrodim','DIM.RIA'],perplexity:['ЛУН','DOM.RIA','КМ Тепло'],claude:['LUN.ua','DIM.RIA','Address.ua']};
+ for(const [key,names] of Object.entries(expected)){
+  const excerpts=recommendationExcerpts(answers[key]);
+  const companies=names.map(name=>({name,stance:'recommended',website:null,evidenceId:excerpts.findIndex(text=>text.includes(name))}));
+  const r=validateAnswer({text:answers[key]},extract(companies),targetIdentity('https://parkwill.com.ua/',''));
+  assert.equal(r.competitorAnalysisStatus,'ok',key);assert.deepEqual(r.recommendedCompanies.map(c=>c.name),names,key);
+  assert.equal(r.recommended,false);
+ }
+});
+
+test('source IDs preserve linked URLs but reject invalid IDs, cross-company names and invented domains',()=>{
+ const text='1. **Beta** — раджу ремонт. ([beta.ua](https://beta.ua/?ref=x))\n\n2. **Gamma** — інша послуга.';
+ const base={name:'Beta',website:'beta.ua',stance:'recommended',evidenceId:0};
+ const good=answer(text,[base]);assert.equal(good.recommendedCompanies[0].website,'https://beta.ua');
+ for(const bad of [{...base,evidenceId:5},{...base,evidenceId:'0'},{...base,name:'Gamma'},{...base,website:'invented.ua'}]){
+  const r=answer(text,[bad]);assert.equal(r.recommendedCompanies.length,0);assert.equal(r.competitorAnalysisStatus,'unavailable');
+ }
+ const negative=answer('Не раджу Acme.',[{name:'Acme',website:null,stance:'negative',evidenceId:0}]);assert.equal(negative.recommended,false);
 });

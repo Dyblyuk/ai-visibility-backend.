@@ -563,7 +563,7 @@ async function runDiscoveryQuery(query, brand, website = '') {
   const engineResults = {};
   const pending = {};
   const models = { chatgpt:OPENAI_MODEL, gemini:GEMINI_MODEL, perplexity:'sonar', claude:CLAUDE_MODEL };
-  const cacheKey = key => `recommendation-v4::${key}::${brand.trim().toLowerCase()}::${target.host || ''}::${query.trim()}`;
+  const cacheKey = key => `recommendation-v5::${key}::${brand.trim().toLowerCase()}::${target.host || ''}::${query.trim()}`;
   const providerStarted=Date.now();
   await Promise.all(DISCOVERY_ENGINES.map(async key => {
     const caller = ENGINE_CALLERS[key];
@@ -586,11 +586,12 @@ async function runDiscoveryQuery(query, brand, website = '') {
     try {
       const response = await askClaude(extractionPrompt(query, target, Object.fromEntries(Object.entries(pending).map(([key,value])=>[key,value.text]))), {maxTokens:4000,model:ANALYSIS_MODEL,timeoutMs:ANALYSIS_TIMEOUT_MS});
       if (!response.error && !response.truncated) extracted = parseExtraction(response.text);
+      else console.warn('Recommendation extraction unavailable:',response.error || 'truncated');
     } catch (error) { console.warn('Recommendation extraction failed:', error.message); }
     for (const [key,raw] of Object.entries(pending)) {
       const result = { ...validateAnswer(raw, extracted[key], target), checkedAt:new Date().toISOString() };
       engineResults[key] = result;
-      if (result.analysisStatus === 'ok') engineCheckCache.set(cacheKey(key),result);
+      if (result.analysisStatus === 'ok' && result.competitorAnalysisStatus === 'ok') engineCheckCache.set(cacheKey(key),result);
     }
   }
   const competitors = [...new Set(Object.values(engineResults).flatMap(result=>(result.recommendedCompanies || []).filter(item=>!item.isTarget).map(item=>item.name)))];
@@ -1495,9 +1496,9 @@ app.get('/api/health', (req, res) => {
     ok: true,
     analysisVersion: 3,
     queryPlannerVersion: 4,
-    recommendationPromptVersion: 3, knowledgeVersion: 7,
+    recommendationPromptVersion: 4, knowledgeVersion: 7,
     performanceVersion:3,
-    reportLayoutVersion:6,discoveryQueryCount:DISCOVERY_QUERY_COUNT,
+    reportLayoutVersion:7,discoveryQueryCount:DISCOVERY_QUERY_COUNT,
     models:{chatgpt:OPENAI_MODEL,gemini:GEMINI_MODEL,perplexity:"sonar",claude:CLAUDE_MODEL,analysis:ANALYSIS_MODEL},
     deadlinesMs:{provider:PROVIDER_TIMEOUT_MS,analysis:ANALYSIS_TIMEOUT_MS,queryPlan:PLAN_TIMEOUT_MS},
     reportStorage: { kind: reportStore.kind, durable: reportStore.durable },

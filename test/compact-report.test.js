@@ -22,5 +22,5 @@ test('recommendation cards distinguish alternatives, co-recommendations and miss
  result.analysisStatus='unavailable';
  assert.equal(recommendationCard(zone,'gemini').status,'Немає оцінки');
  result.analysisStatus='ok';result.brandRecommended=false;result.recommendedCompanies=[];result.competitorAnalysisStatus='unavailable';
- assert.match(recommendationCard(zone,'gemini').detail,/не вдалося підтвердити/);
+ assert.match(recommendationCard(zone,'gemini').detail,/Не вдалося розібрати список альтернатив/);
 });

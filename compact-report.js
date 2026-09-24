@@ -19,7 +19,7 @@ export function recommendationCard(zone,key) {
  return {
   status:hit?'Рекомендує вас':'Не рекомендує вас',color:hit?GREEN:RED,
   detail:competitors?`${hit?'Також':'Замість вас'}: ${competitors}`:
-   r.competitorAnalysisStatus&&r.competitorAnalysisStatus!=='ok'?'Конкурентів не вдалося підтвердити.':
+   r.competitorAnalysisStatus&&r.competitorAnalysisStatus!=='ok'?'Не вдалося розібрати список альтернатив. Потрібна повторна перевірка.':
    hit?'Інших компаній не названо.':'Конкретних компаній не рекомендує.'
  };
 }
