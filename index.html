@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
+<script src="ad-attribution.js"></script>
 <!-- Meta Pixel Code -->
 <script>
 !function(f,b,e,v,n,t,s)
@@ -901,7 +902,7 @@ async function saveReportAndShowGate() {
   try {
     const res = await fetch(API_BASE + '/api/save-report', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(reportPayload)
+      body: JSON.stringify({...reportPayload, attribution:window.tmAdAttribution?.() || {}})
     });
     const data = await res.json();
     if (!res.ok || !data.telegramLink) throw new Error('Report link unavailable');

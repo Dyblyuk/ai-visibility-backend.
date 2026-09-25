@@ -40,5 +40,10 @@ test('discovery -> stored report -> SendPulse summary/PDF preserves per-AI evide
   const pdf=await realFetch(base+new URL(report.pdfUrl).pathname);assert.equal(pdf.status,200);
   const bytes=Buffer.from(await pdf.arrayBuffer());assert.equal(bytes.subarray(0,4).toString(),'%PDF');
   const again=await post('/api/sendpulse-report',{token:saved.token});assert.equal(report.pdfUrl,again.pdfUrl);
+  assert.equal(again.conversionStatus,'no_contact');
+  const contact=await post('/api/sendpulse-report',{token:saved.token,phone:'+380671234567'});
+  assert.equal(contact.conversionStatus,'storage_not_configured');assert.equal(contact.pdfUrl,report.pdfUrl);
+  const placeholder=await post('/api/sendpulse-report',{token:saved.token,phone:'{{Phone}}'});
+  assert.equal(placeholder.conversionStatus,'invalid_contact_or_denied');
  } finally {globalThis.fetch=realFetch;await new Promise(resolve=>server.close(resolve));}
 });

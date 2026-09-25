@@ -37,8 +37,21 @@ function doPost(e) {
       data.brand || '',
       data.niche || '',
       (data.score === undefined || data.score === null) ? '' : data.score,
-      status
-    ]);
+      status,
+      data.website || '',
+      data.reportToken || '',
+      (data.attribution || {}).utm_source || '',
+      (data.attribution || {}).utm_medium || '',
+      (data.attribution || {}).utm_campaign || '',
+      (data.attribution || {}).utm_content || '',
+      (data.attribution || {}).utm_term || '',
+      (data.attribution || {}).gclid || '',
+      (data.attribution || {}).gbraid || '',
+      (data.attribution || {}).wbraid || '',
+      (data.attribution || {}).fbc || '',
+      (data.attribution || {}).fbp || '',
+      data.conversionStatus || ''
+    ].map(value => typeof value === 'string' && /^[=+@-]/.test(value) ? "'" + value : value));
 
     return ContentService
       .createTextOutput(JSON.stringify({ ok: true }))
@@ -65,6 +78,9 @@ function getOrCreateSheet_() {
     sheet = ss.insertSheet('Ліди');
     sheet.appendRow(['Час', "Ім'я", 'Телефон', 'Email', 'Бренд', 'Ніша', 'Бал', 'Статус']);
     sheet.setFrozenRows(1);
+  }
+  if (!sheet.getRange(1, 9).getValue()) {
+    sheet.getRange(1, 9, 1, 13).setValues([['Сайт','Код звіту','UTM Source','UTM Medium','UTM Campaign','UTM Content','UTM Term','GCLID','GBRAID','WBRAID','FBC','FBP','Статус конверсії']]);
   }
   return sheet;
 }

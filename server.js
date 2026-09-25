@@ -25,6 +25,7 @@ import {fetchSiteContext} from './website-context.js';
 import {fetchWithDeadline,singleFlight} from './ai-runtime.js';
 import {knowledgePrompt,parseKnowledge} from './knowledge-analysis.js';
 import { createReportStore, validReportToken } from './report-store.js';
+import { cleanAttribution, makeContactEvent, trustedSendPulse, ConversionOutbox, createConversionWorker, trackingStatus } from './ad-conversions.js';
 import { targetIdentity, extractionPrompt, parseExtraction, validateAnswer, summarizeRecommendations, enrichReport, recommendationSummary, knowledgeScore } from './recommendation-analysis.js';
 
 // Файли розсилки тримаємо лише в пам'яті (не на диску) — вони одразу
@@ -35,6 +36,9 @@ const uploadMedia = multer({ storage: multer.memoryStorage(), limits: { fileSize
 dotenv.config();
 
 const reportStore = await createReportStore(process.env.REPORT_DATABASE_URL);
+const conversionOutbox = reportStore.durable ? new ConversionOutbox(reportStore.db) : null;
+if (conversionOutbox) await conversionOutbox.init();
+const deliverConversions = createConversionWorker({outbox:conversionOutbox});
 if (!reportStore.durable) console.warn('Reports use temporary memory: configure REPORT_DATABASE_URL for persistence');
 
 const app = express();
@@ -1154,6 +1158,7 @@ app.post('/api/save-report', async (req, res) => {
 
     const token = randomBytes(24).toString('hex');
     const report = enrichReport({ brand, niche, website, score, engines, zoneOfInvisibility, issues, queryPlan, ts: Date.now() });
+    report.attribution = cleanAttribution(req.body?.attribution);
     await reportStore.set(token, report);
 
     const botUsername = process.env.TELEGRAM_BOT_USERNAME || '';
@@ -1425,6 +1430,18 @@ app.post('/api/sendpulse-report', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Звіт застарів або не знайдений — зробіть новий скан на сайті' });
     }
 
+    // Record authenticated contact independently from PDF generation/delivery.
+    let conversionStatus = 'no_contact';
+    if (phone) {
+      const event = makeContactEvent(phone, report.attribution);
+      conversionStatus = !event ? 'invalid_contact_or_denied' : !conversionOutbox ? 'storage_not_configured' :
+        !trustedSendPulse(req.get('x-sendpulse-tracking-secret'), process.env.SENDPULSE_TRACKING_SECRET) ? 'unverified_source' : 'queued';
+      if (conversionStatus === 'queued') {
+        try { await conversionOutbox.enqueue(event); }
+        catch { conversionStatus = 'queue_unavailable'; console.warn('Conversion queue unavailable'); }
+      }
+    }
+
     let pdfBuffer = await reportStore.getPdf(token);
     if (!pdfBuffer) pdfBuffer = await buildReportPdf({
       brand: report.brand,
@@ -1456,6 +1473,7 @@ app.post('/api/sendpulse-report', async (req, res) => {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: '', phone: phone || '', email: '', brand: report.brand, niche: report.niche || '',
+          website:report.website || '', reportToken:token, attribution:report.attribution || {}, conversionStatus,
           score: report.score ?? null, status: 'Telegram-бот (SendPulse)', ts: new Date().toISOString()
         })
       }).then(response => { if (!response.ok) throw new Error('Lead webhook failed'); }).catch(async e => {
@@ -1475,7 +1493,7 @@ app.post('/api/sendpulse-report', async (req, res) => {
     const reportSummary = `Ваш звіт для «${String(report.brand).slice(0,100)}» готовий.\n\nЗнання бренду: ${score ?? '—'}/100 - ${assessmentStatus(score).label}\n\n${details}\n\nЗнання бренду та рекомендації оцінюються окремо. Повний розбір - у PDF.`;
 
     const reportGuide = 'З чого почати\n\n1. Перегляньте, що кожна AI-система говорить про ваш бренд.\n2. Порівняйте впізнавання назви з рекомендаціями за нішевими запитами.\n3. Подивіться, яких конкурентів називає AI, і виберіть перші дії з рекомендацій у PDF.\n\nХочете визначити пріоритети для свого бізнесу? Напишіть «Розібрати звіт» — обговоримо результат і наступні кроки.';
-    res.json({ ok: true, score: report.score, brand: report.brand, tier, pdfUrl, reportSummary, reportGuide, recognitionScore:report.recognitionScore ?? report.score, recognitionStatus:assessmentStatus(report.recognitionScore ?? report.score).label,recommendationStatus:assessmentStatus(report.recommendationScore ?? report.recommendations?.score,'recommendation').label,recommendationScore:report.recommendationScore ?? report.recommendations?.score ?? null, recommendations:report.recommendations || null });
+    res.json({ ok: true, score: report.score, brand: report.brand, tier, pdfUrl, reportSummary, reportGuide, conversionStatus, recognitionScore:report.recognitionScore ?? report.score, recognitionStatus:assessmentStatus(report.recognitionScore ?? report.score).label,recommendationStatus:assessmentStatus(report.recommendationScore ?? report.recommendations?.score,'recommendation').label,recommendationScore:report.recommendationScore ?? report.recommendations?.score ?? null, recommendations:report.recommendations || null });
   } catch (err) {
     console.error('Помилка /api/sendpulse-report:', err);
     res.status(500).json({ ok: false, error: 'Внутрішня помилка сервера' });
@@ -1502,6 +1520,7 @@ app.get('/api/health', (req, res) => {
     models:{chatgpt:OPENAI_MODEL,gemini:GEMINI_MODEL,perplexity:"sonar",claude:CLAUDE_MODEL,analysis:ANALYSIS_MODEL},
     deadlinesMs:{provider:PROVIDER_TIMEOUT_MS,analysis:ANALYSIS_TIMEOUT_MS,queryPlan:PLAN_TIMEOUT_MS},
     reportStorage: { kind: reportStore.kind, durable: reportStore.durable },
+    adConversions: trackingStatus(process.env, reportStore.durable),
     keys: {
       openai: Boolean(OPENAI_API_KEY),
       gemini: Boolean(GEMINI_API_KEY),
@@ -1517,5 +1536,10 @@ app.get('/api/health', (req, res) => {
 
 export { app, buildReportPdf };
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+  if (conversionOutbox) {
+    const timer = setInterval(() => deliverConversions().catch(() => console.warn('Conversion worker unavailable')), 15000);
+    timer.unref();
+    void deliverConversions().catch(() => console.warn('Conversion worker unavailable'));
+  }
   app.listen(PORT, () => console.log(`AI-Visibility backend running on http://localhost:${PORT}`));
 }
