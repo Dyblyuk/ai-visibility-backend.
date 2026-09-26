@@ -25,7 +25,7 @@ import {fetchSiteContext} from './website-context.js';
 import {fetchWithDeadline,singleFlight} from './ai-runtime.js';
 import {knowledgePrompt,parseKnowledge} from './knowledge-analysis.js';
 import { createReportStore, validReportToken } from './report-store.js';
-import { cleanAttribution, makeContactEvent, trustedSendPulse, ConversionOutbox, createConversionWorker, trackingStatus } from './ad-conversions.js';
+import { cleanAttribution, makeContactEvent, trustedSendPulse, ConversionOutbox, createConversionWorker, trackingStatus, isGoogleValidation } from './ad-conversions.js';
 import { targetIdentity, extractionPrompt, parseExtraction, validateAnswer, summarizeRecommendations, enrichReport, recommendationSummary, knowledgeScore } from './recommendation-analysis.js';
 
 // Файли розсилки тримаємо лише в пам'яті (не на диску) — вони одразу
@@ -1468,7 +1468,7 @@ app.post('/api/sendpulse-report', async (req, res) => {
 
     // Generated PDFs and reports remain available for later requests.
 
-    if (LEAD_WEBHOOK_URL && phone && await reportStore.claimLeadNotification(token)) {
+    if (LEAD_WEBHOOK_URL && phone && !isGoogleValidation(report.attribution) && await reportStore.claimLeadNotification(token)) {
       fetch(LEAD_WEBHOOK_URL, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

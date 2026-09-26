@@ -3,6 +3,16 @@
   const key = 'tm_ad_attribution_v1';
   const ttl = 30 * 86400000;
   const params = new URLSearchParams(location.search);
+  const testClick = params.get('gclid');
+  if (testClick?.startsWith('tm_google_validation_')) {
+    // Keep fake attribution in this page only; preserve the visitor's real campaign.
+    window.tmAdAttribution = () => ({
+      gclid: testClick.slice(0,256), capturedAt: Date.now(),
+      consent: (window.tmAdsConsent?.adUserData === 'denied' || window.tmAdsConsent?.adStorage === 'denied')
+        ? {adUserData:'denied'} : {}
+    });
+    return;
+  }
   const keys = ['gclid', 'gbraid', 'wbraid', 'fbclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
   const cookie = name => {
     try { return decodeURIComponent(document.cookie.split('; ').find(v => v.startsWith(name + '='))?.slice(name.length + 1) || ''); }
@@ -11,6 +21,11 @@
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(key) || '{}'); } catch {}
   if (!saved || Date.now() - saved.capturedAt > ttl) saved = {};
+  // Clean up a test ID captured by an older cached version of this script.
+  if (saved.gclid?.startsWith('tm_google_validation_')) {
+    saved = {};
+    try { localStorage.removeItem(key); } catch {}
+  }
   if (keys.some(k => params.has(k))) {
     saved = { capturedAt: Date.now() };
     for (const k of keys) if (params.get(k)) saved[k] = params.get(k).slice(0, 256);

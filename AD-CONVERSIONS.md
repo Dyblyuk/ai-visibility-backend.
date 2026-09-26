@@ -68,6 +68,23 @@ not sent to the ad APIs.
 
 ## Verify before buying traffic
 
+### Isolated Google validation link
+
+Use `?gclid=tm_google_validation_<unique-test-id>` on the scanner to exercise
+the normal scan → SendPulse contact → durable queue flow without live ad imports.
+This reserved prefix always forces `validateOnly: true` on the server. The browser
+does not persist it or overwrite an existing real campaign. Test contacts only
+enqueue Google, omit phone identifiers from its payload, and do not notify the
+lead spreadsheet or send a Meta Lead. SendPulse's normal report and nurture flow
+still applies to the tester. Existing contact authentication is required.
+
+The test deduplication ID is separate from a live lead and includes the test click
+ID, so the same phone can be used again with a new test link. A successful Google
+validation is stored as `validated`, never `sent`, and is not polled or replayed as
+a live import. This proves request validation only, not real click attribution.
+
+### Production checks
+
 - Tagged landing -> saved report -> authenticated SendPulse phone request -> two
   outbox rows. No contact or invalid source -> no rows.
 - Meta Test Events must display Lead with matching event ID. Google must progress

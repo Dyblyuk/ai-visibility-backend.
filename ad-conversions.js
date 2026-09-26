@@ -2,6 +2,10 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
 const ID = /^[a-zA-Z0-9._~-]{1,512}$/;
+// Reserved fake click IDs can only validate. They must never become live imports.
+export function isGoogleValidation(attribution) {
+  return typeof attribution?.gclid === 'string' && attribution.gclid.startsWith('tm_google_validation_');
+}
 export function normalizePhone(value) {
   if (typeof value !== 'string' || !/^[+\d\s().-]+$/.test(value)) return null;
   const digits = value.replace(/\D/g, '');
@@ -34,13 +38,14 @@ export function makeContactEvent(phone, attribution, now = Date.now()) {
   const a = cleanAttribution(attribution);
   if (a.consent.adUserData === 'denied') return null;
   return {
-    id: 'tg_contact_' + hash(normalized),
+    id: isGoogleValidation(a) ? 'tg_google_test_' + hash(normalized + ':' + a.gclid) : 'tg_contact_' + hash(normalized),
     time: new Date(now).toISOString(),
     metaPhone: hash(normalized.slice(1)), googlePhone: hash(normalized),
     attribution: a
   };
 }
 export function metaPayload(event, env) {
+  if (isGoogleValidation(event.attribution)) return null;
   const a = event.attribution;
   const user_data = {};
   if (a.fbc) user_data.fbc = a.fbc;
@@ -54,6 +59,7 @@ export function metaPayload(event, env) {
 }
 export function googlePayload(event, env) {
   const a = event.attribution;
+  const validateOnly = isGoogleValidation(a);
   const adIdentifiers = {};
   for (const k of ['gclid','gbraid','wbraid']) if (a[k]) adIdentifiers[k] = a[k];
   // A bot-only phone is not sufficient to establish the original Google click.
@@ -64,8 +70,8 @@ export function googlePayload(event, env) {
   const consent = {};
   for (const k of ['adUserData','adPersonalization']) if (a.consent[k]) consent[k] = a.consent[k] === 'granted' ? 'CONSENT_GRANTED' : 'CONSENT_DENIED';
   if (Object.keys(consent).length) item.consent = consent;
-  if (a.consent.adUserData === 'granted') item.userData = {userIdentifiers:[{phoneNumber:event.googlePhone}]};
-  return {destinations:[destination],events:[item],...(item.userData ? {encoding:'HEX'} : {})};
+  if (!validateOnly && a.consent.adUserData === 'granted') item.userData = {userIdentifiers:[{phoneNumber:event.googlePhone}]};
+  return {destinations:[destination],events:[item],...(validateOnly ? {validateOnly:true} : {}),...(item.userData ? {encoding:'HEX'} : {})};
 }
 
 // No volatile fallback for conversion delivery. SQL outbox survives redeploys.
@@ -80,7 +86,7 @@ export class ConversionOutbox {
     )`);
   }
   async enqueue(event) {
-    for (const platform of ['meta','google']) await this.db.query(
+    for (const platform of (isGoogleValidation(event.attribution) ? ['google'] : ['meta','google'])) await this.db.query(
       'INSERT INTO ad_conversion_outbox(event_id,platform,payload) VALUES($1,$2,$3::jsonb) ON CONFLICT DO NOTHING',
       [event.id,platform,JSON.stringify(event)]);
   }
@@ -100,7 +106,7 @@ export class ConversionOutbox {
 export function trackingStatus(env, durable) {
   const meta = !!(env.META_PIXEL_ID && env.META_CAPI_ACCESS_TOKEN && env.META_API_VERSION);
   const google = !!(env.GOOGLE_ADS_CUSTOMER_ID && env.GOOGLE_ADS_CONVERSION_ACTION_ID && env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET && env.GOOGLE_OAUTH_REFRESH_TOKEN);
-  return {version:1,enabled:env.ADS_CONVERSIONS_ENABLED==='true',durable,sendpulseAuthenticated:!!env.SENDPULSE_TRACKING_SECRET,metaConfigured:meta,googleConfigured:google,
+  return {version:2,googleValidationLinks:true,enabled:env.ADS_CONVERSIONS_ENABLED==='true',durable,sendpulseAuthenticated:!!env.SENDPULSE_TRACKING_SECRET,metaConfigured:meta,googleConfigured:google,
     ready:env.ADS_CONVERSIONS_ENABLED==='true' && durable && !!env.SENDPULSE_TRACKING_SECRET && (meta||google)};
 }
 export function createConversionWorker({outbox,env=process.env,fetchFn=fetch}) {
@@ -148,7 +154,7 @@ export function createConversionWorker({outbox,env=process.env,fetchFn=fetch}) {
             const token=await googleToken();
             const data=await request('https://datamanager.googleapis.com/v1/events:ingest',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify(payload)});
             if (!data.requestId) throw new Error('GOOGLE_RECEIPT_MISSING');
-            await outbox.finish(row,'processing',data.requestId);
+            await outbox.finish(row,payload.validateOnly ? 'validated' : 'processing',data.requestId);
           }
         } catch(error) {
           const code=/^(HTTP_\d+|META_NOT_ACCEPTED|GOOGLE_RECEIPT_MISSING|OAUTH_TOKEN_MISSING)$/.test(error.message)?error.message:'DELIVERY_ERROR';

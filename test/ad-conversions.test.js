@@ -84,3 +84,46 @@ test('provider rejection stays retryable and never exposes response secrets',asy
     await worker();row=(await db.query("SELECT * FROM ad_conversion_outbox WHERE platform='meta'")).rows[0];assert.equal(row.attempts,1);
   }finally{await db.close();}
 });
+
+test('validation click stays out of browser storage and does not replace a real campaign',async()=>{
+  const code=await fs.readFile(new URL('../ad-attribution.js',import.meta.url),'utf8');
+  const dom=new JSDOM('',{url:'https://example.com/?gclid=real-click',runScripts:'outside-only'});
+  dom.window.eval(code);
+  const original=dom.window.localStorage.getItem('tm_ad_attribution_v1');
+  dom.reconfigure({url:'https://example.com/?gclid=tm_google_validation_browser'});
+  dom.window.eval(code);
+  assert.equal(dom.window.tmAdAttribution().gclid,'tm_google_validation_browser');
+  assert.equal(dom.window.localStorage.getItem('tm_ad_attribution_v1'),original);
+  dom.reconfigure({url:'https://example.com/'});dom.window.eval(code);
+  assert.equal(dom.window.tmAdAttribution().gclid,'real-click');
+  dom.window.localStorage.setItem('tm_ad_attribution_v1',JSON.stringify({gclid:'tm_google_validation_old',capturedAt:Date.now()}));
+  dom.window.eval(code);
+  assert.equal(dom.window.tmAdAttribution().gclid,undefined);
+  dom.window.close();
+});
+
+test('fake click validates once, sends no Meta or phone data, and does not consume a real lead with the same phone',async()=>{
+  const db=new PGlite();const outbox=new ConversionOutbox(db);await outbox.init();
+  const testEvent=makeContactEvent('+380671234567',{...attribution,gclid:'tm_google_validation_worker'});
+  const requests=[];
+  const fetchFn=async(url,options)=>{
+    if(url.includes('oauth2'))return Response.json({access_token:'test',expires_in:3600});
+    requests.push({url,body:JSON.parse(options.body||'{}')});
+    if(url.includes('events:ingest'))return Response.json({requestId:'validation-receipt'});
+    throw new Error('Unexpected live or polling request');
+  };
+  const tick=createConversionWorker({outbox,env,fetchFn});
+  try {
+    assert.equal(metaPayload(testEvent,env),null);
+    assert.notEqual(testEvent.id,event.id);
+    await outbox.enqueue(testEvent);await outbox.enqueue(testEvent);
+    await tick();await tick();
+    const rows=(await db.query('SELECT * FROM ad_conversion_outbox')).rows;
+    assert.equal(rows.length,1);assert.equal(rows[0].platform,'google');assert.equal(rows[0].status,'validated');
+    assert.equal(requests.length,1);assert.equal(requests[0].body.validateOnly,true);
+    assert.equal(requests[0].body.events[0].userData,undefined);
+    await outbox.enqueue(event);
+    assert.equal((await db.query('SELECT * FROM ad_conversion_outbox')).rows.length,3);
+    assert.equal(googlePayload(event,env).validateOnly,undefined);
+  } finally {await db.close();}
+});
