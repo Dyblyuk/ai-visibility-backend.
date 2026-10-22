@@ -115,6 +115,18 @@ const DISCOVERY_ENGINES = (process.env.DISCOVERY_ENGINES || 'chatgpt,gemini,perp
 // сервіс-посередник типу Make/Zapier, у Google Sheets через Apps Script
 // вебхук, чи в будь-яку CRM з прийомом вебхуків).
 const LEAD_WEBHOOK_URL = process.env.LEAD_WEBHOOK_URL || '';
+const CRM_LEAD_WEBHOOK_URL = process.env.CRM_LEAD_WEBHOOK_URL || '';
+
+async function dispatchCrmLead(lead) {
+  if (!CRM_LEAD_WEBHOOK_URL || !lead?.phone) return;
+  const phone = String(lead.phone).trim();
+  const key = lead.reportToken ? 'ai-report:' + lead.reportToken : 'ai:' + phone;
+  const details = ['Джерело: AI Brand / Telegram SendPulse', 'Бренд: ' + (lead.brand || '—'), 'Ніша: ' + (lead.niche || '—'), 'AI score: ' + (lead.score ?? '—'), 'Сайт: ' + (lead.website || '—'), 'Report token: ' + (lead.reportToken || '—'), 'UTM: ' + JSON.stringify(lead.attribution || {})].join('\\n');
+  const client = {company: lead.brand || 'AI Brand (компанію не вказано)', person: lead.name || 'AI Brand — контакт', lead: true, phones:[phone], emails: lead.email ? [lead.email] : [], comment:details};
+  const payload = {event_id:key,source:'AI Brand / Telegram SendPulse',name:client.person,phone,email:lead.email || '',company:client.company,website_url:lead.website || '',score:lead.score,comment:details,is_test:false,crm_json_nastya:JSON.stringify({...client,main_responsible_id:2}),crm_json_yan:JSON.stringify({...client,main_responsible_id:3})};
+  try {const response = await fetch(CRM_LEAD_WEBHOOK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(10000)}); if(!response.ok)throw new Error('CRM webhook status ' + response.status);}catch(error){console.warn('AI CRM lead dispatch failed:',error.message);}
+}
+
 const LEADS_FILE = path.join(process.cwd(), 'leads.jsonl');
 
 // Пошта для PDF-звіту. Resend — простий email-API (POST-запит з JSON,
@@ -1468,6 +1480,9 @@ app.post('/api/sendpulse-report', async (req, res) => {
 
     // Generated PDFs and reports remain available for later requests.
 
+    if (phone && !isGoogleValidation(report.attribution)) {
+      void dispatchCrmLead({phone,brand:report.brand,niche:report.niche,website:report.website,score:report.score,reportToken:token,attribution:report.attribution});
+    }
     if (LEAD_WEBHOOK_URL && phone && !isGoogleValidation(report.attribution) && await reportStore.claimLeadNotification(token)) {
       fetch(LEAD_WEBHOOK_URL, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
