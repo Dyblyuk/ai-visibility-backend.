@@ -5,6 +5,7 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
+    "dev": "node --use-env-proxy lab/server.js",
     "start": "node server.js",
     "test": "node --test test/*.test.js"
   },

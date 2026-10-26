@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="uk">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>AI Audit Lab — Top Marketing</title><link rel="stylesheet" href="/styles.css"></head>
+<body>
+<header class="topbar"><a href="/" class="wordmark">TOP<span>MARKETING</span><i></i></a><div class="lab-label"><span class="dot"></span> ЛАБОРАТОРІЯ / V2</div><div class="top-note">Тестуємо наступну версію</div></header>
+<main>
+<section id="setup" class="setup">
+  <div class="intro"><div class="eyebrow">AI VISIBILITY → ПРАКТИЧНІ ДІЇ</div><h1>Чи обирає AI<br>ваш <span>бізнес?</span></h1><p class="lead">Дізнайтеся, що AI говорить про вас, кого рекомендує клієнтам і з яких змін почати.</p><div class="intro-bottom"><div class="mini-grid" aria-hidden="true"><b>AI</b><i>↗</i></div><p>Від оцінки видимості<br>до конкретного плану.</p></div><div class="sandbox-note">Окрема тестова версія. Контакти та конверсії не передаються у робочі інтеграції.</div></div>
+  <div class="setup-card">
+    <div class="card-heading"><span class="step-index" id="step-index">01 / 02</span><span id="step-label">ПРО ВАШ БІЗНЕС</span></div>
+    <form id="profile-form"><label>Назва бренду<input name="brand" required maxlength="140" value="Top Marketing" placeholder="Наприклад, Top Marketing"></label><label>Сайт<input name="website" required value="https://topmarketing.com.ua" placeholder="https://ваш-сайт.ua"></label><label>Яку послугу або категорію перевірити?<input name="service" required maxlength="180" value="Google Ads для інтернет-магазинів" placeholder="Мамографія, квартири, фільтри для води…"></label><label>Географія<input name="city" maxlength="120" value="Київ" placeholder="Місто, область або країна"></label><button class="button primary" type="submit" id="prepare-button">Підготувати перевірку <span>↗</span></button><p class="form-hint">Спочатку покажемо запити. Ви зможете змінити їх перед аналізом.</p></form>
+    <div id="query-step" hidden><h2>Що запитає ваш клієнт?</h2><p class="muted">Перевірте формулювання. Назву вашого бренду в запити не додаємо.</p><div id="query-fields"></div><button type="button" id="add-query" class="text-button">+ Додати третій запит</button><div class="query-foot"><button type="button" id="back-button" class="button light">← Назад</button><button type="button" id="analyze-button" class="button primary">Підтвердити й перевірити ↗</button></div><p class="form-hint">Жива перевірка використовує оплачувані AI-виклики. До 3 запитів × 4 системи.</p></div>
+    <div id="setup-error" class="error" role="alert" hidden></div>
+    <div class="demo-row"><span>Спочатку подивитися результат?</span><button id="demo-button" class="text-button" type="button">Відкрити приклад →</button></div>
+  </div>
+</section>
+
+<section id="loading" class="loading" hidden aria-live="polite"><div class="eyebrow">РЕАЛЬНА ПЕРЕВІРКА ВІДПОВІДЕЙ</div><div class="loading-grid" aria-hidden="true">↗</div><h2 id="loading-title">Готуємо аналіз</h2><p id="loading-stage">Читаємо сайт і формуємо запити</p><div class="progress-track"><div id="progress-bar"></div></div><p class="muted small">Технічна недоступність AI позначається окремо.<br>Вона не перетворюється на негативну оцінку бренду.</p><div id="job-error" class="error" hidden></div><button id="retry-button" class="button light" hidden>Повернутися до налаштувань</button></section>
+
+<section id="results" hidden>
+ <div class="report-top"><div><div class="eyebrow" id="report-mode">AI AUDIT / ЕКСПРЕС-ПЕРЕВІРКА</div><h1 id="report-brand"></h1><p id="report-meta" class="muted"></p></div><div class="report-buttons"><button id="new-scan" class="button light">Нова перевірка</button><a id="pdf-link" class="button dark" href="#">Завантажити PDF ↓</a></div></div>
+ <div class="recorded-banner" id="recorded-banner" hidden>Збережений контрольний приклад від 26.10.2026. Це фактичний запис попередньої перевірки, а не новий запуск.</div>
+ <nav class="report-nav" aria-label="Розділи звіту"><a href="#overview" class="active">01 Огляд</a><a href="#queries">02 Запити й конкуренти</a><a href="#site-evidence">03 Сайт і факти</a><a href="#actions">04 План дій</a></nav>
+ <div id="overview" class="overview-grid"><article class="executive"><div class="eyebrow">ВАШ РЕЗУЛЬТАТ</div><h2 id="executive-title"></h2><p id="executive-copy"></p><div class="coverage" id="coverage"></div></article><article class="metric"><p>ЗНАННЯ БРЕНДУ</p><div id="recognition-score" class="metric-value"></div><span id="recognition-note"></span><small>Оцінка у перевірених відповідях</small></article><article class="metric accent"><p>РЕКОМЕНДАЦІЇ</p><div id="recommendation-score" class="metric-value"></div><span id="recommendation-note"></span><small>За підтвердженими запитами</small></article></div>
+ <div class="engine-grid" id="engine-grid"></div>
+ <section id="queries" class="report-section"><div class="section-title"><div><div class="eyebrow">02 / ПОТРЕБИ КЛІЄНТІВ</div><h2>Кого AI радить обрати</h2></div><p>Окремо за кожним запитом.<br>Докази — у відповідях систем.</p></div><div id="queries-list"></div><div id="competitors" class="competitor-grid"></div></section>
+ <section id="site-evidence" class="report-section"><div class="section-title"><div><div class="eyebrow">03 / ПЕРЕВІРЕНІ СПОСТЕРЕЖЕННЯ</div><h2>Що бачимо на сайті</h2></div><p id="audit-scope"></p></div><div id="audit-pages"></div><h3 class="subheading">Що саме говорять AI про ваш бренд</h3><p class="muted">Цитати допомагають перевірити факти. Відсутність згадки міста сама по собі не є помилкою.</p><div id="brand-facts"></div></section>
+ <section id="actions" class="report-section"><div class="section-title"><div><div class="eyebrow">04 / ВІД РЕЗУЛЬТАТУ ДО ДІЙ</div><h2>З чого почати</h2></div><button id="copy-actions" class="button light">Скопіювати план ↗</button></div><div id="actions-list"></div></section>
+ <details class="methodology"><summary>Як читати цей результат і які є обмеження <span>+</span></summary><ul id="limitations"></ul><p>Висновки ґрунтуються на цій вибірці відповідей і перевірених HTML-сторінках. Повторні відповіді AI можуть відрізнятися.</p></details>
+ <footer><strong>TOP MARKETING</strong><span>AI Audit Lab · окрема тестова версія</span></footer>
+</section>
+</main><script src="/app.js" type="module"></script>
+</body></html>

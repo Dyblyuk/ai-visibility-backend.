@@ -1,0 +1,583 @@
+{
+  "recordedAt": "2026-10-26T11:24:01.142Z",
+  "profile": {
+    "brand": "Top Marketing",
+    "website": "https://topmarketing.com.ua/",
+    "service": "Google Ads для інтернет-магазинів",
+    "city": "Київ"
+  },
+  "scan": {
+    "engines": {
+      "chatgpt": {
+        "verdict": "know",
+        "hit": true,
+        "snippet": "\"Top Marketing\" — київська агенція digital-маркетингу, що спеціалізується на Google Ads, Meta Ads та SEO для інтернет-магазинів та інших бізнесів. Заснована Віталієм Диблюком, компанія має понад 7 років досвіду та реалізувала понад 100 проєктів. Вони пропонують комплексний підхід, включаючи стратегію, аналітику та розвиток сайту, зосереджуючись на збільшенні продажів та окупності інвестицій. Серед клієнтів — Sellmax, Salesjam, Viking",
+        "reason": "Конкретний опис діяльності: Google Ads, Meta Ads, SEO для е-комерції; засновник, досвід, портфоліо клієнтів та результати проектів.",
+        "identityMatch": "same",
+        "rawText": "\"Top Marketing\" — київська агенція digital-маркетингу, що спеціалізується на Google Ads, Meta Ads та SEO для інтернет-магазинів та інших бізнесів. Заснована Віталієм Диблюком, компанія має понад 7 років досвіду та реалізувала понад 100 проєктів. Вони пропонують комплексний підхід, включаючи стратегію, аналітику та розвиток сайту, зосереджуючись на збільшенні продажів та окупності інвестицій. Серед клієнтів — Sellmax, Salesjam, Viking Металоконструкції та інші. Агенція демонструє значні результати, наприклад, збільшення кількості транзакцій у 5 разів для інтернет-магазину Sellmax. ([topmarketing.com.ua](https://topmarketing.com.ua/cases/sellmax?utm_source=openai)) ",
+        "classifierError": null,
+        "score": 100,
+        "knowledgeStatus": "Знає",
+        "model": "gpt-4.1",
+        "searchMode": "web_search_enabled",
+        "checkedAt": "2026-10-26T11:23:47.092Z",
+        "timings": {
+          "providerMs": 5305,
+          "totalMs": 6742
+        },
+        "key": "chatgpt",
+        "label": "ChatGPT"
+      },
+      "gemini": {
+        "verdict": "know",
+        "hit": true,
+        "snippet": "**Основна діяльність компанії:**\n* **Google Ads:** професійне налаштування та супровід контекстної реклами, Google Shopping, Performance Max та оптимізація під ROAS/KPI.\n* **Meta Ads:** таргетована реклама в Facebook та Instagram для залучення лідів і продажів.\n* **SEO-просування:** оптимізація та виведення сайтів у ТОП пошукових систем.\n* **Комплексний маркетинг:** аналітичне супроводження, аудит рекламних кабінетів та налаштування",
+        "reason": "AI описує конкретні послуги (Google Ads, Meta Ads, SEO), географію (Київ) і напрямок діяльності (e-commerce), що виходять понад надану нішу.",
+        "identityMatch": "same",
+        "rawText": "Так, це українське digital-агентство перфоманс-маркетингу (Київ), яке спеціалізується на просуванні e-commerce (інтернет-магазинів) та B2B/B2C проєктів.\n\n**Основна діяльність компанії:**\n* **Google Ads:** професійне налаштування та супровід контекстної реклами, Google Shopping, Performance Max та оптимізація під ROAS/KPI.\n* **Meta Ads:** таргетована реклама в Facebook та Instagram для залучення лідів і продажів.\n* **SEO-просування:** оптимізація та виведення сайтів у ТОП пошукових систем.\n* **Комплексний маркетинг:** аналітичне супроводження, аудит рекламних кабінетів та налаштування веб-аналітики.\n\nКомпанія позиціонує себе як результатоорієнтований партнер із глибоким зануренням у нішу клієнта та чітким прогнозуванням результатів.",
+        "classifierError": null,
+        "score": 100,
+        "knowledgeStatus": "Знає",
+        "model": "gemini-3.6-flash",
+        "searchMode": "web_search_enabled",
+        "checkedAt": "2026-10-26T11:23:46.231Z",
+        "timings": {
+          "providerMs": 4201,
+          "totalMs": 5870
+        },
+        "key": "gemini",
+        "label": "Gemini"
+      },
+      "perplexity": {
+        "verdict": "know",
+        "hit": true,
+        "snippet": "Так, йдеться саме про українську компанію **Top Marketing** із сайтом topmarketing.com.ua. Це київське digital/performance-маркетингове агентство, яке працює з бізнесом, зокрема e-commerce та інтернет-магазинами. Основні послуги: **Google Ads** (включно з Google Shopping), **Meta Ads**, SEO, налаштування аналітики та наскрізної звітності. Компанія позиціонує себе як зовнішній маркетинговий партнер: аналізує бізнес і воронку, формує стратегію,",
+        "reason": "AI конкретно описує діяльність Top Marketing: послуги (Google Ads, Meta Ads, SEO, аналітика), географія (Київ), спеціалізація (e-commerce). Описані факти перевищують надану нішу.",
+        "identityMatch": "same",
+        "rawText": "Так, йдеться саме про українську компанію **Top Marketing** із сайтом topmarketing.com.ua. Це київське digital/performance-маркетингове агентство, яке працює з бізнесом, зокрема e-commerce та інтернет-магазинами. Основні послуги: **Google Ads** (включно з Google Shopping), **Meta Ads**, SEO, налаштування аналітики та наскрізної звітності. Компанія позиціонує себе як зовнішній маркетинговий партнер: аналізує бізнес і воронку, формує стратегію, координує рекламні канали та оптимізує їх за показниками продажів і прибутковості.[1][3]",
+        "classifierError": null,
+        "score": 100,
+        "knowledgeStatus": "Знає",
+        "model": "sonar",
+        "searchMode": "web_search_enabled",
+        "checkedAt": "2026-10-26T11:23:45.463Z",
+        "timings": {
+          "providerMs": 3520,
+          "totalMs": 5178
+        },
+        "key": "perplexity",
+        "label": "Perplexity"
+      },
+      "claude": {
+        "verdict": "unknown",
+        "hit": false,
+        "snippet": "На жаль, конкретної інформації про компанію \"Top Marketing\" із сайтом topmarketing.com.ua у мене немає. Я не маю достовірних даних саме про цей бренд — ні про історію заснування, ні про команду, ні про конкретні кейси чи клієнтів.",
+        "reason": "AI прямо заявляє про відсутність достовірних даних про компанію. Далі переказує надану нішу без власних знань про Top Marketing.",
+        "identityMatch": "ambiguous",
+        "rawText": "На жаль, конкретної інформації про компанію \"Top Marketing\" із сайтом topmarketing.com.ua у мене немає. Я не маю достовірних даних саме про цей бренд — ні про історію заснування, ні про команду, ні про конкретні кейси чи клієнтів.\n\nСудячи з опису, який ви навели, це, ймовірно, київське агентство, що спеціалізується на налаштуванні та веденні Google Ads для інтернет-магазинів (контекстна реклама, оптимізація кампаній, можливо також аналітика продажів чи supporting-послуги на кшталт Google Merchant Center).\n\nЯкщо вам потрібна перевірена інформація — краще звернутися безпосередньо до сайту компанії, перевірити відгуки на незалежних майданчиках (Clutch, Google Reviews) або запросити портфоліо та кейси напряму в компанії.",
+        "classifierError": null,
+        "score": 0,
+        "knowledgeStatus": "Не знає",
+        "model": "claude-sonnet-5",
+        "searchMode": "model_knowledge",
+        "checkedAt": "2026-10-26T11:23:48.189Z",
+        "timings": {
+          "providerMs": 6386,
+          "totalMs": 7823
+        },
+        "key": "claude",
+        "label": "Claude"
+      }
+    },
+    "zoneOfInvisibility": [
+      {
+        "query": "Яку агенцію обрати для Google Ads інтернет-магазину в Києві?",
+        "requestPrompt": "Яку агенцію обрати для Google Ads інтернет-магазину в Києві?\nПорадь до 3 конкретних компаній, постачальників або магазинів для цієї потреби. Коротко поясни вибір, вкажи офіційні сайти, якщо знаєш. Не замінюй добірку загальною інструкцією. Якщо не можеш порадити конкретні компанії, прямо скажи про це. Відповідай українською, до 100 слів: назва, сайт, одне коротке речення на кожну компанію. Без вступу та висновку.",
+        "durationMs": 12827,
+        "timings": {
+          "providerMs": 7759,
+          "extractionMs": 5068
+        },
+        "analysisVersion": 2,
+        "engines": {
+          "perplexity": {
+            "rawText": "**Netpeak** — [netpeak.ua](https://netpeak.ua/ua/services/google-ads/) — київська агенція, що працює з Performance Max, аналітикою та e-commerce-рекламою.[10]\n\n**Elit-Web** — [elit-web.ua](https://elit-web.ua/ua/reklama-google) — налаштовує Google Merchant Center, конверсії та Google Ads для інтернет-магазинів.[9]\n\n**G-ONE** — [g-one.com.ua](https://g-one.com.ua/reklama-google-ads/kiev/) — спеціалізується на Shopping, товарних кампаніях, ремаркетингу й e-commerce-аналітиці.[4]",
+            "sources": [],
+            "model": "sonar",
+            "searchMode": "web_search_enabled",
+            "analysisStatus": "ok",
+            "mentionedBrand": false,
+            "brandRecommended": false,
+            "websiteRecommended": false,
+            "recommended": false,
+            "targetStatus": "not_mentioned",
+            "targetEvidence": [],
+            "competitorAnalysisStatus": "ok",
+            "rejectedCompanyCount": 0,
+            "recommendedCompanies": [
+              {
+                "name": "Netpeak",
+                "website": "https://netpeak.ua",
+                "stance": "recommended",
+                "evidence": "**Netpeak** — [netpeak.ua](https://netpeak.ua/ua/services/google-ads/) — київська агенція, що працює з Performance Max, аналітикою та e-commerce-рекламою.[10]",
+                "isTarget": false
+              },
+              {
+                "name": "Elit-Web",
+                "website": "https://elit-web.ua",
+                "stance": "recommended",
+                "evidence": "**Elit-Web** — [elit-web.ua](https://elit-web.ua/ua/reklama-google) — налаштовує Google Merchant Center, конверсії та Google Ads для інтернет-магазинів.[9]",
+                "isTarget": false
+              },
+              {
+                "name": "G-ONE",
+                "website": "https://g-one.com.ua",
+                "stance": "recommended",
+                "evidence": "**G-ONE** — [g-one.com.ua](https://g-one.com.ua/reklama-google-ads/kiev/) — спеціалізується на Shopping, товарних кампаніях, ремаркетингу й e-commerce-аналітиці.[4]",
+                "isTarget": false
+              }
+            ],
+            "checkedAt": "2026-10-26T11:24:01.082Z"
+          },
+          "chatgpt": {
+            "rawText": "Ось три агенції в Києві, які спеціалізуються на Google Ads для інтернет-магазинів:\n\n1. **SeoTiGR**: Пропонує комплексне SEO, Google Ads, SMM та розробку сайтів з офіційною роботою через ФОП та договір. ([seotigr.com.ua](https://seotigr.com.ua/?utm_source=openai))\n\n2. **PPC Experts**: З 2014 року допомагає бізнесам у конкурентних нішах, є офіційним партнером Google. ([ppcexperts.pro](https://ppcexperts.pro/?utm_source=openai))\n\n3. **G-WEB.GROUP**: Маркетингова агенція з головним офісом у Києві, працює з українськими та міжнародними брендами, допомагаючи виходити на нові ринки. ([g-web.group](https://g-web.group/?utm_source=openai)) ",
+            "sources": [],
+            "model": "gpt-4.1",
+            "searchMode": "web_search_enabled",
+            "analysisStatus": "ok",
+            "mentionedBrand": false,
+            "brandRecommended": false,
+            "websiteRecommended": false,
+            "recommended": false,
+            "targetStatus": "not_mentioned",
+            "targetEvidence": [],
+            "competitorAnalysisStatus": "ok",
+            "rejectedCompanyCount": 0,
+            "recommendedCompanies": [
+              {
+                "name": "SeoTiGR",
+                "website": "https://seotigr.com.ua",
+                "stance": "recommended",
+                "evidence": "1. **SeoTiGR**: Пропонує комплексне SEO, Google Ads, SMM та розробку сайтів з офіційною роботою через ФОП та договір. ([seotigr.com.ua](https://seotigr.com.ua/?utm_source=openai))",
+                "isTarget": false
+              },
+              {
+                "name": "PPC Experts",
+                "website": "https://ppcexperts.pro",
+                "stance": "recommended",
+                "evidence": "2. **PPC Experts**: З 2014 року допомагає бізнесам у конкурентних нішах, є офіційним партнером Google. ([ppcexperts.pro](https://ppcexperts.pro/?utm_source=openai))",
+                "isTarget": false
+              },
+              {
+                "name": "G-WEB.GROUP",
+                "website": "https://g-web.group",
+                "stance": "recommended",
+                "evidence": "3. **G-WEB.GROUP**: Маркетингова агенція з головним офісом у Києві, працює з українськими та міжнародними брендами, допомагаючи виходити на нові ринки. ([g-web.group](https://g-web.group/?utm_source=openai))",
+                "isTarget": false
+              }
+            ],
+            "checkedAt": "2026-10-26T11:24:01.094Z"
+          },
+          "claude": {
+            "rawText": "Чесно кажучи, я не маю достовірної актуальної бази даних конкретних Google Ads агенцій у Києві з перевіреними сайтами, тому не можу відповідально порадити 3 конкретні компанії — ризик дати застарілу чи неточну інформацію.\n\nЩо можу порадити для пошуку:\n- Перевірити список Google Partners (офіційний реєстр сертифікованих агенцій): https://www.google.com/partners/ — там можна відфільтрувати за Києвом.\n- Подивитися кейси та відгуки на Clutch.co у розділі \"PPC Kyiv\".\n- Запросити рекомендації в українських маркетингових спільнотах (наприклад, групи в Facebook/Telegram для e-commerce).",
+            "sources": [],
+            "model": "claude-sonnet-5",
+            "searchMode": "model_knowledge",
+            "analysisStatus": "ok",
+            "mentionedBrand": false,
+            "brandRecommended": false,
+            "websiteRecommended": false,
+            "recommended": false,
+            "targetStatus": "not_mentioned",
+            "targetEvidence": [],
+            "competitorAnalysisStatus": "ok",
+            "rejectedCompanyCount": 0,
+            "recommendedCompanies": [],
+            "checkedAt": "2026-10-26T11:24:01.094Z"
+          },
+          "gemini": {
+            "rawText": "1. **Promodo** (promodo.ua) — Велика агенція цифрового маркетингу з потужною експертизою в налаштуванні Google Ads та Performance Max для e-commerce проєктів.\n2. **Netpeak** (netpeak.ua) — Перформанс-агенція, яка спеціалізується на просуванні інтернет-магазинів через Google Ads та оптимізації окупності інвестицій (ROMI).\n3. **Webpromo** (web-promo.ua) — Преміум-партнер Google із багаторічним досвідом оптимізації рекламних кампаній і Google Shopping для українського онлайн-ритейлу.",
+            "sources": [],
+            "model": "gemini-3.6-flash",
+            "searchMode": "web_search_enabled",
+            "analysisStatus": "ok",
+            "mentionedBrand": false,
+            "brandRecommended": false,
+            "websiteRecommended": false,
+            "recommended": false,
+            "targetStatus": "not_mentioned",
+            "targetEvidence": [],
+            "competitorAnalysisStatus": "ok",
+            "rejectedCompanyCount": 0,
+            "recommendedCompanies": [
+              {
+                "name": "Promodo",
+                "website": "https://promodo.ua",
+                "stance": "recommended",
+                "evidence": "1. **Promodo** (promodo.ua) — Велика агенція цифрового маркетингу з потужною експертизою в налаштуванні Google Ads та Performance Max для e-commerce проєктів.",
+                "isTarget": false
+              },
+              {
+                "name": "Netpeak",
+                "website": "https://netpeak.ua",
+                "stance": "recommended",
+                "evidence": "2. **Netpeak** (netpeak.ua) — Перформанс-агенція, яка спеціалізується на просуванні інтернет-магазинів через Google Ads та оптимізації окупності інвестицій (ROMI).",
+                "isTarget": false
+              },
+              {
+                "name": "Webpromo",
+                "website": "https://web-promo.ua",
+                "stance": "recommended",
+                "evidence": "3. **Webpromo** (web-promo.ua) — Преміум-партнер Google із багаторічним досвідом оптимізації рекламних кампаній і Google Shopping для українського онлайн-ритейлу.",
+                "isTarget": false
+              }
+            ],
+            "checkedAt": "2026-10-26T11:24:01.098Z"
+          }
+        },
+        "competitors": [
+          "Netpeak",
+          "Elit-Web",
+          "G-ONE",
+          "SeoTiGR",
+          "PPC Experts",
+          "G-WEB.GROUP",
+          "Promodo",
+          "Webpromo"
+        ],
+        "competitorsSource": "observed_recommendations"
+      },
+      {
+        "query": "Хто налаштовує Google Shopping для інтернет-магазинів у Києві?",
+        "requestPrompt": "Хто налаштовує Google Shopping для інтернет-магазинів у Києві?\nПорадь до 3 конкретних компаній, постачальників або магазинів для цієї потреби. Коротко поясни вибір, вкажи офіційні сайти, якщо знаєш. Не замінюй добірку загальною інструкцією. Якщо не можеш порадити конкретні компанії, прямо скажи про це. Відповідай українською, до 100 слів: назва, сайт, одне коротке речення на кожну компанію. Без вступу та висновку.",
+        "durationMs": 12156,
+        "timings": {
+          "providerMs": 7122,
+          "extractionMs": 5034
+        },
+        "analysisVersion": 2,
+        "engines": {
+          "perplexity": {
+            "rawText": "InfoUnion — https://infounion.com.ua/ua/nastrojka-google-shopping.html — київське агентство, що налаштовує Merchant Center, товарні фіди, Shopping і звітність.[1]\n\nITForce — https://itforce.ua/ppc-kontekstnaya-reklama/google-shopping/ — веде повний цикл: Merchant Center, фід, Google Ads, Performance Max та аналітика.[2]\n\nLimeNet — https://www.limenet.kiev.ua/ua/google-shopping-ukraina/ — київський постачальник із налаштуванням Merchant Center, фіду, кампаній і таргетингу.[4]",
+            "sources": [],
+            "model": "sonar",
+            "searchMode": "web_search_enabled",
+            "analysisStatus": "ok",
+            "mentionedBrand": false,
+            "brandRecommended": false,
+            "websiteRecommended": false,
+            "recommended": false,
+            "targetStatus": "not_mentioned",
+            "targetEvidence": [],
+            "competitorAnalysisStatus": "ok",
+            "rejectedCompanyCount": 0,
+            "recommendedCompanies": [
+              {
+                "name": "InfoUnion",
+                "website": "https://infounion.com.ua",
+                "stance": "recommended",
+                "evidence": "InfoUnion — https://infounion.com.ua/ua/nastrojka-google-shopping.html — київське агентство, що налаштовує Merchant Center, товарні фіди, Shopping і звітність.[1]",
+                "isTarget": false
+              },
+              {
+                "name": "ITForce",
+                "website": "https://itforce.ua",
+                "stance": "recommended",
+                "evidence": "ITForce — https://itforce.ua/ppc-kontekstnaya-reklama/google-shopping/ — веде повний цикл: Merchant Center, фід, Google Ads, Performance Max та аналітика.[2]",
+                "isTarget": false
+              },
+              {
+                "name": "LimeNet",
+                "website": "https://limenet.kiev.ua",
+                "stance": "recommended",
+                "evidence": "LimeNet — https://www.limenet.kiev.ua/ua/google-shopping-ukraina/ — київський постачальник із налаштуванням Merchant Center, фіду, кампаній і таргетингу.[4]",
+                "isTarget": false
+              }
+            ],
+            "checkedAt": "2026-10-26T11:24:00.414Z"
+          },
+          "chatgpt": {
+            "rawText": "Ось три компанії в Києві, які спеціалізуються на налаштуванні Google Shopping для інтернет-магазинів:\n\n1. **Marketing Mercury**  \n   Спеціалізується на створенні інтернет-магазинів на платформі Хорошоп та налаштуванні реклами в Google Ads, включаючи Google Shopping. ([marketingmercury.com.ua](https://marketingmercury.com.ua/?utm_source=openai))\n\n2. **Web Machine Agency**  \n   Пропонує налаштування товарної реклами в Google Покупках, включаючи реєстрацію та налаштування Google Merchant Center. ([web-machine.agency](https://web-machine.agency/google-ads-merchant?utm_source=openai))\n\n3. **DiMetrika**  \n   Займається запуском Google Shopping, включаючи підготовку сайту, фіда та реєстрацію в Merchant Center. ([dimetrika.com.ua](https://dimetrika.com.ua/?utm_source=openai)) ",
+            "sources": [],
+            "model": "gpt-4.1",
+            "searchMode": "web_search_enabled",
+            "analysisStatus": "ok",
+            "mentionedBrand": false,
+            "brandRecommended": false,
+            "websiteRecommended": false,
+            "recommended": false,
+            "targetStatus": "not_mentioned",
+            "targetEvidence": [],
+            "competitorAnalysisStatus": "ok",
+            "rejectedCompanyCount": 0,
+            "recommendedCompanies": [
+              {
+                "name": "Marketing Mercury",
+                "website": "https://marketingmercury.com.ua",
+                "stance": "recommended",
+                "evidence": "1. **Marketing Mercury**  \n   Спеціалізується на створенні інтернет-магазинів на платформі Хорошоп та налаштуванні реклами в Google Ads, включаючи Google Shopping. ([marketingmercury.com.ua](https://marketingmercury.com.ua/?utm_source=openai))",
+                "isTarget": false
+              },
+              {
+                "name": "Web Machine Agency",
+                "website": "https://web-machine.agency",
+                "stance": "recommended",
+                "evidence": "2. **Web Machine Agency**  \n   Пропонує налаштування товарної реклами в Google Покупках, включаючи реєстрацію та налаштування Google Merchant Center. ([web-machine.agency](https://web-machine.agency/google-ads-merchant?utm_source=openai))",
+                "isTarget": false
+              },
+              {
+                "name": "DiMetrika",
+                "website": "https://dimetrika.com.ua",
+                "stance": "recommended",
+                "evidence": "3. **DiMetrika**  \n   Займається запуском Google Shopping, включаючи підготовку сайту, фіда та реєстрацію в Merchant Center. ([dimetrika.com.ua](https://dimetrika.com.ua/?utm_source=openai))",
+                "isTarget": false
+              }
+            ],
+            "checkedAt": "2026-10-26T11:24:00.420Z"
+          },
+          "gemini": {
+            "rawText": "1. **Netpeak** (netpeak.ua)\nПровідне digital-агентство з великим досвідом налаштування товарних фідів, Google Merchant Center та Performance Max для e-commerce.\n\n2. **Webpromo** (web-promo.ua)\nСертифікований Google Premier Partner у Києві, який комплексно налаштовує та оптимізує Google Shopping для інтернет-магазинів.\n\n3. **Inweb** (inweb.ua)\nАгентство перформанс-маркетингу, що спеціалізується на запуску торгових кампаній і масштабуванні продажів для товарного бізнесу.",
+            "sources": [],
+            "model": "gemini-3.6-flash",
+            "searchMode": "web_search_enabled",
+            "analysisStatus": "ok",
+            "mentionedBrand": false,
+            "brandRecommended": false,
+            "websiteRecommended": false,
+            "recommended": false,
+            "targetStatus": "not_mentioned",
+            "targetEvidence": [],
+            "competitorAnalysisStatus": "ok",
+            "rejectedCompanyCount": 0,
+            "recommendedCompanies": [
+              {
+                "name": "Netpeak",
+                "website": "https://netpeak.ua",
+                "stance": "recommended",
+                "evidence": "1. **Netpeak** (netpeak.ua)\nПровідне digital-агентство з великим досвідом налаштування товарних фідів, Google Merchant Center та Performance Max для e-commerce.",
+                "isTarget": false
+              },
+              {
+                "name": "Webpromo",
+                "website": "https://web-promo.ua",
+                "stance": "recommended",
+                "evidence": "2. **Webpromo** (web-promo.ua)\nСертифікований Google Premier Partner у Києві, який комплексно налаштовує та оптимізує Google Shopping для інтернет-магазинів.",
+                "isTarget": false
+              },
+              {
+                "name": "Inweb",
+                "website": "https://inweb.ua",
+                "stance": "recommended",
+                "evidence": "3. **Inweb** (inweb.ua)\nАгентство перформанс-маркетингу, що спеціалізується на запуску торгових кампаній і масштабуванні продажів для товарного бізнесу.",
+                "isTarget": false
+              }
+            ],
+            "checkedAt": "2026-10-26T11:24:00.424Z"
+          },
+          "claude": {
+            "rawText": "Не маю достовірної перевіреної інформації про конкретні компанії в Києві, які спеціалізуються саме на налаштуванні Google Shopping, щоб коректно назвати їх назви та офіційні сайти. Щоб не вводити в оману, не можу навести конкретний перелік.\n\nРекомендую шукати через:\n- Google Partners (офіційний каталог сертифікованих агенцій) — google.com/partners\n- Каталоги на Clutch.co з фільтром \"PPC agencies, Kyiv, Ukraine\"\n- Відгуки на Searchengines.guru або у профільних Telegram-спільнотах з digital-маркетингу\n\nЦе дасть змогу перевірити реальні кейси та відгуки перед вибором підрядника.",
+            "sources": [],
+            "model": "claude-sonnet-5",
+            "searchMode": "model_knowledge",
+            "analysisStatus": "ok",
+            "mentionedBrand": false,
+            "brandRecommended": false,
+            "websiteRecommended": false,
+            "recommended": false,
+            "targetStatus": "not_mentioned",
+            "targetEvidence": [],
+            "competitorAnalysisStatus": "ok",
+            "rejectedCompanyCount": 0,
+            "recommendedCompanies": [],
+            "checkedAt": "2026-10-26T11:24:00.424Z"
+          }
+        },
+        "competitors": [
+          "InfoUnion",
+          "ITForce",
+          "LimeNet",
+          "Marketing Mercury",
+          "Web Machine Agency",
+          "DiMetrika",
+          "Netpeak",
+          "Webpromo",
+          "Inweb"
+        ],
+        "competitorsSource": "observed_recommendations"
+      }
+    ],
+    "queryPlan": {
+      "queries": [
+        "Яку агенцію обрати для Google Ads інтернет-магазину в Києві?",
+        "Хто налаштовує Google Shopping для інтернет-магазинів у Києві?"
+      ],
+      "confirmedByUser": true,
+      "services": [
+        "Google Ads для інтернет-магазинів"
+      ]
+    }
+  },
+  "audit": {
+    "checkedAt": "2026-10-26T11:16:42.824Z",
+    "pages": [
+      {
+        "url": "https://topmarketing.com.ua/",
+        "title": "Digital-маркетинг на аутсорсі — Google Ads, Meta Ads, SEO | Top Marketing",
+        "headings": [
+          "Маркетинговий партнер для зростання бізнесу"
+        ],
+        "textLength": 13010,
+        "signals": [
+          {
+            "id": "index",
+            "label": "Індексування",
+            "status": "observed",
+            "evidence": "У HTML не знайдено meta noindex. Фактичну індексацію Google не перевірено.",
+            "url": "https://topmarketing.com.ua/"
+          },
+          {
+            "id": "title",
+            "label": "Заголовок сторінки",
+            "status": "observed",
+            "evidence": "Digital-маркетинг на аутсорсі — Google Ads, Meta Ads, SEO | Top Marketing",
+            "url": "https://topmarketing.com.ua/"
+          },
+          {
+            "id": "h1",
+            "label": "Основний заголовок",
+            "status": "observed",
+            "evidence": "H1: Маркетинговий партнер для зростання бізнесу",
+            "url": "https://topmarketing.com.ua/"
+          },
+          {
+            "id": "geo",
+            "label": "Географія",
+            "status": "observed",
+            "evidence": "ta Ads НІША Клініка жіночого здоров'я в Києві КЛІЄНТ / САЙТ Мамологічний центр ПОСЛУГА Google Ads + Meta Ads КЛЮЧОВІ ДОСЯГНЕННЯ Meta Ads +321% Конверсії зросли приблизно у 4 рази Збереглась стабільна позитивна ",
+            "url": "https://topmarketing.com.ua/"
+          },
+          {
+            "id": "proof",
+            "label": "Досвід і приклади",
+            "status": "observed",
+            "evidence": "ослуги Google Ads Meta Ads SEO-просування Маркетинг для медицини Кейси Відгуки Блог Контакти Консультація PERFORMANCE-МАРКЕТИНГ ДЛЯ БІЗНЕСУ Маркетинговий партнер для зростання бізнесу Допом",
+            "url": "https://topmarketing.com.ua/"
+          },
+          {
+            "id": "contact",
+            "label": "Контактні дані",
+            "status": "observed",
+            "evidence": "ачимо точки зростання та запропонуємо релевантний формат роботи. +380 93 84 68 869 top.marketing.audit@gmail.com Київ, вулиця Марії Капніст, 2 Instagram — стежте за оновленнями Напишіть нам у Telegram Ро",
+            "url": "https://topmarketing.com.ua/"
+          }
+        ]
+      },
+      {
+        "url": "https://topmarketing.com.ua/google-ads",
+        "title": "Контекстна реклама Google Ads — налаштування та ведення | Топ Маркетинг",
+        "headings": [
+          "Контекстна реклама Google Ads"
+        ],
+        "textLength": 7957,
+        "signals": [
+          {
+            "id": "index",
+            "label": "Індексування",
+            "status": "observed",
+            "evidence": "У HTML не знайдено meta noindex. Фактичну індексацію Google не перевірено.",
+            "url": "https://topmarketing.com.ua/google-ads"
+          },
+          {
+            "id": "title",
+            "label": "Заголовок сторінки",
+            "status": "observed",
+            "evidence": "Контекстна реклама Google Ads — налаштування та ведення | Топ Маркетинг",
+            "url": "https://topmarketing.com.ua/google-ads"
+          },
+          {
+            "id": "h1",
+            "label": "Основний заголовок",
+            "status": "observed",
+            "evidence": "H1: Контекстна реклама Google Ads",
+            "url": "https://topmarketing.com.ua/google-ads"
+          },
+          {
+            "id": "geo",
+            "label": "Географія",
+            "status": "observed",
+            "evidence": "льніше НІША Клініка жіночого здоров'я в Києві РЕЗУЛЬТАТ +343% лідів з Google ДЖЕРЕЛО ∞ Google Ads + Meta Ads КЛІЄНТ / САЙТ Мамологічний центр ПОСЛУГА Google Ads + Meta Ads КЛЮЧОВІ ДОСЯГНЕННЯ Кількість лідів з G",
+            "url": "https://topmarketing.com.ua/google-ads"
+          },
+          {
+            "id": "proof",
+            "label": "Досвід і приклади",
+            "status": "observed",
+            "evidence": "s, SEO. Налаштування контекстної реклами Google Ads з прогнозами результату: пошук, Performance Max, товарна, банерна та відеореклама. Аналітика, оптимізація, звіти. Контекстна реклама Google Ad",
+            "url": "https://topmarketing.com.ua/google-ads"
+          },
+          {
+            "id": "contact",
+            "label": "Контактні дані",
+            "status": "observed",
+            "evidence": "окажемо, які результати можна прогнозувати перед масштабуванням. +380 93 84 68 869 top.marketing.audit@gmail.com Київ, вулиця Марії Капніст, 2 Написати в Telegram Отримати безкоштовний аудит Відповімо пр",
+            "url": "https://topmarketing.com.ua/google-ads"
+          }
+        ]
+      },
+      {
+        "url": "https://topmarketing.com.ua/meta-ads",
+        "title": "Таргетована реклама Facebook / Instagram Ads — Meta Ads | Топ Маркетинг",
+        "headings": [
+          "Таргетована реклама Facebook / Instagram Ads"
+        ],
+        "textLength": 9625,
+        "signals": [
+          {
+            "id": "index",
+            "label": "Індексування",
+            "status": "observed",
+            "evidence": "У HTML не знайдено meta noindex. Фактичну індексацію Google не перевірено.",
+            "url": "https://topmarketing.com.ua/meta-ads"
+          },
+          {
+            "id": "title",
+            "label": "Заголовок сторінки",
+            "status": "observed",
+            "evidence": "Таргетована реклама Facebook / Instagram Ads — Meta Ads | Топ Маркетинг",
+            "url": "https://topmarketing.com.ua/meta-ads"
+          },
+          {
+            "id": "h1",
+            "label": "Основний заголовок",
+            "status": "observed",
+            "evidence": "H1: Таргетована реклама Facebook / Instagram Ads",
+            "url": "https://topmarketing.com.ua/meta-ads"
+          },
+          {
+            "id": "geo",
+            "label": "Географія",
+            "status": "observed",
+            "evidence": "льніше НІША Клініка жіночого здоров'я в Києві РЕЗУЛЬТАТ +343% лідів з Google ДЖЕРЕЛО ∞ Google Ads + Meta Ads КЛІЄНТ / САЙТ Мамологічний центр ПОСЛУГА Google Ads + Meta Ads КЛЮЧОВІ ДОСЯГНЕННЯ Кількість лідів з G",
+            "url": "https://topmarketing.com.ua/meta-ads"
+          },
+          {
+            "id": "proof",
+            "label": "Досвід і приклади",
+            "status": "observed",
+            "evidence": "ослуги Google Ads Meta Ads SEO-просування Маркетинг для медицини Кейси Відгуки Блог Контакти Отримати консультацію Консультація PPC / Meta Ads Таргетована реклама Facebook / Instagram Ads Г",
+            "url": "https://topmarketing.com.ua/meta-ads"
+          },
+          {
+            "id": "contact",
+            "label": "Контактні дані",
+            "status": "observed",
+            "evidence": "ПЕРЕДНІЙ АУДИТ Вашого рекламного аккаунта та стратегію розвитку! +380 93 84 68 869 top.marketing.audit@gmail.com Київ, вулиця Марії Капніст, 2 Написати в Telegram Отримати безкоштовний аудит Заповніть 3 ",
+            "url": "https://topmarketing.com.ua/meta-ads"
+          }
+        ]
+      }
+    ],
+    "failures": [],
+    "scope": "До 3 HTML-сторінок. Без рендерингу JavaScript, Search Console та перевірки всього сайту."
+  }
+}

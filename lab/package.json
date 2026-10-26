@@ -1,0 +1,9 @@
+{
+  "name": "top-marketing-ai-audit-lab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --use-env-proxy server.js",
+    "test": "node --test test/*.test.js"
+  }
+}
