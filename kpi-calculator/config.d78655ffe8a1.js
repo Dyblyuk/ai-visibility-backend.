@@ -1,0 +1,1 @@
+window.FORECAST_CONFIG={"analysisUrl":"https://top-marketing-kpi-forecast.onrender.com/analyze","reportsUrl":"https://top-marketing-kpi-forecast.onrender.com/forecast-reports","telegramGate":true,"resultsPrototype":true};
