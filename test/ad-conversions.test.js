@@ -54,7 +54,7 @@ test('durable outbox survives restart; parallel duplicates emit once; Google rec
   let db=new PGlite(dir);let outbox=new ConversionOutbox(db);await outbox.init();
   try {
     await Promise.all([outbox.enqueue(event),outbox.enqueue(event)]);
-    assert.equal((await db.query('SELECT * FROM ad_conversion_outbox')).rows.length,3);
+    assert.equal((await db.query('SELECT * FROM ad_conversion_outbox')).rows.length,4);
     await db.close();db=new PGlite(dir);outbox=new ConversionOutbox(db);await outbox.init();
     const urls=[];
     const worker=createConversionWorker({outbox,env,fetchFn:async(url,opts)=>{
@@ -123,7 +123,7 @@ test('fake click validates once, sends no Meta or phone data, and does not consu
     assert.equal(requests.length,1);assert.equal(requests[0].body.validateOnly,true);
     assert.equal(requests[0].body.events[0].userData,undefined);
     await outbox.enqueue(event);
-    assert.equal((await db.query('SELECT * FROM ad_conversion_outbox')).rows.length,4);
+    assert.equal((await db.query('SELECT * FROM ad_conversion_outbox')).rows.length,5);
     assert.equal(googlePayload(event,env).validateOnly,undefined);
   } finally {await db.close();}
 });

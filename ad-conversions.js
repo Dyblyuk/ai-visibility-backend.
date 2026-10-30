@@ -17,7 +17,7 @@ export function cleanAttribution(input = {}) {
     if (typeof input?.[key] === 'string' && ID.test(input[key])) out[key] = input[key];
   }
   // Preserve opaque TikTok identifiers without shortening a valid click ID.
-  for (const key of ['ttclid','ttp']) {
+  for (const key of ['ttclid','ttp','oppref','obref']) {
     if (typeof input?.[key] === 'string' && input[key].length > 0 && input[key].length <= 4096 && !/[\x00-\x20\x7f]/.test(input[key])) out[key] = input[key];
   }
   for (const key of ['utm_source','utm_medium','utm_campaign','utm_content','utm_term']) {
@@ -90,6 +90,21 @@ export function tiktokPayload(event, env) {
   }]};
 }
 
+// The conversion is completed in Telegram, so do not label it as a web form.
+export function openaiAdsPayload(event) {
+  if (isGoogleValidation(event.attribution) || event.attribution?.consent?.adUserData === 'denied') return null;
+  const a = event.attribution || {};
+  const user = {};
+  if (a.obref) user.obref = a.obref;
+  if (a.consent?.adUserData === 'granted' && /^[a-f0-9]{64}$/.test(event.metaPhone || '')) user.phone_numbers_sha256 = [event.metaPhone];
+  return {validate_only:false,events:[{
+    id:event.id,type:'registration_completed',timestamp_ms:Date.parse(event.time),
+    action_source:'other',data:{type:'customer_action'},
+    ...(a.oppref ? {oppref:a.oppref} : {}),
+    ...(Object.keys(user).length ? {user} : {})
+  }]};
+}
+
 // No volatile fallback for conversion delivery. SQL outbox survives redeploys.
 export class ConversionOutbox {
   constructor(db) { this.db = db; }
@@ -102,7 +117,7 @@ export class ConversionOutbox {
     )`);
   }
   async enqueue(event) {
-    for (const platform of (isGoogleValidation(event.attribution) ? ['google'] : ['meta','google','tiktok'])) await this.db.query(
+    for (const platform of (isGoogleValidation(event.attribution) ? ['google'] : ['meta','google','tiktok','openaiAds'])) await this.db.query(
       'INSERT INTO ad_conversion_outbox(event_id,platform,payload) VALUES($1,$2,$3::jsonb) ON CONFLICT DO NOTHING',
       [event.id,platform,JSON.stringify(event)]);
   }
@@ -123,8 +138,9 @@ export function trackingStatus(env, durable) {
   const meta = !!(env.META_PIXEL_ID && env.META_CAPI_ACCESS_TOKEN && env.META_API_VERSION);
   const google = !!(env.GOOGLE_ADS_CUSTOMER_ID && env.GOOGLE_ADS_CONVERSION_ACTION_ID && env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET && env.GOOGLE_OAUTH_REFRESH_TOKEN);
   const tiktok = !!(env.TIKTOK_CRM_EVENT_SET_ID && env.TIKTOK_CRM_ACCESS_TOKEN);
-  return {version:3,tiktokConfigured:tiktok,tiktokPixelConfigured:!!env.TIKTOK_PIXEL_ID,tiktokWebTokenConfigured:!!env.TIKTOK_EVENTS_ACCESS_TOKEN,tiktokCrmIdConfigured:!!env.TIKTOK_CRM_EVENT_SET_ID,tiktokCrmTokenConfigured:!!env.TIKTOK_CRM_ACCESS_TOKEN,tiktokEvent:'TelegramContactShared',googleValidationLinks:true,enabled:env.ADS_CONVERSIONS_ENABLED==='true',durable,sendpulseAuthenticated:!!env.SENDPULSE_TRACKING_SECRET,metaConfigured:meta,googleConfigured:google,
-    ready:env.ADS_CONVERSIONS_ENABLED==='true' && durable && !!env.SENDPULSE_TRACKING_SECRET && (meta||google||tiktok)};
+  const openaiAds = !!(env.OPENAI_ADS_CAPI_KEY && env.OPENAI_ADS_CAPI_KEY !== '<API-KEY>');
+  return {version:4,openaiAdsConfigured:openaiAds,openaiAdsEvent:'registration_completed',tiktokConfigured:tiktok,tiktokPixelConfigured:!!env.TIKTOK_PIXEL_ID,tiktokWebTokenConfigured:!!env.TIKTOK_EVENTS_ACCESS_TOKEN,tiktokCrmIdConfigured:!!env.TIKTOK_CRM_EVENT_SET_ID,tiktokCrmTokenConfigured:!!env.TIKTOK_CRM_ACCESS_TOKEN,tiktokEvent:'TelegramContactShared',googleValidationLinks:true,enabled:env.ADS_CONVERSIONS_ENABLED==='true',durable,sendpulseAuthenticated:!!env.SENDPULSE_TRACKING_SECRET,metaConfigured:meta,googleConfigured:google,
+    ready:env.ADS_CONVERSIONS_ENABLED==='true' && durable && !!env.SENDPULSE_TRACKING_SECRET && (meta||google||tiktok||openaiAds)};
 }
 export function createConversionWorker({outbox,env=process.env,fetchFn=fetch}) {
   let running=false, oauth=null;
@@ -145,7 +161,7 @@ export function createConversionWorker({outbox,env=process.env,fetchFn=fetch}) {
     if (running || !outbox || !trackingStatus(env,true).ready) return;
     running=true;
     try {
-      for (const platform of ['meta','google','tiktok']) {
+      for (const platform of ['meta','google','tiktok','openaiAds']) {
         const status=trackingStatus(env,true);
         if (!status[platform+'Configured']) continue;
         const row=await outbox.claim(platform);
@@ -161,12 +177,26 @@ export function createConversionWorker({outbox,env=process.env,fetchFn=fetch}) {
             continue;
           }
           if (Date.now()-Date.parse(row.payload.time)>6*86400000) {await outbox.finish(row,'expired',null,'EVENT_TOO_OLD');continue;}
-          const payload=platform==='meta'?metaPayload(row.payload,env):platform==='google'?googlePayload(row.payload,env):tiktokPayload(row.payload,env);
+          const payload=platform==='meta'?metaPayload(row.payload,env):platform==='google'?googlePayload(row.payload,env):platform==='tiktok'?tiktokPayload(row.payload,env):openaiAdsPayload(row.payload);
           if (!payload) {await outbox.finish(row,'skipped',null,'NO_MATCH_IDENTIFIERS');continue;}
           if (platform==='meta') {
             const data=await request(`https://graph.facebook.com/${env.META_API_VERSION}/${env.META_PIXEL_ID}/events`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.META_CAPI_ACCESS_TOKEN},body:JSON.stringify(payload)});
             if (data.events_received!==1) throw new Error('META_NOT_ACCEPTED');
             await outbox.finish(row,env.META_TEST_EVENT_CODE?'test_sent':'sent',data.fbtrace_id||null);
+          } else if (platform==='openaiAds') {
+            const pixelId=env.OPENAI_ADS_PIXEL_ID || '13yVDCfoMVdBGt918mtSms';
+            const response=await fetchFn('https://bzr.openai.com/v1/events?pid='+encodeURIComponent(pixelId),{
+              method:'POST',signal:AbortSignal.timeout(12000),
+              headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.OPENAI_ADS_CAPI_KEY},body:JSON.stringify(payload)
+            });
+            if (!response.ok) throw new Error('HTTP_'+response.status);
+            const body=await response.text();
+            if (body.trim()) {
+              let data;try {data=JSON.parse(body);} catch {throw new Error('OPENAI_ADS_INVALID_RESPONSE');}
+              if (data.error || data.errors?.length || data.success===false) throw new Error('OPENAI_ADS_REJECTED');
+            }
+            await outbox.finish(row,'sent');
+            console.info('OpenAI Ads conversion accepted');
           } else if (platform==='tiktok') {
             const data=await request('https://business-api.tiktok.com/open_api/v1.3/event/track/',{method:'POST',headers:{'Content-Type':'application/json','Access-Token':env.TIKTOK_CRM_ACCESS_TOKEN},body:JSON.stringify(payload)});
             if (data.code!==0) throw new Error('TIKTOK_API_'+(Number.isInteger(data.code)?data.code:'INVALID_RESPONSE'));
@@ -179,7 +209,8 @@ export function createConversionWorker({outbox,env=process.env,fetchFn=fetch}) {
             await outbox.finish(row,payload.validateOnly ? 'validated' : 'processing',data.requestId);
           }
         } catch(error) {
-          const code=/^(HTTP_\d+|META_NOT_ACCEPTED|GOOGLE_RECEIPT_MISSING|OAUTH_TOKEN_MISSING|TIKTOK_API_(?:-?\d+|INVALID_RESPONSE))$/.test(error.message)?error.message:'DELIVERY_ERROR';
+          const code=/^(HTTP_\d+|META_NOT_ACCEPTED|GOOGLE_RECEIPT_MISSING|OAUTH_TOKEN_MISSING|OPENAI_ADS_INVALID_RESPONSE|OPENAI_ADS_REJECTED|TIKTOK_API_(?:-?\d+|INVALID_RESPONSE))$/.test(error.message)?error.message:'DELIVERY_ERROR';
+          if (platform==='openaiAds') console.warn('OpenAI Ads conversion delivery:',code);
           if (platform==='tiktok') console.warn('TikTok CRM conversion delivery:',code);
           await outbox.finish(row,row.attempts>=12?'failed':row.receipt?'processing':'pending',row.receipt,code);
         }

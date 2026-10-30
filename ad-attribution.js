@@ -13,7 +13,7 @@
     });
     return;
   }
-  const keys = ['gclid', 'gbraid', 'wbraid', 'fbclid', 'ttclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+  const keys = ['gclid', 'gbraid', 'wbraid', 'fbclid', 'ttclid', 'oppref', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
   const cookie = name => {
     try { return decodeURIComponent(document.cookie.split('; ').find(v => v.startsWith(name + '='))?.slice(name.length + 1) || ''); }
     catch { return ''; }
@@ -30,8 +30,8 @@
     saved = { capturedAt: Date.now() };
     for (const k of keys) if (params.get(k)) {
       const value = params.get(k);
-      const limit = k === 'ttclid' ? 4096 : 256;
-      if (value.length <= limit || k !== 'ttclid') saved[k] = value.slice(0, limit);
+      const limit = ['ttclid','oppref'].includes(k) ? 4096 : 256;
+      if (value.length <= limit || !['ttclid','oppref'].includes(k)) saved[k] = value.slice(0, limit);
     }
     if (saved.fbclid) saved.fbc = 'fb.1.' + saved.capturedAt + '.' + saved.fbclid;
   }
@@ -49,6 +49,7 @@
     if (!isGoogle) out.fbc ||= cookie('_fbc');
     out.fbp = cookie('_fbp');
     out.ttp = cookie('_ttp');
+    out.obref = cookie('__obref');
     for (const k of ['adUserData', 'adPersonalization']) {
       if (['granted','denied'].includes(consent[k])) out.consent[k] = consent[k];
     }
