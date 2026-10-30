@@ -16,6 +16,10 @@ export function cleanAttribution(input = {}) {
   for (const key of ['gclid','gbraid','wbraid','fbclid','fbc','fbp']) {
     if (typeof input?.[key] === 'string' && ID.test(input[key])) out[key] = input[key];
   }
+  // Preserve opaque TikTok identifiers without shortening a valid click ID.
+  for (const key of ['ttclid','ttp']) {
+    if (typeof input?.[key] === 'string' && input[key].length > 0 && input[key].length <= 4096 && !/[\x00-\x20\x7f]/.test(input[key])) out[key] = input[key];
+  }
   for (const key of ['utm_source','utm_medium','utm_campaign','utm_content','utm_term']) {
     if (typeof input?.[key] === 'string') out[key] = input[key].replace(/[\x00-\x1f]/g, '').slice(0,256);
   }
@@ -74,6 +78,18 @@ export function googlePayload(event, env) {
   return {destinations:[destination],events:[item],...(validateOnly ? {validateOnly:true} : {}),...(item.userData ? {encoding:'HEX'} : {})};
 }
 
+// Telegram contacts are CRM events, not website form submissions.
+// Third-party leads have no TikTok native lead_id; match using E.164 SHA-256.
+// See TikTok's October 2026 CRM Signal Postback guide (third-party forms).
+export function tiktokPayload(event, env) {
+  if (isGoogleValidation(event.attribution) || event.attribution?.consent?.adUserData === 'denied') return null;
+  if (!/^[a-f0-9]{64}$/.test(event.googlePhone || '')) return null;
+  return {event_source:'crm',event_source_id:env.TIKTOK_CRM_EVENT_SET_ID,data:[{
+    event:'TelegramContactShared',event_time:Math.floor(Date.parse(event.time)/1000),event_id:event.id,
+    lead:{lead_event_source:'SendPulse'},user:{phone:event.googlePhone}
+  }]};
+}
+
 // No volatile fallback for conversion delivery. SQL outbox survives redeploys.
 export class ConversionOutbox {
   constructor(db) { this.db = db; }
@@ -86,7 +102,7 @@ export class ConversionOutbox {
     )`);
   }
   async enqueue(event) {
-    for (const platform of (isGoogleValidation(event.attribution) ? ['google'] : ['meta','google'])) await this.db.query(
+    for (const platform of (isGoogleValidation(event.attribution) ? ['google'] : ['meta','google','tiktok'])) await this.db.query(
       'INSERT INTO ad_conversion_outbox(event_id,platform,payload) VALUES($1,$2,$3::jsonb) ON CONFLICT DO NOTHING',
       [event.id,platform,JSON.stringify(event)]);
   }
@@ -106,8 +122,9 @@ export class ConversionOutbox {
 export function trackingStatus(env, durable) {
   const meta = !!(env.META_PIXEL_ID && env.META_CAPI_ACCESS_TOKEN && env.META_API_VERSION);
   const google = !!(env.GOOGLE_ADS_CUSTOMER_ID && env.GOOGLE_ADS_CONVERSION_ACTION_ID && env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET && env.GOOGLE_OAUTH_REFRESH_TOKEN);
-  return {version:2,googleValidationLinks:true,enabled:env.ADS_CONVERSIONS_ENABLED==='true',durable,sendpulseAuthenticated:!!env.SENDPULSE_TRACKING_SECRET,metaConfigured:meta,googleConfigured:google,
-    ready:env.ADS_CONVERSIONS_ENABLED==='true' && durable && !!env.SENDPULSE_TRACKING_SECRET && (meta||google)};
+  const tiktok = !!(env.TIKTOK_CRM_EVENT_SET_ID && env.TIKTOK_CRM_ACCESS_TOKEN);
+  return {version:3,tiktokConfigured:tiktok,tiktokPixelConfigured:!!env.TIKTOK_PIXEL_ID,tiktokWebTokenConfigured:!!env.TIKTOK_EVENTS_ACCESS_TOKEN,tiktokCrmIdConfigured:!!env.TIKTOK_CRM_EVENT_SET_ID,tiktokCrmTokenConfigured:!!env.TIKTOK_CRM_ACCESS_TOKEN,tiktokEvent:'TelegramContactShared',googleValidationLinks:true,enabled:env.ADS_CONVERSIONS_ENABLED==='true',durable,sendpulseAuthenticated:!!env.SENDPULSE_TRACKING_SECRET,metaConfigured:meta,googleConfigured:google,
+    ready:env.ADS_CONVERSIONS_ENABLED==='true' && durable && !!env.SENDPULSE_TRACKING_SECRET && (meta||google||tiktok)};
 }
 export function createConversionWorker({outbox,env=process.env,fetchFn=fetch}) {
   let running=false, oauth=null;
@@ -128,7 +145,7 @@ export function createConversionWorker({outbox,env=process.env,fetchFn=fetch}) {
     if (running || !outbox || !trackingStatus(env,true).ready) return;
     running=true;
     try {
-      for (const platform of ['meta','google']) {
+      for (const platform of ['meta','google','tiktok']) {
         const status=trackingStatus(env,true);
         if (!status[platform+'Configured']) continue;
         const row=await outbox.claim(platform);
@@ -144,12 +161,17 @@ export function createConversionWorker({outbox,env=process.env,fetchFn=fetch}) {
             continue;
           }
           if (Date.now()-Date.parse(row.payload.time)>6*86400000) {await outbox.finish(row,'expired',null,'EVENT_TOO_OLD');continue;}
-          const payload=platform==='meta'?metaPayload(row.payload,env):googlePayload(row.payload,env);
+          const payload=platform==='meta'?metaPayload(row.payload,env):platform==='google'?googlePayload(row.payload,env):tiktokPayload(row.payload,env);
           if (!payload) {await outbox.finish(row,'skipped',null,'NO_MATCH_IDENTIFIERS');continue;}
           if (platform==='meta') {
             const data=await request(`https://graph.facebook.com/${env.META_API_VERSION}/${env.META_PIXEL_ID}/events`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.META_CAPI_ACCESS_TOKEN},body:JSON.stringify(payload)});
             if (data.events_received!==1) throw new Error('META_NOT_ACCEPTED');
             await outbox.finish(row,env.META_TEST_EVENT_CODE?'test_sent':'sent',data.fbtrace_id||null);
+          } else if (platform==='tiktok') {
+            const data=await request('https://business-api.tiktok.com/open_api/v1.3/event/track/',{method:'POST',headers:{'Content-Type':'application/json','Access-Token':env.TIKTOK_CRM_ACCESS_TOKEN},body:JSON.stringify(payload)});
+            if (data.code!==0) throw new Error('TIKTOK_API_'+(Number.isInteger(data.code)?data.code:'INVALID_RESPONSE'));
+            await outbox.finish(row,'sent',data.request_id||null);
+            console.info('TikTok CRM conversion accepted');
           } else {
             const token=await googleToken();
             const data=await request('https://datamanager.googleapis.com/v1/events:ingest',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify(payload)});
@@ -157,7 +179,8 @@ export function createConversionWorker({outbox,env=process.env,fetchFn=fetch}) {
             await outbox.finish(row,payload.validateOnly ? 'validated' : 'processing',data.requestId);
           }
         } catch(error) {
-          const code=/^(HTTP_\d+|META_NOT_ACCEPTED|GOOGLE_RECEIPT_MISSING|OAUTH_TOKEN_MISSING)$/.test(error.message)?error.message:'DELIVERY_ERROR';
+          const code=/^(HTTP_\d+|META_NOT_ACCEPTED|GOOGLE_RECEIPT_MISSING|OAUTH_TOKEN_MISSING|TIKTOK_API_(?:-?\d+|INVALID_RESPONSE))$/.test(error.message)?error.message:'DELIVERY_ERROR';
+          if (platform==='tiktok') console.warn('TikTok CRM conversion delivery:',code);
           await outbox.finish(row,row.attempts>=12?'failed':row.receipt?'processing':'pending',row.receipt,code);
         }
       }

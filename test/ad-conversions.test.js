@@ -54,7 +54,7 @@ test('durable outbox survives restart; parallel duplicates emit once; Google rec
   let db=new PGlite(dir);let outbox=new ConversionOutbox(db);await outbox.init();
   try {
     await Promise.all([outbox.enqueue(event),outbox.enqueue(event)]);
-    assert.equal((await db.query('SELECT * FROM ad_conversion_outbox')).rows.length,2);
+    assert.equal((await db.query('SELECT * FROM ad_conversion_outbox')).rows.length,3);
     await db.close();db=new PGlite(dir);outbox=new ConversionOutbox(db);await outbox.init();
     const urls=[];
     const worker=createConversionWorker({outbox,env,fetchFn:async(url,opts)=>{
@@ -66,10 +66,10 @@ test('durable outbox survives restart; parallel duplicates emit once; Google rec
       throw new Error('Unexpected URL');
     }});
     await Promise.all([worker(),worker()]);
-    let rows=(await db.query('SELECT * FROM ad_conversion_outbox ORDER BY platform')).rows;
+    let rows=(await db.query("SELECT * FROM ad_conversion_outbox WHERE platform IN ('meta','google') ORDER BY platform")).rows;
     assert.equal(rows[0].status,'processing');assert.equal(rows[1].status,'sent');
     await db.query('UPDATE ad_conversion_outbox SET next_attempt=NOW()');await worker();
-    rows=(await db.query('SELECT * FROM ad_conversion_outbox')).rows;assert.ok(rows.every(r=>r.status==='sent'));
+    rows=(await db.query("SELECT * FROM ad_conversion_outbox WHERE platform IN ('meta','google')")).rows;assert.ok(rows.every(r=>r.status==='sent'));
     assert.equal(urls.filter(u=>u.includes('events:ingest')).length,1);assert.equal(urls.filter(u=>u.includes('graph.facebook')).length,1);
     await outbox.enqueue(event);await worker();assert.equal(urls.filter(u=>u.includes('events:ingest')).length,1);
   } finally {await db.close();await fs.rm(dir,{recursive:true,force:true});}
@@ -123,7 +123,7 @@ test('fake click validates once, sends no Meta or phone data, and does not consu
     assert.equal(requests.length,1);assert.equal(requests[0].body.validateOnly,true);
     assert.equal(requests[0].body.events[0].userData,undefined);
     await outbox.enqueue(event);
-    assert.equal((await db.query('SELECT * FROM ad_conversion_outbox')).rows.length,3);
+    assert.equal((await db.query('SELECT * FROM ad_conversion_outbox')).rows.length,4);
     assert.equal(googlePayload(event,env).validateOnly,undefined);
   } finally {await db.close();}
 });
