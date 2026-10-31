@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Top Marketing · AI-Видимість · Сканер сигналу бренду</title>
+<title>AI-видимість вашого бренду — безкоштовна перевірка | Top Marketing</title>
+<meta name="description" content="Перевірте згадки бренду та рекомендації у тестових відповідях AI. Незалежний сервіс Top Marketing: дві оцінки, цитати й безкоштовний PDF-звіт у Telegram.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -701,6 +702,17 @@ oaiq("init",{pixelId:"13yVDCfoMVdBGt918mtSms",debug:true});
   .gate-cta:focus-visible{outline:3px solid #141414;outline-offset:4px;}
   .gate-cta[aria-disabled="true"]{opacity:.55;pointer-events:none;}
   .gate-note{font-size:12px;line-height:1.65;color:#53534c;text-align:center;margin-top:14px;}
+  .service-note{font-size:12px;line-height:1.7;color:var(--ink-dim);margin-top:14px;max-width:720px;}
+  .service-note a,.method-card a,.faq-item a,footer a{text-underline-offset:3px;}
+  .service-note a:hover,.faq-item a:hover,footer a:hover{color:var(--orange-light);}
+  .method-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px;}
+  .method-card{padding:22px;background:var(--panel);border:1px solid var(--border);}
+  .method-card h3{font-size:17px;line-height:1.4;margin-bottom:10px;}
+  .method-card p{font-size:13px;line-height:1.75;color:var(--ink-dim);}
+  .method-limit{margin-top:16px;padding-left:16px;border-left:2px solid var(--orange);font-size:13px;line-height:1.8;color:var(--ink-dim);}
+  .preview-caption{font-size:12px;line-height:1.7;color:var(--ink-dim);margin-top:16px;}
+  .footer-links{display:flex;flex-wrap:wrap;gap:10px 20px;margin-top:12px;}
+  @media(max-width:640px){.method-grid{grid-template-columns:1fr;}.method-card{padding:18px;}}
   .gate-error{font-size:14px;line-height:1.6;color:#8d230a;margin:0 0 16px;}
   @media(max-width:640px){.report-gate{padding:30px 22px;margin-top:10px;}.report-gate h2{font-size:27px;}.gate-intro{font-size:14px;}.gate-contents li{font-size:13px;gap:12px;}.gate-cta{font-size:14px;}.report-gate::before{width:70px;}.page{padding-left:16px;padding-right:16px;}}
 
@@ -723,14 +735,14 @@ oaiq("init",{pixelId:"13yVDCfoMVdBGt918mtSms",debug:true});
   </div>
 
   <section class="hero">
-    <span class="hero-badge">Безкоштовно · без картки · 2 основні запити</span>
-    <h1>Дізнайтесь, чи <span class="accent">AI</span> реально знає і радить ваш бізнес</h1>
-    <p class="hero-sub">ChatGPT, Claude, Gemini і Perplexity вже радять ваших конкурентів. Перевірте свою видимість на кожній із цих платформ:</p>
+    <span class="hero-badge">Безкоштовна перевірка · PDF-звіт у Telegram</span>
+    <h1>Чи згадується <span class="accent">ваш бренд</span> у відповідях AI?</h1>
+    <p class="hero-sub">Перевірте згадки бренду та рекомендації у тестових відповідях ChatGPT, Claude, Gemini й Perplexity. Отримайте цитати, оцінки та підказки для подальшої роботи з AI-видимістю.</p>
     <ul class="hero-benefits">
-      <li>Оцінка AI-видимості 0–100 — у вашому PDF-звіті</li>
-      <li>Дослівні цитати ChatGPT, Claude, Gemini і Perplexity — у Telegram</li>
-      <li>Конкурентів, яких AI називає замість вас — у Telegram</li>
-      <li>Покроковий план — що виправити вже сьогодні — у Telegram</li>
+      <li>Дві окремі оцінки 0–100: знання бренду та рекомендації у вибірці відповідей</li>
+      <li>Цитати з отриманих відповідей AI — у PDF-звіті</li>
+      <li>Інші компанії, які AI назвали у перевірених відповідях</li>
+      <li>Рекомендації щодо наступних кроків для вашого бренду</li>
     </ul>
 
     <form class="scan-form" id="scanForm">
@@ -765,9 +777,10 @@ oaiq("init",{pixelId:"13yVDCfoMVdBGt918mtSms",debug:true});
 
       <button type="submit" class="btn-scan" id="scanBtn">Перевірити →</button>
     </form>
-    <div class="hero-helper">Перевірка безкоштовна. Повний PDF-звіт отримаєте в Telegram після того, як поділитеся контактом.</div>
+    <div class="hero-helper">Перевірка безкоштовна, платіжна картка не потрібна. Для отримання PDF-звіту перейдіть у Telegram-бот, натисніть «Старт» і поділіться номером телефону через кнопку.</div>
 
-    <div class="hero-meta">Кілька реальних запитів · 4 AI-системи (ChatGPT, Claude, Gemini, Perplexity) · кілька хвилин</div>
+    <div class="hero-meta">Коротка вибірка тестових запитів · до 4 AI-систем · час залежить від доступності відповідей</div>
+    <p class="service-note">Незалежний сервіс Top Marketing. Перевірка виконується через API; результати можуть відрізнятися від відповідей у застосунках AI. <a href="#methodology">Методика й обмеження</a> · <a href="#privacy">Використання даних</a>.</p>
   </section>
 
   <section class="scan-status" id="scanStatus" hidden>
@@ -783,58 +796,75 @@ oaiq("init",{pixelId:"13yVDCfoMVdBGt918mtSms",debug:true});
       <div class="how-card">
         <div class="how-num">1</div>
         <h3>Вводите назву</h3>
-        <p>Компанія чи сайт. Без анкет і реєстрацій.</p>
+        <p>Вкажіть компанію або сайт. За бажанням уточніть місто й нішу, щоб конкретизувати перевірку.</p>
       </div>
       <div class="how-card">
         <div class="how-num">2</div>
-        <h3>AI відповідають чесно</h3>
-        <p>Реальні запити в ChatGPT, Claude, Gemini і Perplexity — ті самі, які ставлять ваші клієнти.</p>
+        <h3>Перевіряємо відповіді AI</h3>
+        <p>Надсилаємо тестові запити через API та аналізуємо отримані відповіді. Це можливі сценарії пошуку послуг, а не статистика запитів клієнтів.</p>
       </div>
       <div class="how-card">
         <div class="how-num">3</div>
         <h3>Отримуєте звіт</h3>
-        <p>Бал видимості, дослівні цитати AI і конкуренти, які вже зайняли ваше місце у відповідях.</p>
+        <p>Після перевірки отримайте PDF у Telegram, поділившись контактом: дві оцінки, цитати та компанії з вибірки відповідей.</p>
       </div>
     </div>
   </section>
 
   <section class="section marketing-section">
-    <div class="section-eyebrow">Поки ви це читаєте, клієнти вже питають AI</div>
-    <h2>Це вже впливає на вашу вирву продажів</h2>
+    <div class="section-eyebrow">Що входить у перевірку</div>
+    <h2>Зрозумілий результат у одному звіті</h2>
     <div class="stat-grid">
-      <div class="stat-card"><div class="stat-num">84%</div><div class="stat-label">підприємців не впевнені, що клієнт знайде їх через AI</div></div>
-      <div class="stat-card"><div class="stat-num">кожен 2-й</div><div class="stat-label">з тих, хто перевіряв, — себе у відповідях не знайшов</div></div>
-      <div class="stat-card"><div class="stat-num">64%</div><div class="stat-label">платять за рекламу, яка дорожчає з кожним місяцем</div></div>
+      <div class="stat-card"><div class="stat-num">4 AI</div><div class="stat-label">ChatGPT, Claude, Gemini, Perplexity — за доступності відповідного провайдера</div></div>
+      <div class="stat-card"><div class="stat-num">2 оцінки</div><div class="stat-label">знання бренду та частка рекомендацій у перевіреній вибірці</div></div>
+      <div class="stat-card"><div class="stat-num">PDF</div><div class="stat-label">результати, цитати та наступні кроки — у Telegram після передавання контакту</div></div>
     </div>
   </section>
 
   <section class="section marketing-section">
     <div class="section-eyebrow">Що ви дізнаєтесь</div>
-    <h2>Реальний звіт, а не загальні поради</h2>
+    <h2>Що покаже ваш PDF-звіт</h2>
     <div class="preview-grid">
       <div class="preview-card">
-        <div class="preview-visual"><span class="big">27</span><span style="color:var(--ink-faint)">/ 100</span></div>
-        <h3>AI-Visibility Score</h3>
-        <p>Один чесний бал 0–100: наскільки AI взагалі вас бачать.</p>
+        <div class="preview-visual"><span class="big">0–100</span></div>
+        <h3>Дві окремі оцінки</h3>
+        <p>Знання бренду та частка позитивних рекомендацій у вибірці успішно перевірених відповідей.</p>
       </div>
       <div class="preview-card">
         <div class="preview-verdicts">
-          <span class="v-no">✕ ChatGPT</span><span class="v-mid">～ Gemini</span><span class="v-yes">✓ Claude</span>
+          <span>ChatGPT</span><span>Claude</span><span>Gemini</span><span>Perplexity</span>
         </div>
-        <h3>Вердикт кожного AI</h3>
-        <p>Окремо: чи впізнає бренд і чи рекомендує його або сайт за запитами клієнтів.</p>
+        <h3>Відповіді кожної системи</h3>
+        <p>Цитати та результати перевірки бренду. Недоступні відповіді позначаються окремо.</p>
       </div>
       <div class="preview-card">
-        <div class="preview-visual"><span class="big" style="font-size:22px">"найкращий … у місті"</span></div>
-        <h3>Запити ваших клієнтів</h3>
-        <p>Чи знаходять вас на типові пошукові фрази — карта видимості по нішевих запитах.</p>
+        <div class="preview-visual"><span class="big" style="font-size:22px">Тестові запити</span></div>
+        <h3>Сценарії пошуку послуг</h3>
+        <p>Коротка вибірка запитів за профілем бізнесу, сайтом або вказаною нішею та географією.</p>
       </div>
       <div class="preview-card">
-        <div class="preview-visual"><span class="big" style="font-size:22px; color:var(--red)">не ви</span></div>
-        <h3>Кого радять замість вас</h3>
-        <p>Конкуренти, яких AI реально знаходить пошуком і називає на вашому місці.</p>
+        <div class="preview-visual"><span class="big" style="font-size:22px; color:var(--orange)">Згадки компаній</span></div>
+        <h3>Які компанії названі</h3>
+        <p>Інші компанії, рекомендовані у відповідях AI, із цитатами, що підтверджують їх згадку.</p>
       </div>
     </div>
+    <p class="preview-caption">Ці картки показують структуру звіту. Ваші оцінки й цитати з’являться після перевірки; діапазон 0–100 не є результатом аналізу вашого бренду.</p>
+  </section>
+
+  <section class="section marketing-section" id="methodology" aria-labelledby="methodologyTitle">
+    <div class="section-eyebrow">Методика Top Marketing</div>
+    <h2 id="methodologyTitle">Як рахуємо оцінки</h2>
+    <div class="method-grid">
+      <div class="method-card">
+        <h3>Знання бренду</h3>
+        <p>Класифікуємо отримані відповіді на пряме запитання про бренд: змістовно описує потрібну компанію — 100, знає частково або плутає — 50, прямо повідомляє про незнання — 0. Загальна оцінка — середнє доступних оцінок. Це автоматична інтерпретація відповідей, яка може містити помилки.</p>
+      </div>
+      <div class="method-card">
+        <h3>Рекомендації у вибірці</h3>
+        <p>Формуємо два тестові запити без назви бренду. Бал = кількість відповідей із позитивною рекомендацією бренду або його сайту ÷ кількість успішно перевірених відповідей × 100. Нейтральна згадка не зараховується як рекомендація. Відповіді з помилками виключаємо; за відсутності даних показуємо «немає даних».</p>
+      </div>
+    </div>
+    <p class="method-limit">Перевірка відображає конкретну вибірку відповідей API на дату аналізу; можливе кешування до 24 годин. Доступність провайдерів, моделі, веб-пошук і персоналізація впливають на результат, тому відповіді у застосунках ChatGPT, Claude, Gemini та Perplexity можуть відрізнятися. Це внутрішні оцінки Top Marketing, а не офіційні показники AI-платформ чи вимірювання всіх запитів користувачів. Відповіді AI не підтверджують факти про бізнес. Перевірка та запропоновані кроки не гарантують рекомендацій AI, звернень або продажів. Top Marketing не представляє зазначені AI-платформи.</p>
   </section>
 
   <section class="section marketing-section">
@@ -843,19 +873,25 @@ oaiq("init",{pixelId:"13yVDCfoMVdBGt918mtSms",debug:true});
     <div>
       <details class="faq-item">
         <summary>Звідки дані?</summary>
-        <p>Жодної магії: ми ставимо реальні запити в ChatGPT, Claude, Gemini і Perplexity та показуємо їхні чесні відповіді. Цитати — дослівні, бал рахуємо за прозорою методикою. Відповіді AI — на дату перевірки, не факти про бізнес.</p>
+        <p>Надсилаємо запити через API моделей OpenAI (позначені в сервісі як ChatGPT), Anthropic (Claude), Google (Gemini) та Perplexity. Зберігаємо отримані відповіді й використовуємо цитати для пояснення результатів. Це незалежний сервіс Top Marketing; відповіді API можуть відрізнятися від відповідей у застосунках. <a href="#methodology">Докладніше про розрахунок та обмеження</a>.</p>
       </details>
       <details class="faq-item">
-        <summary>Це безкоштовно? В чому підвох?</summary>
-        <p>Перевірка безкоштовна. Щоб отримати повний PDF-звіт, перейдіть у наш Telegram-бот і поділіться номером телефону через кнопку. Email залишати не потрібно.</p>
+        <summary>Як безкоштовно отримати PDF-звіт?</summary>
+        <p>Перевірка та PDF-звіт безкоштовні, платіжна картка не потрібна. Після перевірки перейдіть у наш Telegram-бот, натисніть «Старт» і поділіться номером телефону через кнопку. Це умова видачі повного PDF. Email залишати не потрібно. <a href="#privacy">Як використовуються дані</a>.</p>
       </details>
       <details class="faq-item">
-        <summary>Та ну, хто шукає бізнес через AI?</summary>
-        <p>Вже шукають. Частина ринку досі гуглить по-старому, а полиця рекомендацій в AI ще напівпорожня — і її займають перші.</p>
+        <summary>Чи показує звіт, що бачать усі мої клієнти?</summary>
+        <p>Звіт показує лише отриману вибірку відповідей на тестові запити. Це не статистика поведінки клієнтів, обсягу пошуку чи продажів. Інші формулювання, моделі, дата, пошук і персоналізація можуть дати інший результат.</p>
       </details>
       <details class="faq-item">
         <summary>А якщо AI про мене нічого не знає?</summary>
-        <p>Це найкорисніший результат: тепер ви знаєте це раніше за конкурентів. Звіт покаже, хто вже зайняв ваше місце, і з чого почати, щоб AI почав рекомендувати саме вас.</p>
+        <p>Це означає, що в конкретній отриманій відповіді модель не навела достатніх відомостей про бренд. Такий результат не описує всі можливі відповіді AI. Перевірте правильність назви, сайту, ніші та географії й використайте звіт як основу для подальшого аналізу.</p>
+      </details>
+      <details class="faq-item" id="privacy" open>
+        <summary>Використання даних і конфіденційність</summary>
+        <p>Сервіс надає Top Marketing. Назву бренду, сайт, нішу та географію використовуємо для підготовки запитів до AI-провайдерів і формування звіту. Не вводьте паролі, платіжні дані або конфіденційну інформацію.</p>
+        <p>У Telegram-боті ви самостійно передаєте контакт із номером телефону для отримання PDF та подальшого зв’язку Top Marketing щодо результатів і послуг. Обробка звіту та контакту може залучати Telegram, SendPulse та інші підключені сервіси доставки й обліку звернень. Їхні правила обробки даних також застосовуються.</p>
+        <p>На сторінці підключені рекламні й аналітичні інструменти Meta, TikTok, OpenAI Ads та Microsoft Clarity. Вони можуть обробляти технічні дані, ідентифікатори й події взаємодії відповідно до налаштувань браузера та власних політик. Для питань про дані, запиту на їх видалення або відмови від подальшого зв’язку напишіть на <a href="mailto:top.marketing.audit@gmail.com">top.marketing.audit@gmail.com</a>.</p>
       </details>
     </div>
   </section>
@@ -865,19 +901,26 @@ oaiq("init",{pixelId:"13yVDCfoMVdBGt918mtSms",debug:true});
     <h2 id="gateTitle" tabindex="-1">Ваш звіт уже готовий</h2>
     <p class="gate-intro">Зібрали результати перевірки в один PDF. Отримайте його в Telegram — там зручно переглянути, зберегти й повернутися до рекомендацій.</p>
     <ul class="gate-contents">
-      <li><span>01</span> Два бали: знання бренду та частота рекомендацій</li>
+      <li><span>01</span> Дві оцінки: знання бренду та рекомендації у перевіреній вибірці</li>
       <li><span>02</span> Що знають ChatGPT, Claude, Gemini та Perplexity</li>
       <li><span>03</span> Кого рекомендує кожна AI та за якими запитами</li>
-      <li><span>04</span> Рекомендації та наступні кроки для покращення видимості</li>
+      <li><span>04</span> Рекомендації щодо наступних кроків для AI-видимості</li>
     </ul>
     <p class="gate-error" id="gateError" role="alert" hidden></p>
     <a id="telegramLink" class="gate-cta" target="_blank" rel="noopener" aria-disabled="true">Отримати звіт у Telegram <span aria-hidden="true">↗</span></a>
     <button id="gateRetry" class="gate-cta" type="button" hidden>Спробувати ще раз</button>
-    <p class="gate-note">У боті натисніть «Старт» і поділіться контактом.<br>Після цього отримаєте свій PDF-звіт.</p>
+    <p class="gate-note">У боті натисніть «Старт» і поділіться номером телефону через кнопку.<br>Після цього отримаєте свій PDF-звіт. <a href="./#privacy" target="_blank" rel="noopener">Використання даних</a>.</p>
   </section>
 
   <footer>
-    © Top Marketing · Прилад AI-Видимість
+    © Top Marketing · Незалежний сервіс перевірки AI-видимості
+    <nav class="footer-links" aria-label="Інформація про сервіс">
+      <a href="#methodology">Методика й обмеження</a>
+      <a href="#privacy">Використання даних</a>
+      <a href="https://topmarketing.com.ua/">Про агенцію</a>
+      <a href="tel:+380938468869">+38 (093) 846-88-69</a>
+      <a href="mailto:top.marketing.audit@gmail.com">top.marketing.audit@gmail.com</a>
+    </nav>
   </footer>
 
 </div>
@@ -1043,9 +1086,9 @@ async function runLiveScan(name, niche, website){
     { id: 'st-gemini', label: `Gemini перевіряє свої знання про «${name}»…` },
     { id: 'st-perplexity', label: `Perplexity шукає «${name}» в інтернеті…` },
     { id: 'st-zone', label: nicheGiven
-        ? `Генерую запити, якими вас шукають клієнти…`
-        : `Визначаю нішу через пошук і генерую запити клієнтів…` },
-    { id: 'st-score', label: `Рахую AI-Visibility Score…` },
+        ? `Формую тестові запити за вказаною нішею…`
+        : `Визначаю нішу та формую тестові запити…` },
+    { id: 'st-score', label: `Рахую дві оцінки за перевіреними відповідями…` },
     { id: 'st-assemble', label: `Збираю все в один звіт…` }
   ];
   renderStatusRows(statusRows);
@@ -1194,3 +1237,4 @@ form.addEventListener('submit', async function(e){
 </script>
 </body>
 </html>
+
