@@ -36,6 +36,10 @@
     if (saved.fbclid) saved.fbc = 'fb.1.' + saved.capturedAt + '.' + saved.fbclid;
   }
   saved.capturedAt ||= Date.now();
+  if (!Object.prototype.hasOwnProperty.call(saved, 'landing_url')) {
+    saved.landing_url = location.href;
+    saved.referrer = document.referrer || '';
+  }
   function snapshot() {
     const consent = window.tmAdsConsent || {};
     if (consent.adUserData === 'denied' || consent.adStorage === 'denied') {
@@ -59,3 +63,4 @@
   window.tmAdAttribution = snapshot;
   snapshot();
 })();
+
