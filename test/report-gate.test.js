@@ -6,13 +6,14 @@ const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const mainScript = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
 const tick = () => new Promise(resolve=>setTimeout(resolve,10));
 async function waitUntil(fn) { for(let n=0;n<100;n++) { if(fn()) return; await tick(); } throw new Error('UI did not settle'); }
-function setup({saveFails=false, enginesFail=false, badUrl=false,classifiersFail=false}={}) {
+function setup({saveFails=false, enginesFail=false, badUrl=false,classifiersFail=false,invalidWebsite=false}={}) {
  const dom = new JSDOM(html,{runScripts:'outside-only',url:'https://services.topmarketing.com.ua/'});
  const w=dom.window;let saveCount=0,engineCount=0;
  w.scrollTo=()=>{};w.HTMLElement.prototype.scrollIntoView=()=>{};
  const timeout=w.setTimeout.bind(w);w.setTimeout=(fn)=>timeout(fn,1);
  w.console.warn=()=>{};
  w.fetch=async(url,opts)=>{
+  if(url.endsWith('/api/validate-website')) return {ok:!invalidWebsite,json:async()=>invalidWebsite?{error:'Вкажіть адресу сайту'}:{ok:true,brand:'qa.example.com',website:'https://qa.example.com'}};
   if(url.endsWith('/api/scan-engine')) {engineCount++;return {ok:true,json:async()=>enginesFail?{error:'Offline'}:classifiersFail?{verdict:'unavailable',classifierError:'timeout',score:null}:{verdict:'know',score:63,snippet:'Test'}};}
   if(url.endsWith('/api/discovery-queries')) return {ok:true,json:async()=>({queries:[]})};
   if(url.endsWith('/api/save-report')) {
@@ -23,7 +24,7 @@ function setup({saveFails=false, enginesFail=false, badUrl=false,classifiersFail
   throw new Error('Unexpected URL '+url);
  };
  w.eval(mainScript);
- const submit=()=>{w.document.getElementById('brandName').value='QA Brand';w.document.getElementById('scanForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));};
+ const submit=()=>{w.document.getElementById('brandName').value='qa.example.com';w.document.getElementById('scanForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));};
  return {dom,w,submit,counts:()=>({saveCount,engineCount})};
 }
 
@@ -73,5 +74,15 @@ test('classifier outages do not present a completed knowledge report',async()=>{
  const t=setup({classifiersFail:true});try{
  t.submit();await waitUntil(()=>!t.w.document.getElementById('gateRetry').hidden);
  assert.equal(t.counts().saveCount,0);assert.equal(t.w.document.getElementById('gateTitle').textContent,'Не вдалося завершити перевірку');
+ }finally{t.dom.window.close();}
+});
+
+
+test('invalid website never starts AI scans or report creation',async()=>{
+ const t=setup({invalidWebsite:true});try {
+ t.submit();await waitUntil(()=>!t.w.document.getElementById('websiteError').hidden);
+ assert.deepEqual(t.counts(),{saveCount:0,engineCount:0});
+ assert.equal(t.w.document.getElementById('brandName').getAttribute('aria-invalid'),'true');
+ assert.equal(t.w.document.getElementById('scanBtn').disabled,false);
  }finally{t.dom.window.close();}
 });

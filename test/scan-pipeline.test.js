@@ -4,6 +4,8 @@ for(const key of ['OPENAI_API_KEY','GEMINI_API_KEY','PERPLEXITY_API_KEY','ANTHRO
 process.env.REPORT_DATABASE_URL='';process.env.LEAD_WEBHOOK_URL='';process.env.TELEGRAM_BOT_TOKEN='';
 process.env.TELEGRAM_BOT_USERNAME='test_bot';process.env.SENDPULSE_FLOW_ID='test';
 const {app}=await import('../server.js');
+// Isolate existing AI pipeline fixtures from external website verification.
+app.locals.validateBusinessWebsite=async()=>({website:'https://acme.ua',brand:'Acme'});
 const originalFetch=globalThis.fetch;
 const keys=['chatgpt','gemini','perplexity','claude'];
 const answer='Acme надає SEO для магазинів у Києві.';

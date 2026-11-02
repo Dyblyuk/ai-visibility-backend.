@@ -4,6 +4,8 @@ process.env.OPENAI_API_KEY='test';process.env.GEMINI_API_KEY='test';process.env.
 process.env.REPORT_DATABASE_URL='';process.env.LEAD_WEBHOOK_URL='';process.env.TELEGRAM_BOT_TOKEN='';
 process.env.TELEGRAM_BOT_USERNAME='test_bot';process.env.SENDPULSE_FLOW_ID='test-flow';
 const {app}=await import('../server.js');
+// Isolate existing AI pipeline fixtures from external website verification.
+app.locals.validateBusinessWebsite=async()=>({website:'https://acme.ua',brand:'Acme'});
 const realFetch=globalThis.fetch;
 const raw='Раджу Acme (https://acme.ua) для SEO. Також рекомендую Beta (https://beta.ua) для реклами.';
 const extracted={complete:true,companies:[{name:'Acme',website:'https://acme.ua',stance:'recommended',evidence:'Раджу Acme (https://acme.ua) для SEO.'},{name:'Beta',website:'https://beta.ua',stance:'recommended',evidence:'Також рекомендую Beta (https://beta.ua) для реклами.'}]};

@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 import {buildCompactReport} from './compact-report.js';
 import {queryPlanPrompt,parseQueryPlan} from './query-planner.js';
 import {fetchSiteContext} from './website-context.js';
+import {createWebsiteValidator,websiteGate} from './website-validation.js';
 import {fetchWithDeadline,singleFlight} from './ai-runtime.js';
 import {knowledgePrompt,parseKnowledge} from './knowledge-analysis.js';
 import { createReportStore, validReportToken } from './report-store.js';
@@ -44,6 +45,14 @@ if (!reportStore.durable) console.warn('Reports use temporary memory: configure 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
+const validateBusinessWebsite=createWebsiteValidator();
+app.locals.validateBusinessWebsite=validateBusinessWebsite;
+app.post('/api/validate-website', async(req,res)=>{
+  try {res.json({ok:true,...await app.locals.validateBusinessWebsite(req.body?.website)});}
+  catch(error) {res.status(400).json({error:error.message});}
+});
+// Require a verified business site before paid AI calls or new report creation.
+app.use(['/api/scan','/api/scan-engine','/api/discovery-queries','/api/zone-query','/api/save-report'],websiteGate(value=>app.locals.validateBusinessWebsite(value)));
 
 // A stable URL is backed by the database, not Render's ephemeral filesystem.
 app.get('/reports/:filename', async (req, res) => {
