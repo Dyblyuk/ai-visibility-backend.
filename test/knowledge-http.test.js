@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 process.env.OPENAI_API_KEY='test';process.env.ANTHROPIC_API_KEY='test';process.env.GEMINI_API_KEY='test';process.env.PERPLEXITY_API_KEY='test';process.env.REPORT_DATABASE_URL='';process.env.GEMINI_MODEL='gemini-3.6-flash';
 const {app}=await import('../server.js');
+// Isolate existing AI pipeline fixtures from external website verification.
+app.locals.validateBusinessWebsite=async()=>({website:'https://acme.ua',brand:'Acme'});
 const originalFetch=globalThis.fetch;
 const answer='Я не маю доступу до сайту в реальному часі. Acme — українська агенція, що надає SEO та рекламу для магазинів.';
 const evidence='Acme — українська агенція, що надає SEO та рекламу для магазинів.';

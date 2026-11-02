@@ -746,19 +746,19 @@ oaiq("init",{pixelId:"13yVDCfoMVdBGt918mtSms",debug:true});
     </ul>
 
     <form class="scan-form" id="scanForm">
-      <label style="grid-column:1/-1;">Назва компанії, ім'я або сайт
-        <input type="text" id="brandName" placeholder="Напр. Top Marketing або topmarketing.com.ua" required>
+      <label style="grid-column:1/-1;">Сайт вашого бізнесу
+        <input type="text" id="brandName" inputmode="url" autocomplete="url" placeholder="Наприклад: topmarketing.com.ua" maxlength="2048" aria-describedby="websiteHelp websiteError" required>
+        <small id="websiteHelp">Вкажіть домен сайту. Назва компанії чи сторінка в соцмережі не підходять.</small>
+        <span id="websiteError" role="alert" style="display:block;color:#a52a18" hidden></span>
       </label>
       <input type="text" id="brandWebsite" name="website" class="honeypot" tabindex="-1" autocomplete="off">
 
       <div class="refine-block">
         <button type="button" class="refine-toggle" id="refineToggle" aria-expanded="false">
-          <span class="refine-icon">＋</span> Уточнити сайт, місто і нішу — точніший результат
+          <span class="refine-icon">＋</span> Уточнити місто і нішу — точніший результат
         </button>
         <div class="refine-panel" id="refinePanel" hidden>
-          <label>Сайт бренду (необов’язково)
-            <input type="text" id="brandSite" placeholder="Напр. topmarketing.com.ua" maxlength="250">
-          </label>
+          <input type="hidden" id="brandSite">
           <label>Місто
             <input type="text" id="brandCity" placeholder="Напр. Київ">
           </label>
@@ -939,7 +939,7 @@ refineToggle.addEventListener('click', () => {
   refineToggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
   refineToggle.innerHTML = isHidden
     ? '<span class="refine-icon">＋</span> Сховати уточнення'
-    : '<span class="refine-icon">＋</span> Уточнити сайт, місто і нішу — точніший результат';
+    : '<span class="refine-icon">＋</span> Уточнити місто і нішу — точніший результат';
 });
 
 const reportGate = document.getElementById('reportGate');
@@ -1166,10 +1166,39 @@ form.addEventListener('submit', async function(e){
   e.preventDefault();
   // Honeypot: якщо це поле заповнене — це бот, тихо ігноруємо відправку.
   const honeypotVal = document.getElementById('brandWebsite').value.trim();
-  if(honeypotVal) return;
+  if(honeypotVal || btn.disabled) return;
+  reportGate.hidden = true;
+  telegramLink.removeAttribute('href');
+  telegramLink.setAttribute('aria-disabled', 'true');
+  reportPayload = null;
+  document.body.classList.remove('report-ready');
 
-  const name = document.getElementById('brandName').value.trim();
-  const website = document.getElementById('brandSite').value.trim();
+  const websiteInput = document.getElementById('brandName');
+  const websiteError = document.getElementById('websiteError');
+  websiteError.hidden = true;
+  websiteInput.removeAttribute('aria-invalid');
+  let name, website;
+  btn.disabled = true;
+  btn.textContent = 'Перевіряємо сайт…';
+  try {
+    const response = await fetch(API_BASE + '/api/validate-website', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({website:websiteInput.value.trim()})
+    });
+    const checked = await response.json();
+    if(!response.ok || !checked.ok) throw Error(checked.error || 'Не вдалося перевірити сайт. Спробуйте ще раз.');
+    name = checked.brand;
+    website = checked.website;
+    document.getElementById('brandSite').value = website;
+  } catch(error) {
+    websiteError.textContent = error.message === 'Failed to fetch' ? 'Сервіс перевірки тимчасово недоступний. Спробуйте ще раз.' : error.message;
+    websiteError.hidden = false;
+    websiteInput.setAttribute('aria-invalid','true');
+    websiteInput.focus();
+    btn.disabled = false;
+    btn.textContent = 'Перевірити →';
+    return;
+  }
   const nicheField = document.getElementById('brandNicheField').value.trim();
   const cityField = document.getElementById('brandCity').value.trim();
   const scaleField = document.getElementById('brandScale').value;
