@@ -122,11 +122,22 @@ async function dispatchCrmLead(lead) {
   const phone = String(lead.phone).trim();
   const key = lead.reportToken ? 'ai-report:' + lead.reportToken : 'ai:' + phone;
   const details = ['Бренд: ' + (lead.brand || '—'), 'Ніша: ' + (lead.niche || '—'), 'AI score: ' + (lead.score ?? '—'), 'Сайт: ' + (lead.website || '—'), 'Report token: ' + (lead.reportToken || '—'), 'UTM: ' + JSON.stringify(lead.attribution || {})].join('\\n');
-  const client = {company: lead.brand || 'AI Brand (компанію не вказано)', person: lead.name || 'AI Brand — контакт', lead: true, phones:[phone], emails: lead.email ? [lead.email] : [], comment:details};
   const attribution = lead.attribution || {};
+  const trackingFields = [
+    ['UTM Source', 'utm_source'], ['UTM Medium', 'utm_medium'],
+    ['UTM Campaign', 'utm_campaign'], ['UTM Content', 'utm_content'],
+    ['UTM Term', 'utm_term'], ['oppref', 'oppref'], ['gclid', 'gclid'],
+    ['fbclid', 'fbclid'], ['Landing URL', 'landing_url'], ['Referrer', 'referrer']
+  ].filter(([, key]) => attribution[key] != null && String(attribution[key]).trim() !== '')
+    .map(([name, key]) => ({name, value: String(attribution[key])}));
+  const client = {company: lead.brand || 'AI Brand (компанію не вказано)', person: lead.name || 'AI Brand — контакт', lead: true, phones:[phone], emails: lead.email ? [lead.email] : [], comment:details,
+    ...(trackingFields.length ? {custom_fields: trackingFields} : {})};
+  const paidChatgpt = !!attribution.oppref ||
+    (['chatgpt','openai','chatgpt.com'].includes(String(attribution.utm_source || '').toLowerCase()) &&
+     ['cpc','paid','paid_social'].includes(String(attribution.utm_medium || '').toLowerCase()));
   const payload = {
     event_id: key,
-    source: 'AI Brand / Telegram SendPulse',
+    source: paidChatgpt ? 'AI Brand / ChatGPT Ads' : 'AI Brand / Telegram SendPulse',
     name: client.person,
     phone,
     email: lead.email || '',
@@ -1577,3 +1588,4 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   }
   app.listen(PORT, () => console.log(`AI-Visibility backend running on http://localhost:${PORT}`));
 }
+
