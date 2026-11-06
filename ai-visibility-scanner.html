@@ -944,6 +944,18 @@ refineToggle.addEventListener('click', () => {
 
 const reportGate = document.getElementById('reportGate');
 const telegramLink = document.getElementById('telegramLink');
+// Track the report handoff separately from a contact received in Telegram.
+telegramLink.addEventListener('click', function () {
+  if (!telegramLink.hasAttribute('href') ||
+      telegramLink.getAttribute('aria-disabled') === 'true') return;
+  const consent = window.tmAdsConsent || {};
+  if (consent.adStorage === 'denied' || consent.adUserData === 'denied') return;
+  try {
+    window.ttq?.track?.('TelegramReportClick');
+  } catch {
+    // Report access must not depend on advertising scripts.
+  }
+});
 const gateError = document.getElementById('gateError');
 const gateRetry = document.getElementById('gateRetry');
 let reportPayload = null;
