@@ -2,7 +2,7 @@
  'use strict';
  const config=window.FORECAST_CONFIG,query=new URLSearchParams(location.search);
  const active=query.has('report')||query.get('experience')==='telegram'||(config.telegramGate&&!['legacy','forecast'].includes(query.get('experience')));
- if(!active)return;
+ if(!active){const option=document.querySelector('#industry option[value="E-commerce"]');if(option){option.disabled=true;option.textContent='E-commerce — у Telegram-сценарії';}return;}
  const form=document.getElementById('forecast-form'),api=config.reportsUrl;
  const style=document.createElement('style');style.textContent=`
  .gf-overlay{position:fixed;inset:0;z-index:999999;background:#F0F0E6;overflow:auto;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;color:#141414;font-family:'Noto Sans',sans-serif}
@@ -37,20 +37,22 @@
   card.replaceChildren();element('div','TOP MARKETING / АНАЛІЗ ГОТОВИЙ',card,'gf-kicker');const heading=element('h2','Ваш аналіз готовий',card);heading.id='gf-title';
   element('p',data.preview.clinic+' · '+data.preview.region,card);
   element('p','Підготували прогноз результатів і стратегію просування для вашого сайту.',card);
-  const list=element('ul','',card);for(const line of ['Прогноз можливих звернень і сценарії рекламного бюджету','Пріоритетні напрями та стратегія Google Ads і Meta','Повний PDF-звіт із прикладами'])element('li',line,list);
+  const ecommerce=data.preview.industry==='E-commerce';
+  const list=element('ul','',card);for(const line of [ecommerce?'Прогноз можливого обороту, ROAS і сценарії рекламного бюджету':'Прогноз можливих звернень і сценарії рекламного бюджету','Пріоритетні напрями та стратегія Google Ads і Meta',ecommerce?'Повний PDF зі схемами та планом дій':'Повний PDF-звіт із прикладами'])element('li',line,list);
   element('p','Знайдені напрями: '+data.preview.services.join(', '),card);
   if(data.preview.warning)element('p',data.preview.warning,card,'gf-error');
   else if(data.preview.partial)element('p','Частину сторінок не вдалося прочитати. У звіті враховано доступні матеріали.',card,'gf-error');
-  element('p','Перейдіть у Telegram, натисніть Start і поділіться контактом у боті, щоб отримати ваш звіт. Потім за бажанням уточніть бюджет і пріоритетні послуги — зі списку або введіть свої.',card);
+  element('p','Перейдіть у Telegram, натисніть Start і поділіться контактом у боті, щоб отримати ваш звіт. Потім за бажанням уточніть бюджет і пріоритетні '+(ecommerce?'категорії':'послуги')+' — зі списку або введіть свої.',card);
   const link=element('a','Отримати звіт у Telegram →',card,'gf-action');link.id='gf-telegram-link';link.href=data.telegramUrl;link.rel='noopener noreferrer';
   element('small','Контакт передається в боті Top Marketing для видачі звіту та зв’язку щодо вашого запиту.',card);back(card,screen);link.focus();
  }
  form.querySelector('h2').textContent='Отримайте персональний аналіз';form.querySelector('p').textContent='Вкажіть сайт, сферу та регіон. Підготуємо прогноз і стратегію, які ви отримаєте в Telegram.';
  form.querySelector('.action').textContent='Аналізувати сайт ↗';
  form.querySelector('.mode-note').textContent='Сайт → підготовка аналізу → Telegram → контакт → персональний звіт.';
- document.getElementById('form-msg').textContent='Зараз доступна сфера «Медицина». Готовий звіт видається в Telegram після передачі контакту.';
+ document.getElementById('form-msg').textContent='Доступні медицина та інтернет-магазини. Готовий звіт видається в Telegram після передачі контакту.';
  form.querySelector('.privacy').textContent='Після аналізу перейдіть у бот, натисніть Start і поділіться контактом для отримання звіту.';
- document.querySelector('.copy .lede').textContent='Підготуємо прогноз результатів і план реклами для вашої клініки. Отримайте звіт у Telegram та за бажанням уточніть його.';
+ document.querySelector('.copy .lede').textContent='Підготуємо прогноз результатів і план реклами для вашого бізнесу. Отримайте звіт у Telegram та за бажанням уточніть його.';
+ const industryField=document.getElementById('industry');const updateIndustry=()=>{document.getElementById('site').placeholder=industryField.value==='E-commerce'?'Сайт вашого інтернет-магазину':'Сайт вашого бізнесу';};industryField.addEventListener('change',updateIndustry);updateIndustry();
  const top=document.querySelector('.topcta');if(top)top.textContent='Аналізувати сайт →';
  const step=document.querySelectorAll('.speed-step>span:last-child')[2];if(step)step.textContent='Отримайте звіт у Telegram';
  const cta=document.querySelector('.cta-block p');if(cta)cta.textContent='Оберіть сферу, вкажіть сайт і регіон. Після підготовки перейдіть у Telegram, щоб отримати звіт.';
