@@ -70,11 +70,15 @@
  const top=document.querySelector('.topcta');if(top)top.textContent='Аналізувати сайт →';
  const step=document.querySelectorAll('.speed-step>span:last-child')[2];if(step)step.textContent='Отримайте звіт у Telegram';
  const cta=document.querySelector('.cta-block p');if(cta)cta.textContent='Оберіть сферу, вкажіть сайт і регіон. Після підготовки перейдіть у Telegram, щоб отримати звіт.';
+ const budgetBenefit=document.querySelectorAll('.benefit')[1]?.querySelector('p');if(budgetBenefit)budgetBenefit.textContent='Порівняйте сценарії бюджету для обраної сфери. Свій бюджет можна вказати у початковій формі до аналізу.';
  const steps=document.querySelectorAll('.how-item');
  const how=[['Введіть сайт','Оберіть сферу, сайт і регіон. За бажанням додайте бюджет та відомі показники.'],['Дочекайтеся аналізу','Визначаємо напрями, розраховуємо прогноз і готуємо стратегію.'],['Отримайте звіт у Telegram','Натисніть Start і поділіться контактом у боті. Отримайте звіт і PDF.']];
  steps.forEach((item,index)=>{if(how[index]){item.querySelector('h3').textContent=how[index][0];item.querySelector('p').textContent=how[index][1];}});
  for(const item of document.querySelectorAll('.faq-items details')){
   const title=item.querySelector('summary')?.textContent||'',body=item.querySelector('p');
+  if(title.includes('Звідки'))body.textContent='Використовуємо погоджені експертні орієнтири Top Marketing для обраної сфери. Історичні дані, де вони є, показуємо окремо. На сайті визначаємо теми рекомендацій; рекламні кабінети й CRM не перевіряємо. Джерела та припущення наведені у звіті.';
+  if(title.includes('продажі та дохід'))body.textContent='Для інтернет-магазинів оцінюємо можливий оборот за експертним ROAS, а за відомого середнього чека — модельну кількість замовлень. В інших сферах прогнозуємо контакти або заявки. Середнього чека без конверсій воронки недостатньо для розрахунку продажів і доходу.';
+  if(title.includes('гарантуєте'))body.textContent='Ні. Це експертний сценарій для планування. Вартість і якість звернень та фактичний результат потрібно перевіряти після запуску реклами.';
   if(title.includes('точніший прогноз'))body.textContent='Перед аналізом відкрийте «Додати дані для розрахунку» та вкажіть бюджет і відомі показники. Без них використаємо позначені базові припущення.';
   if(title.includes('менеджер'))body.textContent='У Telegram-боті попросимо контакт для видачі звіту. Після отримання результату ви можете замовити детальну пропозицію та обговорити її з командою Top Marketing.';
   if(title.includes('швидко'))body.textContent='Після введення даних з’явиться екран підготовки. Коли аналіз буде готовий, перейдіть у Telegram, натисніть Start і поділіться контактом для отримання звіту.';
