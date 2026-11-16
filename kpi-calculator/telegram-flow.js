@@ -2,7 +2,7 @@
  'use strict';
  const config=window.FORECAST_CONFIG,query=new URLSearchParams(location.search);
  const active=query.has('report')||query.get('experience')==='telegram'||(config.telegramGate&&!['legacy','forecast'].includes(query.get('experience')));
- if(!active){const option=document.querySelector('#industry option[value="E-commerce"]');if(option){option.disabled=true;option.textContent='E-commerce — у Telegram-сценарії';}return;}
+ if(!active){for(const option of document.querySelectorAll('#industry option'))if(option.value&&option.value!=='Медицина'&&!option.disabled){option.disabled=true;option.textContent+=' — у Telegram-сценарії';}return;}
  const form=document.getElementById('forecast-form'),api=config.reportsUrl;
  const style=document.createElement('style');style.textContent=`
  .gf-overlay{position:fixed;inset:0;z-index:999999;background:#F0F0E6;overflow:auto;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;color:#141414;font-family:'Noto Sans',sans-serif}
@@ -38,30 +38,44 @@
   element('p',data.preview.clinic+' · '+data.preview.region,card);
   element('p','Підготували прогноз результатів і стратегію просування для вашого сайту.',card);
   const ecommerce=data.preview.industry==='E-commerce';
-  const list=element('ul','',card);for(const line of [ecommerce?'Прогноз можливого обороту, ROAS і сценарії рекламного бюджету':'Прогноз можливих звернень і сценарії рекламного бюджету','Пріоритетні напрями та стратегія Google Ads і Meta',ecommerce?'Повний PDF зі схемами та планом дій':'Повний PDF-звіт із прикладами'])element('li',line,list);
+  const list=element('ul','',card);for(const line of [ecommerce?'Прогноз можливого обороту, ROAS і сценарії рекламного бюджету':'Прогноз можливих звернень і сценарії рекламного бюджету','Напрями сайту та стратегія Google Ads і Meta',ecommerce?'Повний PDF зі схемами та планом дій':'Повний PDF-звіт зі стратегією і планом дій'])element('li',line,list);
   element('p','Знайдені напрями: '+data.preview.services.join(', '),card);
   if(data.preview.warning)element('p',data.preview.warning,card,'gf-error');
   else if(data.preview.partial)element('p','Частину сторінок не вдалося прочитати. У звіті враховано доступні матеріали.',card,'gf-error');
-  element('p','Перейдіть у Telegram, натисніть Start і поділіться контактом у боті, щоб отримати ваш звіт. Потім за бажанням уточніть бюджет і пріоритетні '+(ecommerce?'категорії':'послуги')+' — зі списку або введіть свої.',card);
+  element('p','Перейдіть у Telegram, натисніть Start і поділіться контактом у боті, щоб отримати ваш звіт.',card);
   const link=element('a','Отримати звіт у Telegram →',card,'gf-action');link.id='gf-telegram-link';link.href=data.telegramUrl;link.rel='noopener noreferrer';
   element('small','Контакт передається в боті Top Marketing для видачі звіту та зв’язку щодо вашого запиту.',card);back(card,screen);link.focus();
  }
  form.querySelector('h2').textContent='Отримайте персональний аналіз';form.querySelector('p').textContent='Вкажіть сайт, сферу та регіон. Підготуємо прогноз і стратегію, які ви отримаєте в Telegram.';
  form.querySelector('.action').textContent='Аналізувати сайт ↗';
  form.querySelector('.mode-note').textContent='Сайт → підготовка аналізу → Telegram → контакт → персональний звіт.';
- document.getElementById('form-msg').textContent='Доступні медицина та інтернет-магазини. Готовий звіт видається в Telegram після передачі контакту.';
+ document.getElementById('form-msg').textContent='Готовий звіт видається в Telegram після передачі контакту. Бюджет і середній чек можна додати до аналізу.';
  form.querySelector('.privacy').textContent='Після аналізу перейдіть у бот, натисніть Start і поділіться контактом для отримання звіту.';
- document.querySelector('.copy .lede').textContent='Підготуємо прогноз результатів і план реклами для вашого бізнесу. Отримайте звіт у Telegram та за бажанням уточніть його.';
- const industryField=document.getElementById('industry');const updateIndustry=()=>{document.getElementById('site').placeholder=industryField.value==='E-commerce'?'Сайт вашого інтернет-магазину':'Сайт вашого бізнесу';};industryField.addEventListener('change',updateIndustry);updateIndustry();
+ document.querySelector('.copy .lede').textContent='Підготуємо прогноз результатів і план реклами для вашого бізнесу. Додайте відомі показники на сайті та отримайте звіт у Telegram.';
+ const optional=element('details','',form.querySelector('.fields'),'gf-inputs');element('summary','Додати дані для розрахунку · необов’язково',optional);
+ const optionalFields=element('div','',optional,'fields');
+ for(const id of ['budget','aov']){const field=document.getElementById(id).closest('.field');field.classList.remove('detail');optionalFields.append(field);}
+ document.getElementById('aov').min='0.01';document.getElementById('aov').step='0.01';
+ const marginField=element('div','',optionalFields,'field'),marginLabel=element('label','Маржинальність, % · за бажанням',marginField);marginLabel.htmlFor='initial-margin';
+ const margin=element('input','',marginField);margin.id='initial-margin';margin.type='number';margin.min='0';margin.max='100';margin.step='0.1';margin.placeholder='Без маржі прибуток не прогнозується';
+ const routeField=element('div','',optionalFields,'field'),routeLabel=element('label','Спосіб залучення',routeField);routeLabel.htmlFor='acquisition-mode';const route=element('select','',routeField);route.id='acquisition-mode';
+ const hint=element('small','Без цих даних використаємо позначений приклад бюджету. Середній чек без частки покупок не дає прогнозу доходу.',optional);
+ style.textContent+=' .gf-inputs{border-top:1px solid #DED8CE;padding-top:14px;min-width:0}.gf-inputs summary{font-size:12px;font-weight:700;cursor:pointer;line-height:1.6}.gf-inputs>.fields{margin-top:14px}.gf-inputs small{font-size:11px;color:#66615B;line-height:1.5;display:block;margin-top:12px}.gf-inputs [hidden]{display:none!important}';
+ const industryField=document.getElementById('industry');const updateIndustry=()=>{
+  const industry=industryField.value;document.getElementById('site').placeholder=industry==='E-commerce'?'Сайт вашого інтернет-магазину':'Сайт вашого бізнесу';
+  marginField.hidden=industry!=='E-commerce';margin.disabled=marginField.hidden;routeField.hidden=!['Освіта','Нерухомість'].includes(industry);route.disabled=routeField.hidden;route.replaceChildren();
+  for(const [value,label] of industry==='Освіта'?[['lead_magnet','Контакти через лід-магніт'],['direct','Прямі заявки на навчання']]:industry==='Нерухомість'?[['google','Заявки з Google Ads'],['meta','Заявки з Meta Ads']]:[]){const option=element('option',label,route);option.value=value;}
+  hint.textContent='Без даних використаємо позначений приклад бюджету. '+(industry==='Освіта'?'Основний сценарій — контакти через лід-магніт. Прямі заявки можна обрати вище.':industry==='Нерухомість'?'Основний сценарій — Google Ads. Meta можна обрати вище.':'Середній чек без частки покупок не дає прогнозу доходу.');
+ };industryField.addEventListener('change',updateIndustry);updateIndustry();
  const top=document.querySelector('.topcta');if(top)top.textContent='Аналізувати сайт →';
  const step=document.querySelectorAll('.speed-step>span:last-child')[2];if(step)step.textContent='Отримайте звіт у Telegram';
  const cta=document.querySelector('.cta-block p');if(cta)cta.textContent='Оберіть сферу, вкажіть сайт і регіон. Після підготовки перейдіть у Telegram, щоб отримати звіт.';
  const steps=document.querySelectorAll('.how-item');
- const how=[['Введіть сайт','Оберіть сферу, вкажіть сайт і регіон просування.'],['Дочекайтеся аналізу','Визначаємо напрями, розраховуємо прогноз і готуємо стратегію.'],['Отримайте звіт у Telegram','Натисніть Start і поділіться контактом у боті. Отримайте звіт і PDF; за бажанням уточніть прогноз.']];
+ const how=[['Введіть сайт','Оберіть сферу, сайт і регіон. За бажанням додайте бюджет та відомі показники.'],['Дочекайтеся аналізу','Визначаємо напрями, розраховуємо прогноз і готуємо стратегію.'],['Отримайте звіт у Telegram','Натисніть Start і поділіться контактом у боті. Отримайте звіт і PDF.']];
  steps.forEach((item,index)=>{if(how[index]){item.querySelector('h3').textContent=how[index][0];item.querySelector('p').textContent=how[index][1];}});
  for(const item of document.querySelectorAll('.faq-items details')){
   const title=item.querySelector('summary')?.textContent||'',body=item.querySelector('p');
-  if(title.includes('точніший прогноз'))body.textContent='Отримайте звіт у Telegram після передачі контакту. Далі бот запропонує уточнити бюджет, напрями та відому частку записів і перерахувати результат.';
+  if(title.includes('точніший прогноз'))body.textContent='Перед аналізом відкрийте «Додати дані для розрахунку» та вкажіть бюджет і відомі показники. Без них використаємо позначені базові припущення.';
   if(title.includes('менеджер'))body.textContent='У Telegram-боті попросимо контакт для видачі звіту. Після отримання результату ви можете замовити детальну пропозицію та обговорити її з командою Top Marketing.';
   if(title.includes('швидко'))body.textContent='Після введення даних з’явиться екран підготовки. Коли аналіз буде готовий, перейдіть у Telegram, натисніть Start і поділіться контактом для отримання звіту.';
  }
@@ -69,7 +83,8 @@
   event.preventDefault();event.stopImmediatePropagation();if(!form.reportValidity())return;
   const button=form.querySelector('.action');if(button.disabled)return;button.disabled=true;const view=progress();
   try{
-   const args={website:document.getElementById('site').value.trim(),industry:document.getElementById('industry').value,region:document.getElementById('city').value.trim()};
+   const value=id=>{const input=document.getElementById(id);return input.disabled||input.value===''?null:Number(input.value);};
+   const args={inputVersion:2,website:document.getElementById('site').value.trim(),industry:document.getElementById('industry').value,region:document.getElementById('city').value.trim(),budget:value('budget'),avgTicket:value('aov'),...(industryField.value==='E-commerce'?{margin:value('initial-margin')}:{}),...(!route.disabled?{acquisitionMode:route.value}:{})};
    const url=new URL(/^https?:\/\//i.test(args.website)?args.website:'https://'+args.website);if(!['https:','http:'].includes(url.protocol)||!url.hostname.includes('.')||url.username||url.password||args.website.length>300)throw Error('Введіть коректну адресу сайту');
    const response=await fetch(api,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/x-ndjson'},body:JSON.stringify(args),signal:AbortSignal.timeout(90000)});
    let data;
@@ -92,7 +107,7 @@
    const token=query.get('report');if(!/^[a-f0-9]{48}$/.test(token))throw Error('Некоректне посилання на звіт');
    const response=await fetch(api+'/'+token,{cache:'no-store',signal:AbortSignal.timeout(90000)}),data=await response.json();if(!response.ok)throw Error(data.error||'Не вдалося відкрити звіт');
    view.update(100,'Звіт завантажено');
-   window.openForecastReport({clinic:data.form.clinic,site:data.form.site,city:data.form.city,specialty:data.form.specialty,service:data.form.service,monthlyBudget:data.form.monthlyBudget,avgTicket:data.form.avgTicket,saleRate:data.form.saleRate,analysisMethod:data.meta.method,analysisConfidence:data.meta.confidence,analysisWarning:data.meta.warning,delivery:{telegramUrl:data.telegramUrl,pdfUrl:data.pdfUrl,version:data.version},policy:data.meta.benchmarkPolicy,model:data.form});
+   window.openForecastReport({clinic:data.form.clinic,site:data.form.site,city:data.form.city,specialty:data.form.specialty,service:data.form.service,monthlyBudget:data.form.monthlyBudget,avgTicket:data.form.avgTicket,saleRate:data.form.saleRate,analysisMethod:data.meta.method,analysisConfidence:data.meta.confidence,analysisWarning:data.meta.warning,delivery:{refinementEnabled:data.refinementEnabled,telegramUrl:data.telegramUrl,pdfUrl:data.pdfUrl,version:data.version},policy:data.meta.benchmarkPolicy,model:data.form});
   }catch(error){view.card.replaceChildren();const title=element('h2','Не вдалося відкрити звіт',view.card);title.id='gf-title';element('p',error.message,view.card,'gf-error');const link=element('a','Повернутися до калькулятора',view.card,'gf-action');link.href=location.pathname;link.focus();}
  })();
 })();
