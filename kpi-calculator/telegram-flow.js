@@ -63,8 +63,9 @@
  style.textContent+=' .gf-inputs{border-top:1px solid #DED8CE;padding-top:14px;min-width:0}.gf-inputs summary{font-size:12px;font-weight:700;cursor:pointer;line-height:1.6}.gf-inputs>.fields{margin-top:14px}.gf-inputs small{font-size:11px;color:#66615B;line-height:1.5;display:block;margin-top:12px}.gf-inputs [hidden]{display:none!important}';
  const industryField=document.getElementById('industry');const updateIndustry=()=>{
   const industry=industryField.value;document.getElementById('site').placeholder=industry==='E-commerce'?'Сайт вашого інтернет-магазину':'Сайт вашого бізнесу';
-  marginField.hidden=industry!=='E-commerce';margin.disabled=marginField.hidden;routeField.hidden=!['Освіта','Нерухомість'].includes(industry);route.disabled=routeField.hidden;route.replaceChildren();
-  for(const [value,label] of industry==='Освіта'?[['lead_magnet','Контакти через лід-магніт'],['direct','Прямі заявки на навчання']]:industry==='Нерухомість'?[['google','Заявки з Google Ads'],['meta','Заявки з Meta Ads']]:[]){const option=element('option',label,route);option.value=value;}
+  const routes=config.acquisitionOptions?.[industry];
+  marginField.hidden=industry!=='E-commerce';margin.disabled=marginField.hidden;routeField.hidden=!(routes?.options?.length>1);route.disabled=routeField.hidden;route.replaceChildren();
+  for(const {value,label} of routes?.options||[]){const option=element('option',label,route);option.value=value;}if(routes)route.value=routes.defaultRoute;
   hint.textContent='Без даних використаємо позначений приклад бюджету. '+(industry==='Освіта'?'Основний сценарій — контакти через лід-магніт. Прямі заявки можна обрати вище.':industry==='Нерухомість'?'Основний сценарій — Google Ads. Meta можна обрати вище.':'Середній чек без частки покупок не дає прогнозу доходу.');
  };industryField.addEventListener('change',updateIndustry);updateIndustry();
  const top=document.querySelector('.topcta');if(top)top.textContent='Аналізувати сайт →';
