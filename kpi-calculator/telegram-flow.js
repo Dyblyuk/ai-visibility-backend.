@@ -34,13 +34,17 @@
   return {screen,card,update(percent,message){value.textContent=percent+'%';fill.style.width=percent+'%';track.setAttribute('aria-valuenow',String(percent));stage.textContent=message;}};
  }
  function ready(data,screen,card){
-  card.replaceChildren();element('div','TOP MARKETING / АНАЛІЗ ГОТОВИЙ',card,'gf-kicker');const heading=element('h2','Ваш аналіз готовий',card);heading.id='gf-title';
+  const siteRead=data.preview.analysisAvailable!==false;
+  card.replaceChildren();element('div','TOP MARKETING / ПРОГНОЗ',card,'gf-kicker');const heading=element('h2',siteRead?'Ваш аналіз готовий':'Загальний прогноз готовий',card);heading.id='gf-title';
   element('p',data.preview.clinic+' · '+data.preview.region,card);
-  element('p','Підготували прогноз результатів і стратегію просування для вашого сайту.',card);
+  element('p',siteRead?'Підготували прогноз результатів і стратегію просування.':'Підготували прогноз за обраною сферою.',card);
   const ecommerce=data.preview.industry==='E-commerce';
-  const list=element('ul','',card);for(const line of [ecommerce?'Прогноз можливого обороту, ROAS і сценарії рекламного бюджету':'Прогноз можливих звернень і сценарії рекламного бюджету','Напрями сайту та стратегія Google Ads і Meta',ecommerce?'Повний PDF зі схемами та планом дій':'Повний PDF-звіт зі стратегією і планом дій'])element('li',line,list);
-  element('p','Знайдені напрями: '+data.preview.services.join(', '),card);
-  if(data.preview.warning)element('p',data.preview.warning,card,'gf-error');
+  const list=element('ul','',card);for(const line of [ecommerce?'Прогноз можливого обороту, ROAS і сценарії рекламного бюджету':'Прогноз можливих звернень і сценарії рекламного бюджету','Стратегія Google Ads і Meta',ecommerce?'Повний PDF зі схемами та планом дій':'Повний PDF-звіт зі стратегією і планом дій'])element('li',line,list);
+  const found=data.preview.foundServices??(siteRead?data.preview.services:[]);
+  if(found.length)element('p','Знайдені напрями: '+found.join(', '),card);
+  const diagnosis=data.preview.siteDiagnostic;
+  if(diagnosis)element('p',diagnosis.message+' '+diagnosis.hint+' Код: '+diagnosis.code+(diagnosis.httpStatus?' · HTTP '+diagnosis.httpStatus:'')+'.',card,'gf-error');
+  else if(data.preview.warning)element('p',data.preview.warning,card,'gf-error');
   else if(data.preview.partial)element('p','Частину сторінок не вдалося прочитати. У звіті враховано доступні матеріали.',card,'gf-error');
   element('p','Перейдіть у Telegram, натисніть Start і поділіться контактом у боті, щоб отримати ваш звіт.',card);
   const link=element('a','Отримати звіт у Telegram →',card,'gf-action');link.id='gf-telegram-link';link.href=data.telegramUrl;link.rel='noopener noreferrer';
