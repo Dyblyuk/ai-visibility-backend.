@@ -5,7 +5,7 @@ const form=document.getElementById('forecast-form');
 form.removeAttribute('onsubmit');
 const API=window.FORECAST_CONFIG.analysisUrl;
 const resultsExperiment=window.FORECAST_CONFIG.resultsPrototype===true&&new URLSearchParams(location.search).get('experience')!=='legacy';
-if(resultsExperiment){
+if(resultsExperiment && !form.hasAttribute('data-telegram-landing')){
  document.body.classList.add('results-experiment');
  const style=document.createElement('style');style.textContent='.results-experiment #forecast-form .field.detail,.results-experiment #forecast-form .toggle{display:none!important}.results-experiment #forecast-form .fields{grid-template-columns:1fr}.results-experiment #industries{display:none}.results-experiment .hero .copy h1{font-size:clamp(32px,4vw,54px)}';document.head.append(style);
  for(const id of ['industry','city'])document.getElementById(id)?.setAttribute('required','');

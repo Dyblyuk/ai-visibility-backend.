@@ -50,21 +50,31 @@
   const link=element('a','Отримати звіт у Telegram →',card,'gf-action');link.id='gf-telegram-link';link.href=data.telegramUrl;link.rel='noopener noreferrer';
   element('small','Контакт передається в боті Top Marketing для видачі звіту та зв’язку щодо вашого запиту.',card);back(card,screen);link.focus();
  }
- form.querySelector('h2').textContent='Отримайте персональний аналіз';form.querySelector('p').textContent='Вкажіть сайт, сферу та регіон. Підготуємо прогноз і стратегію, які ви отримаєте в Telegram.';
- form.querySelector('.action').textContent='Аналізувати сайт ↗';
- form.querySelector('.mode-note').textContent='Сайт → підготовка аналізу → Telegram → контакт → персональний звіт.';
- document.getElementById('form-msg').textContent='Готовий звіт видається в Telegram після передачі контакту. Бюджет і середній чек можна додати до аналізу.';
- form.querySelector('.privacy').textContent='Після аналізу перейдіть у бот, натисніть Start і поділіться контактом для отримання звіту.';
- document.querySelector('.copy .lede').textContent='Підготуємо прогноз результатів і план реклами для вашого бізнесу. Додайте відомі показники на сайті та отримайте звіт у Telegram.';
- const optional=element('details','',form.querySelector('.fields'),'gf-inputs');element('summary','Додати дані для розрахунку · необов’язково',optional);
- const optionalFields=element('div','',optional,'fields');
- for(const id of ['budget','aov']){const field=document.getElementById(id).closest('.field');field.classList.remove('detail');optionalFields.append(field);}
- document.getElementById('aov').min='0.01';document.getElementById('aov').step='0.01';
- const marginField=element('div','',optionalFields,'field'),marginLabel=element('label','Маржинальність, % · за бажанням',marginField);marginLabel.htmlFor='initial-margin';
- const margin=element('input','',marginField);margin.id='initial-margin';margin.type='number';margin.min='0';margin.max='100';margin.step='0.1';margin.placeholder='Без маржі прибуток не прогнозується';
- const routeField=element('div','',optionalFields,'field'),routeLabel=element('label','Спосіб залучення',routeField);routeLabel.htmlFor='acquisition-mode';const route=element('select','',routeField);route.id='acquisition-mode';
- const hint=element('small','Без цих даних використаємо позначений приклад бюджету. Середній чек без частки покупок не дає прогнозу доходу.',optional);
- style.textContent+=' .gf-inputs{border-top:1px solid #DED8CE;padding-top:14px;min-width:0}.gf-inputs summary{font-size:12px;font-weight:700;cursor:pointer;line-height:1.6}.gf-inputs>.fields{margin-top:14px}.gf-inputs small{font-size:11px;color:#66615B;line-height:1.5;display:block;margin-top:12px}.gf-inputs [hidden]{display:none!important}';
+ const designedLanding = form.hasAttribute('data-telegram-landing');
+ let margin, route, marginField, routeField, hint;
+ if (designedLanding) {
+  margin = document.getElementById('initial-margin');
+  route = document.getElementById('acquisition-mode');
+  marginField = margin.closest('.field');
+  routeField = route.closest('.field');
+  hint = document.getElementById('hint');
+ } else {
+   form.querySelector('h2').textContent='Отримайте персональний аналіз';form.querySelector('p').textContent='Вкажіть сайт, сферу та регіон. Підготуємо прогноз і стратегію, які ви отримаєте в Telegram.';
+   form.querySelector('.action').textContent='Аналізувати сайт ↗';
+   form.querySelector('.mode-note').textContent='Сайт → підготовка аналізу → Telegram → контакт → персональний звіт.';
+   document.getElementById('form-msg').textContent='Готовий звіт видається в Telegram після передачі контакту. Бюджет і середній чек можна додати до аналізу.';
+   form.querySelector('.privacy').textContent='Після аналізу перейдіть у бот, натисніть Start і поділіться контактом для отримання звіту.';
+   document.querySelector('.copy .lede').textContent='Підготуємо прогноз результатів і план реклами для вашого бізнесу. Додайте відомі показники на сайті та отримайте звіт у Telegram.';
+   const optional=element('details','',form.querySelector('.fields'),'gf-inputs');element('summary','Додати дані для розрахунку · необов’язково',optional);
+   const optionalFields=element('div','',optional,'fields');
+   for(const id of ['budget','aov']){const field=document.getElementById(id).closest('.field');field.classList.remove('detail');optionalFields.append(field);}
+   document.getElementById('aov').min='0.01';document.getElementById('aov').step='0.01';
+   marginField=element('div','',optionalFields,'field');const marginLabel=element('label','Маржинальність, % · за бажанням',marginField);marginLabel.htmlFor='initial-margin';
+   margin=element('input','',marginField);margin.id='initial-margin';margin.type='number';margin.min='0';margin.max='100';margin.step='0.1';margin.placeholder='Без маржі прибуток не прогнозується';
+   routeField=element('div','',optionalFields,'field');const routeLabel=element('label','Спосіб залучення',routeField);routeLabel.htmlFor='acquisition-mode';route=element('select','',routeField);route.id='acquisition-mode';
+   hint=element('small','Без цих даних використаємо позначений приклад бюджету. Середній чек без частки покупок не дає прогнозу доходу.',optional);
+   style.textContent+=' .gf-inputs{border-top:1px solid #DED8CE;padding-top:14px;min-width:0}.gf-inputs summary{font-size:12px;font-weight:700;cursor:pointer;line-height:1.6}.gf-inputs>.fields{margin-top:14px}.gf-inputs small{font-size:11px;color:#66615B;line-height:1.5;display:block;margin-top:12px}.gf-inputs [hidden]{display:none!important}';
+ }
  const industryField=document.getElementById('industry');const updateIndustry=()=>{
   const industry=industryField.value;document.getElementById('site').placeholder=industry==='E-commerce'?'Сайт вашого інтернет-магазину':'Сайт вашого бізнесу';
   const routes=config.acquisitionOptions?.[industry];
@@ -110,6 +120,7 @@
   }catch(error){view.card.replaceChildren();const title=element('h2','Не вдалося завершити підготовку',view.card);title.id='gf-title';element('p',error.name==='TimeoutError'?'Сервіс відповідає довше, ніж очікувалося. Повторіть спробу.':error.message,view.card,'gf-error');back(view.card,view.screen).focus();}
   finally{button.disabled=false;}
  },true);
+ if (designedLanding) form.querySelector('.action').disabled = false;
  if(query.has('report'))(async()=>{
   const view=progress();view.update(25,'Відкриваємо ваш звіт…');
   try{

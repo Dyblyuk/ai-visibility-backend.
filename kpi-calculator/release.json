@@ -1,7 +1,7 @@
 {
   "application": "ai-growth-forecast",
   "sourceRepository": "Dyblyuk/top-marketing-growth-forecast",
-  "sourceCommit": "8f3e08391ca85cb5fce7a43c21e91080287cb12b",
+  "sourceCommit": "c878565490475accacfe9df3d5ececba55406073",
   "publicUrl": "https://services.topmarketing.com.ua/kpi-calculator/",
   "apiOrigin": "https://top-marketing-kpi-forecast.onrender.com"
 }
