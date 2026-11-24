@@ -131,12 +131,12 @@ export class ConversionOutbox {
       ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING *`, [platform]);
     return rows[0];
   }
-  async importForecastMeta() {
+  async importForecastMeta(pixelId, testMode) {
     if (!this.forecastQueueSeen) {
       const available = await this.db.query("SELECT to_regclass('forecast_meta_contacts') IS NOT NULL AS present");
       if (!available.rows[0].present) return;
       this.forecastQueueSeen = true;
-      console.info('Forecast Meta contact queue connected');
+      console.info('Forecast Meta contact queue connected', {pixelId:/^\d+$/.test(pixelId) ? pixelId : null, mode:testMode ? 'test' : 'live'});
     }
     // Move the handoff atomically. A previously skipped, unmatched contact has never produced a Lead.
     await this.db.query(`WITH batch AS (
@@ -191,7 +191,7 @@ export function createConversionWorker({outbox,env=process.env,fetchFn=fetch}) {
         const status=trackingStatus(env,true);
         if (!status[platform+'Configured']) continue;
         if (platform==='meta' && outbox.importForecastMeta) {
-          try { await outbox.importForecastMeta(); }
+          try { await outbox.importForecastMeta(env.META_PIXEL_ID, Boolean(env.META_TEST_EVENT_CODE)); }
           catch { console.warn('Forecast Meta contact queue temporarily unavailable'); }
         }
         const row=await outbox.claim(platform);
