@@ -4,6 +4,42 @@
  const active=query.has('report')||query.get('experience')==='telegram'||(config.telegramGate&&!['legacy','forecast'].includes(query.get('experience')));
  if(!active){for(const option of document.querySelectorAll('#industry option'))if(option.value&&option.value!=='Медицина'&&!option.disabled){option.disabled=true;option.textContent+=' — у Telegram-сценарії';}return;}
  const form=document.getElementById('forecast-form'),api=config.reportsUrl;
+ const landedAt = Date.now();
+ const clickStorage = 'tm_forecast_meta_click';
+ function metaAttribution() {
+  const consent = window.tmAdsConsent || {};
+  const clearClick = () => { try { sessionStorage.removeItem(clickStorage); } catch {} };
+  if (navigator.globalPrivacyControl || consent.adStorage === 'denied' || consent.adUserData === 'denied') {
+   clearClick(); return null;
+  }
+  const readCookie = name => {
+   try { return decodeURIComponent(document.cookie.split(/;\s*/).find(item => item.startsWith(name+'='))?.slice(name.length+1) || ''); }
+   catch { return ''; }
+  };
+  const click = query.get('fbclid');
+  const cookieFbc = readCookie('_fbc');
+  const source = (query.get('utm_source') || '').toLowerCase();
+  const otherCampaign = ['gclid','gbraid','wbraid','ttclid'].some(key => query.has(key))
+   || (source && !['fb','ig','facebook','instagram','meta'].includes(source));
+  const attribution = { consent: consent.adUserData === 'granted' ? {adUserData:'granted'} : {} };
+  if (click && /^[A-Za-z0-9._~-]{1,460}$/.test(click)) {
+   attribution.fbc = cookieFbc.split('.').slice(3).join('.') === click ? cookieFbc : 'fb.1.'+landedAt+'.'+click;
+   if (consent.adStorage==='granted') {
+    try { sessionStorage.setItem(clickStorage,attribution.fbc); } catch {}
+   }
+  } else if (otherCampaign) clearClick();
+  else if (cookieFbc) attribution.fbc = cookieFbc;
+  else if (consent.adStorage==='granted') {
+   try {
+    const cached=sessionStorage.getItem(clickStorage);
+    if(cached && Date.now()-Number(cached.split('.')[2])<30*86400000) attribution.fbc=cached;
+   } catch {}
+  }
+  const fbp = readCookie('_fbp');
+  if (fbp) attribution.fbp = fbp;
+  return attribution;
+ }
+ if (!query.has('report')) metaAttribution();
  const style=document.createElement('style');style.textContent=`
  .gf-overlay{position:fixed;inset:0;z-index:999999;background:#F0F0E6;overflow:auto;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;color:#141414;font-family:'Noto Sans',sans-serif}
  .gf-dialog{width:min(640px,100%);box-sizing:border-box;padding:clamp(22px,5vw,46px);background:#fff;border:1px solid #DED8CE;border-radius:22px;margin-block:auto}
@@ -105,6 +141,7 @@
    const value=id=>{const input=document.getElementById(id);return input.disabled||input.value===''?null:Number(input.value);};
    const args={inputVersion:2,website:document.getElementById('site').value.trim(),industry:document.getElementById('industry').value,region:document.getElementById('city').value.trim(),budget:value('budget'),avgTicket:value('aov'),...(industryField.value==='E-commerce'?{margin:value('initial-margin')}:{}),...(!route.disabled?{acquisitionMode:route.value}:{})};
    const url=new URL(/^https?:\/\//i.test(args.website)?args.website:'https://'+args.website);if(!['https:','http:'].includes(url.protocol)||!url.hostname.includes('.')||url.username||url.password||args.website.length>300)throw Error('Введіть коректну адресу сайту');
+   args.metaAttribution=metaAttribution();
    const response=await fetch(api,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/x-ndjson'},body:JSON.stringify(args),signal:AbortSignal.timeout(90000)});
    let data;
    if((response.headers.get('content-type')||'').includes('application/x-ndjson')){
