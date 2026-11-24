@@ -52,6 +52,24 @@ footer .wrap{display:flex;align-items:center;justify-content:space-between;gap:1
 @media(max-width:600px){:root{--side:20px}.mast nav{display:none}.mast-inner{gap:8px}.brand{width:125px}.btn-small{font-size:13px;padding:.8em 1em}.poster-inner{padding:25px var(--side) 17px;min-height:0}.poster h1{font-size:8.9cqw;line-height:1.04;letter-spacing:-.072em}.lead{width:100%;font-size:15px;line-height:1.38;margin:13px 0 15px;max-width:43ch}.collage{width:50%;height:46cqw;right:0;bottom:0}.cutout{width:94%;right:0;object-fit:contain;object-position:right bottom}.speed{width:48%;margin:0;min-height:43cqw}.speed li{grid-template-columns:20px 28px 1fr;min-height:14cqw;gap:4px;padding:5px 0;border-bottom-width:1px}.speed strong{font-size:14px}.speed svg{width:28px}.speed b{font-size:clamp(11px,3.2vw,16px);line-height:1.13;letter-spacing:-.035em}.sticker small{font-size:2.1cqw}.days{top:26%;left:-.5%}.days strong{font-size:4.5cqw}.sales{top:38%;right:1%;font-size:2.6cqw}.strategy{bottom:14%;left:-3%;right:1%}.strategy b{font-size:2.8cqw}.form-panel{padding:28px var(--side)}.form-panel h2 br{display:initial}.form-panel h2{font-size:28px}.intro{font-size:15px}.trust ul{padding:13px 8px;align-items:stretch}.trust li{padding:0 5px;text-align:center;flex-direction:column;font-size:11px;line-height:1.27;gap:6px}.trust i{width:26px;border-radius:7px}.band{padding-block:42px}.section-title,.about .section-title{font-size:clamp(29px,7.4vw,40px)}.section-intro{font-size:15px}.sheets{grid-template-columns:1fr;margin:25px 3px 20px;gap:16px}.sheet{padding:18px;transform:rotate(-.5deg)}.sheet-top{min-height:48px}.sheet svg{width:47px}.sheet h3{font-size:21px}.sheet p{margin-top:8px}.notice{padding:15px 16px}.how-list{grid-template-columns:1fr}.how-list li,.how-list li:first-child{padding:18px 0;border:0;display:grid;grid-template-columns:66px 1fr;gap:3px 14px}.how-list li+li{border-top:1px solid #5e5d53}.how-art{grid-row:span 2;flex-direction:column;gap:6px;margin:0;align-items:flex-start}.how-art b{font-size:32px}.how-art svg{height:40px;width:54px}.how-list p{margin:3px 0 0}.cta .wrap{display:block}.cta .btn{margin-top:21px}.about-layout,.faq-layout{grid-template-columns:1fr;gap:28px}.team{grid-template-columns:1fr 1fr;gap:14px}.people{gap:14px 8px}.team .founder h3{font-size:18px}.about-copy>p{font-size:15px}.stat{margin-top:20px}.about-link{margin-top:14px}.faq-layout{gap:20px}footer .wrap{flex-wrap:wrap;font-size:12px}footer span{order:3;width:100%}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important}}
 
+
+.region-control { position: relative; }
+.field .region-control input { padding-right: 46px; }
+.region-toggle {
+  position: absolute; inset: 0 0 0 auto; width: 44px; display: grid; place-items: center;
+  border: 0; border-radius: 0 9px 9px 0; background: transparent; color: var(--ink);
+}
+.region-toggle span { width: 8px; height: 8px; border: solid currentColor; border-width: 0 2px 2px 0; transform: translateY(-2px) rotate(45deg); }
+.region-toggle[aria-expanded="true"] span { transform: translateY(2px) rotate(225deg); }
+#region-options {
+  margin: 0; padding: 4px; list-style: none; overflow-y: auto; overscroll-behavior: contain;
+  max-height: min(242px, 36vh); max-height: min(242px, 36dvh);
+  border: 1px solid #ccc9bc; border-radius: 9px; background: white; color: var(--ink);
+}
+#region-options li { display: flex; align-items: center; min-height: 44px; padding: 9px 12px; border-radius: 5px; cursor: pointer; overflow-wrap: anywhere; }
+#region-options li[aria-selected="true"] { font-weight: 700; }
+#region-options li.is-active { background: #ffead9; box-shadow: inset 3px 0 var(--orange); }
+@media (hover:hover) { #region-options li:hover { background: #f0f0e6; } }
 </style>
 
 <meta name="robots" content="noindex,nofollow"/></head>
@@ -80,7 +98,67 @@ footer .wrap{display:flex;align-items:center;justify-content:space-between;gap:1
 <p class="intro">Вкажіть сайт, сферу та регіон. Підготуємо прогноз і стратегію, які ви отримаєте в Telegram.</p>
 <div class="field"><label for="industry">Сфера бізнесу</label><select name="industry" id="industry" required><option value="">Оберіть сферу</option><option value="Медицина">Медицина</option><option value="Нерухомість">Нерухомість — продаж квартир / ЖК</option><option value="E-commerce">E-commerce / Інтернет-магазини</option><option value="B2B">B2B</option><option value="Послуги">Послуги</option><option value="Освіта">Освітні продукти</option><option value="Інше">Інше / не впевнений</option></select></div>
 <div class="field"><label for="site">Сайт бізнесу</label><input type="text" inputmode="url" autocapitalize="none" spellcheck="false" autocomplete="url" name="website" id="site" maxlength="300" required placeholder="Сайт вашого бізнесу"></div>
-<div class="field"><label for="city">Регіон просування</label><input name="region" id="city" list="regions" autocomplete="off" required placeholder="Оберіть місто або область"><datalist id="regions"><option value="Київ">Київ</option><option value="Вінниця">Вінниця</option><option value="Львів">Львів</option><option value="Одеса">Одеса</option><option value="Дніпро">Дніпро</option><option value="Харків">Харків</option><option value="Запоріжжя">Запоріжжя</option><option value="Івано-Франківськ">Івано-Франківськ</option><option value="Тернопіль">Тернопіль</option><option value="Хмельницький">Хмельницький</option><option value="Чернівці">Чернівці</option><option value="Черкаси">Черкаси</option><option value="Чернігів">Чернігів</option><option value="Житомир">Житомир</option><option value="Полтава">Полтава</option><option value="Рівне">Рівне</option><option value="Луцьк">Луцьк</option><option value="Ужгород">Ужгород</option><option value="Миколаїв">Миколаїв</option><option value="Кропивницький">Кропивницький</option><option value="Суми">Суми</option><option value="Херсон">Херсон</option><option value="Уся Україна">Уся Україна</option></datalist></div>
+<div class="field region-picker" id="region-picker">
+  <label id="region-label" for="city">Регіон просування</label>
+  <div class="region-control">
+    <input name="region" id="city" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="region-options" maxlength="100" autocomplete="off" required placeholder="Оберіть або введіть місто чи область">
+    <button class="region-toggle" type="button" aria-label="Список регіонів" aria-expanded="false" aria-controls="region-options" tabindex="-1"><span aria-hidden="true"></span></button>
+  </div>
+  <ul id="region-options" role="listbox" aria-labelledby="region-label" hidden>
+      <li role="option">Уся Україна</li>
+      <li role="option">Київ</li>
+      <li role="option">Вінниця</li>
+      <li role="option">Дніпро</li>
+      <li role="option">Донецьк</li>
+      <li role="option">Житомир</li>
+      <li role="option">Запоріжжя</li>
+      <li role="option">Івано-Франківськ</li>
+      <li role="option">Кропивницький</li>
+      <li role="option">Луганськ</li>
+      <li role="option">Луцьк</li>
+      <li role="option">Львів</li>
+      <li role="option">Миколаїв</li>
+      <li role="option">Одеса</li>
+      <li role="option">Полтава</li>
+      <li role="option">Рівне</li>
+      <li role="option">Сімферополь</li>
+      <li role="option">Суми</li>
+      <li role="option">Тернопіль</li>
+      <li role="option">Ужгород</li>
+      <li role="option">Харків</li>
+      <li role="option">Херсон</li>
+      <li role="option">Хмельницький</li>
+      <li role="option">Черкаси</li>
+      <li role="option">Чернівці</li>
+      <li role="option">Чернігів</li>
+      <li role="option">Вінницька область</li>
+      <li role="option">Волинська область</li>
+      <li role="option">Дніпропетровська область</li>
+      <li role="option">Донецька область</li>
+      <li role="option">Житомирська область</li>
+      <li role="option">Закарпатська область</li>
+      <li role="option">Запорізька область</li>
+      <li role="option">Івано-Франківська область</li>
+      <li role="option">Київська область</li>
+      <li role="option">Кіровоградська область</li>
+      <li role="option">Луганська область</li>
+      <li role="option">Львівська область</li>
+      <li role="option">Миколаївська область</li>
+      <li role="option">Одеська область</li>
+      <li role="option">Полтавська область</li>
+      <li role="option">Рівненська область</li>
+      <li role="option">Сумська область</li>
+      <li role="option">Тернопільська область</li>
+      <li role="option">Харківська область</li>
+      <li role="option">Херсонська область</li>
+      <li role="option">Хмельницька область</li>
+      <li role="option">Черкаська область</li>
+      <li role="option">Чернівецька область</li>
+      <li role="option">Чернігівська область</li>
+      <li role="option">Автономна Республіка Крим</li>
+    <li role="option" class="region-custom" hidden></li>
+  </ul>
+</div>
 <details id="optional" class="optional gf-inputs"><summary>Додати дані для розрахунку <span>· необов’язково</span></summary>
 <div class="extras">
 <div class="field"><label for="budget">Рекламний бюджет на місяць, грн</label><input name="budget" id="budget" type="number" inputmode="numeric" min="1000" max="15000000" step="1" placeholder="Наприклад, 40 000"></div>
@@ -120,6 +198,107 @@ footer .wrap{display:flex;align-items:center;justify-content:space-between;gap:1
 <div class="questions"><details><summary>Звідки беруться цифри?</summary><p>Використовуємо погоджені експертні орієнтири Top Marketing для обраної сфери. Історичні дані, де вони є, показуємо окремо. На сайті визначаємо теми рекомендацій; рекламні кабінети й CRM не перевіряємо. Джерела та припущення наведені у звіті.</p></details><details><summary>Мені зателефонує менеджер?</summary><p>У Telegram-боті попросимо контакт для видачі звіту. Після отримання результату ви можете замовити детальну пропозицію та обговорити її з командою Top Marketing.</p></details><details open><summary>Як швидко надійде звіт?</summary><p>Після введення даних з’явиться екран підготовки. Коли аналіз буде готовий, перейдіть у Telegram, натисніть Start і поділіться контактом для отримання звіту.</p></details><details><summary>Чи можна спрогнозувати продажі та дохід?</summary><p>Для інтернет-магазинів оцінюємо можливий оборот за експертним ROAS, а за відомого середнього чека — модельну кількість замовлень. В інших сферах прогнозуємо контакти або заявки. Середнього чека без конверсій воронки недостатньо для розрахунку продажів і доходу.</p></details><details><summary>Як отримати точніший прогноз?</summary><p>Перед аналізом відкрийте «Додати дані для розрахунку» та вкажіть бюджет і відомі показники. Без них використаємо позначені базові припущення.</p></details><details><summary>Чи гарантуєте ви ці результати?</summary><p>Ні. Це експертний сценарій для планування. Вартість і якість звернень та фактичний результат потрібно перевіряти після запуску реклами.</p></details></div></div></section>
 </main>
 <footer><div class="wrap"><b>TOP MARKETING</b><span>Дані · Стратегія · Результат</span><a href="#form-panel">До форми ↑</a></div></footer>
+<script>
+(() => {
+  const picker = document.getElementById('region-picker');
+  const input = picker.querySelector('input');
+  const toggle = picker.querySelector('button');
+  const list = picker.querySelector('[role="listbox"]');
+  const options = Array.from(list.children);
+  const custom = list.querySelector('.region-custom');
+  const normalize = value => value.trim().toLocaleLowerCase('uk').replace(/['’ʼ‘]/g, '').replace(/[-‐‑–—]/g, ' ');
+  let selected = input.value;
+  let active = null;
+
+  options.forEach((option, index) => { option.id = 'region-option-' + index; });
+  function highlight(option) {
+    active?.classList.remove('is-active');
+    active = option;
+    if (active) {
+      active.classList.add('is-active');
+      input.setAttribute('aria-activedescendant', active.id);
+      list.scrollTop += Math.max(0, active.getBoundingClientRect().bottom - list.getBoundingClientRect().bottom)
+        + Math.min(0, active.getBoundingClientRect().top - list.getBoundingClientRect().top);
+    } else {
+      input.removeAttribute('aria-activedescendant');
+    }
+  }
+  function open(query) {
+    const term = normalize(query);
+    let exact = false;
+    for (const option of options) {
+      if (option === custom) continue;
+      const label = normalize(option.textContent);
+      option.hidden = !label.includes(term);
+      option.setAttribute('aria-selected', String(option.textContent === selected));
+      if (label === term) exact = true;
+    }
+    custom.hidden = !term || exact;
+    custom.textContent = custom.hidden ? '' : 'Обрати «' + query.trim() + '»';
+    custom.setAttribute('aria-selected', 'false');
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+    toggle.setAttribute('aria-expanded', 'true');
+    list.scrollTop = 0;
+    highlight(null);
+  }
+  function close() {
+    list.hidden = true;
+    input.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-expanded', 'false');
+    highlight(null);
+  }
+  function choose(option) {
+    input.value = option === custom ? input.value.trim() : option.textContent;
+    selected = input.value;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    close();
+  }
+  input.addEventListener('focus', () => open(input.value === selected ? '' : input.value));
+  input.addEventListener('click', () => {
+    if (list.hidden) open(input.value === selected ? '' : input.value);
+    if (selected && input.value === selected) input.select();
+  });
+  input.addEventListener('input', () => { selected = ''; open(input.value); });
+  toggle.addEventListener('mousedown', event => event.preventDefault());
+  toggle.addEventListener('click', () => {
+    if (!list.hidden) return close();
+    if (matchMedia('(pointer: fine)').matches) input.focus();
+    open(input.value === selected ? '' : input.value);
+  });
+  list.addEventListener('mousedown', event => event.preventDefault());
+  list.addEventListener('click', event => {
+    const option = event.target.closest('[role="option"]');
+    if (option && !option.hidden) {
+      choose(option);
+      if (matchMedia('(pointer: coarse)').matches) input.blur();
+    }
+  });
+  document.addEventListener('click', event => { if (!picker.contains(event.target)) close(); });
+  picker.addEventListener('keydown', event => {
+    if (event.isComposing) return;
+    if (event.key === 'Tab') return close();
+    if (event.key === 'Escape' && !list.hidden) { event.preventDefault(); close(); return; }
+    if (event.key === 'Enter' && !list.hidden && event.target === input) {
+      event.preventDefault();
+      const first = options.find(option => !option.hidden && normalize(option.textContent) === normalize(input.value))
+        || options.find(option => !option.hidden);
+      if (active || (input.value.trim() && first)) choose(active || first);
+      else close();
+      return;
+    }
+    if (!['ArrowDown', 'ArrowUp'].includes(event.key)) return;
+    event.preventDefault();
+    if (list.hidden) open(input.value === selected ? '' : input.value);
+    const visible = options.filter(option => !option.hidden);
+    const index = visible.indexOf(active);
+    const next = event.key === 'ArrowDown' ? Math.min(index + 1, visible.length - 1)
+      : index < 0 ? visible.length - 1 : Math.max(0, index - 1);
+    highlight(visible[next]);
+  });
+  input.form.addEventListener('submit', close, true);
+})();
+</script>
 <script src="/kpi-calculator/config.624f96dee883.js"></script>
 <script src="/kpi-calculator/forecast.75180d93f709.js"></script>
 <script src="/kpi-calculator/telegram-flow.930e984c8d61.js"></script>
