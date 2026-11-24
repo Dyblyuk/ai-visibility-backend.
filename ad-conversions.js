@@ -56,8 +56,11 @@ export function metaPayload(event, env) {
   if (a.fbp) user_data.fbp = a.fbp;
   if (a.consent.adUserData === 'granted') user_data.ph = [event.metaPhone];
   if (!Object.keys(user_data).length) return null;
+  const forecast = event.product === 'kpi_calculator';
   const payload = {data: [{event_name:'Lead', event_time:Math.floor(Date.parse(event.time)/1000),
-    event_id:event.id, action_source:'chat', user_data, custom_data:{lead_source:'telegram',content_name:'AI Visibility report'}}]};
+    event_id:event.id, action_source:'chat', user_data, custom_data:{lead_source:'telegram',
+      content_name:forecast ? 'KPI Calculator report' : 'AI Visibility report',
+      lead_magnet:forecast ? 'kpi_calculator' : 'ai_visibility'}}]};
   if (env.META_TEST_EVENT_CODE) payload.test_event_code = env.META_TEST_EVENT_CODE;
   return payload;
 }
@@ -128,6 +131,29 @@ export class ConversionOutbox {
       ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING *`, [platform]);
     return rows[0];
   }
+  async importForecastMeta() {
+    if (!this.forecastQueueSeen) {
+      const available = await this.db.query("SELECT to_regclass('forecast_meta_contacts') IS NOT NULL AS present");
+      if (!available.rows[0].present) return;
+      this.forecastQueueSeen = true;
+      console.info('Forecast Meta contact queue connected');
+    }
+    // Move the handoff atomically. A previously skipped, unmatched contact has never produced a Lead.
+    await this.db.query(`WITH batch AS (
+      SELECT f.event_id FROM forecast_meta_contacts f
+      WHERE NOT EXISTS (SELECT 1 FROM ad_conversion_outbox q WHERE q.event_id=f.event_id AND q.platform='meta'
+        AND q.status IN ('pending','processing'))
+      ORDER BY f.confirmed_at LIMIT 50 FOR UPDATE SKIP LOCKED
+    ), moved AS (
+      DELETE FROM forecast_meta_contacts f USING batch WHERE f.event_id=batch.event_id
+      RETURNING f.event_id,f.payload,f.confirmed_at
+    )
+    INSERT INTO ad_conversion_outbox (event_id,platform,payload,created_at)
+      SELECT event_id,'meta',payload || jsonb_build_object('time',confirmed_at),confirmed_at FROM moved
+    ON CONFLICT (event_id,platform) DO UPDATE SET payload=EXCLUDED.payload,
+      created_at=EXCLUDED.created_at,status='pending',attempts=0,next_attempt=NOW(),receipt=NULL,error_code=NULL
+      WHERE ad_conversion_outbox.status='skipped' AND ad_conversion_outbox.error_code='NO_MATCH_IDENTIFIERS'`);
+  }
   async finish(row, status, receipt = null, error = null) {
     await this.db.query(`UPDATE ad_conversion_outbox SET status=$3,receipt=COALESCE($4,receipt),error_code=$5,
       next_attempt=NOW()+($6 * INTERVAL '1 second') WHERE event_id=$1 AND platform=$2`,
@@ -164,6 +190,10 @@ export function createConversionWorker({outbox,env=process.env,fetchFn=fetch}) {
       for (const platform of ['meta','google','tiktok','openaiAds']) {
         const status=trackingStatus(env,true);
         if (!status[platform+'Configured']) continue;
+        if (platform==='meta' && outbox.importForecastMeta) {
+          try { await outbox.importForecastMeta(); }
+          catch { console.warn('Forecast Meta contact queue temporarily unavailable'); }
+        }
         const row=await outbox.claim(platform);
         if (!row) continue;
         try {
@@ -183,6 +213,7 @@ export function createConversionWorker({outbox,env=process.env,fetchFn=fetch}) {
             const data=await request(`https://graph.facebook.com/${env.META_API_VERSION}/${env.META_PIXEL_ID}/events`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.META_CAPI_ACCESS_TOKEN},body:JSON.stringify(payload)});
             if (data.events_received!==1) throw new Error('META_NOT_ACCEPTED');
             await outbox.finish(row,env.META_TEST_EVENT_CODE?'test_sent':'sent',data.fbtrace_id||null);
+            if (row.payload.product==='kpi_calculator') console.info(env.META_TEST_EVENT_CODE?'Forecast Meta test Lead accepted':'Forecast Meta Lead accepted');
           } else if (platform==='openaiAds') {
             const pixelId=env.OPENAI_ADS_PIXEL_ID || '13yVDCfoMVdBGt918mtSms';
             const response=await fetchFn('https://bzr.openai.com/v1/events?pid='+encodeURIComponent(pixelId),{
