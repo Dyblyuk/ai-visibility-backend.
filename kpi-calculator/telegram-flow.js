@@ -40,13 +40,32 @@
   return attribution;
  }
  if (!query.has('report')) metaAttribution();
+ const artBase = new URL('./assets/landing/', document.currentScript.src);
+ const benefitIcons = [
+  "<svg aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><path d=\"M4 3.8h16a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5h-8l-6 4v-4H4a1.5 1.5 0 0 1-1.5-1.5v-10A1.5 1.5 0 0 1 4 3.8Z\"/><path d=\"M7 10h.1m4.9 0h.1m4.9 0h.1\" stroke-width=\"2.8\"/></svg>",
+  "<svg aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><ellipse cx=\"14.5\" cy=\"6\" rx=\"6.7\" ry=\"2.8\"/><path d=\"M7.8 6v4.4c0 1.55 3 2.8 6.7 2.8s6.7-1.25 6.7-2.8V6m0 4.4v4.4c0 1.6-3 2.8-6.7 2.8\"/><ellipse cx=\"7.2\" cy=\"15.5\" rx=\"5\" ry=\"2.4\"/><path d=\"M2.2 15.5v3.3c0 1.4 2.3 2.4 5 2.4s5-1 5-2.4v-3.3\"/></svg>",
+  "<svg aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" viewBox=\"0 0 24 24\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M7.5 2.8v4.4m9-4.4v4.4M3 10h18m-13 5 2.5 2.5 5-5\"/></svg>"
+];
+ const arrowIcon = "<svg aria-hidden=\"true\" width=\"18\" height=\"18\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 16 16 4M5 4h11v11\"/></svg>";
  const style=document.createElement('style');style.textContent=`
- .gf-overlay{position:fixed;inset:0;z-index:999999;background:#F0F0E6;overflow:auto;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;color:#141414;font-family:'Noto Sans',sans-serif}
- .gf-dialog{width:min(640px,100%);box-sizing:border-box;padding:clamp(22px,5vw,46px);background:#fff;border:1px solid #DED8CE;border-radius:22px;margin-block:auto}
- .gf-dialog h1,.gf-dialog h2{font-family:Unbounded,sans-serif;font-size:clamp(24px,5vw,35px);line-height:1.3;margin:22px 0}
- .gf-kicker{font-size:11px;letter-spacing:.12em;font-weight:800;color:#B34D08}.gf-percent{font:800 44px Unbounded,sans-serif;margin:24px 0 12px}.gf-track{height:9px;background:#F0F0E6;border-radius:10px;overflow:hidden}.gf-track>span{height:100%;display:block;background:#F5781E;width:0;transition:width .25s}
- .gf-dialog p,.gf-dialog li{font-size:15px;line-height:1.65}.gf-dialog small{display:block;color:#66615B;line-height:1.6}.gf-dialog a.gf-action,.gf-dialog button{display:flex;width:100%;box-sizing:border-box;justify-content:center;text-align:center;padding:16px 20px;margin:18px 0 10px;border:0;border-radius:30px;background:#F5781E;color:#141414;font:750 15px 'Noto Sans',sans-serif;text-decoration:none;cursor:pointer}.gf-dialog button.gf-back{background:#F0F0E6}.gf-error{padding:13px 16px;background:#FFF4EB;border-left:4px solid #F5781E;border-radius:6px}
- @media(prefers-reduced-motion:reduce){.gf-track>span{transition:none}}`;
+ .gf-overlay{position:fixed;inset:0;z-index:999999;overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;align-items:center;padding:clamp(10px,3vw,26px);background:#f0f0e6;color:#141414;font:400 16px/1.45 "Noto Sans",sans-serif}
+ .gf-overlay,.gf-overlay *{box-sizing:border-box}
+ .gf-dialog{flex:none;width:min(578px,100%);margin:auto;padding:clamp(16px,3vw,30px);border:1px solid #deded3;border-radius:21px;background:#fffdf9;box-shadow:0 8px 25px #2326160c;overflow-wrap:anywhere}
+ .gf-dialog:focus{outline:0}.gf-dialog h2{margin:0;font:700 clamp(25px,4.55vw,36px)/1.15 Unbounded,sans-serif;letter-spacing:-.062em;text-wrap:balance}
+ .gf-art{width:calc(100% + 36px);max-width:none;height:clamp(130px,19vh,189px);object-fit:cover;object-position:center 54%;margin:-18px -18px 17px;border-radius:11px;background:#f5781e}
+ .gf-intro{margin:7px 0 17px;color:#54564e;font-size:15px}
+ .gf-head{display:flex;justify-content:space-between;align-items:end;gap:12px;margin:14px 0 9px}.gf-estimate{text-align:right;flex:none}.gf-label{display:block;color:#54564e;font-size:12px}.gf-estimate .gf-label{font-size:11px}
+ #gf-stage{font-weight:700;font-size:17px}.gf-percent{font:650 35px/1.1 Unbounded,sans-serif;letter-spacing:-.07em;font-variant-numeric:tabular-nums}
+ .gf-track{height:10px;border-radius:8px;background:#20201e;overflow:hidden}.gf-track>span{display:block;height:100%;width:5%;border-radius:inherit;background:#f5781e;transition:width .38s;position:relative;overflow:hidden}
+ .gf-track>span:after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,transparent 10%,#ffb76bb0 50%,transparent 78%);animation:gf-shine 1.9s infinite linear}@keyframes gf-shine{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+ .gf-note{display:flex;align-items:baseline;gap:7px;margin:9px 0 12px;min-height:2.7em;color:#54564e;font-size:12px}.gf-note:before{content:'';flex:none;width:7px;height:7px;border-radius:50%;background:#bd530a;animation:gf-pulse 1.7s infinite ease-in-out}@keyframes gf-pulse{50%{opacity:.35}}.gf-note time{margin-left:auto;white-space:nowrap;font-variant-numeric:tabular-nums}
+ .gf-steps,.gf-benefits{list-style:none;margin:0;padding:0}.gf-steps li,.gf-benefits li{display:flex;gap:12px;align-items:center;padding:9px 0;border-top:1px solid #deded3;font-size:15px}
+ .gf-steps li{color:#54564e}.gf-steps li:before{content:'';width:16px;height:16px;border:1.5px solid #96998c;border-radius:50%;flex:none;box-sizing:border-box}.gf-steps .gf-done{color:#141414}.gf-steps .gf-done:before{content:'✓';background:#f5781e;color:#141414;border:none;font:700 12px/16px "Noto Sans",sans-serif;text-align:center}.gf-steps [aria-current]{font-weight:700;color:#141414}.gf-steps [aria-current]:before{border:2px solid #f5781e}
+ .gf-benefits li{font-weight:700}.gf-benefits svg{width:24px;height:24px;flex:none}.gf-found{font-size:13px;color:#54564e;margin:8px 0 14px}.gf-error{font-size:14px;background:#fff4eb;border-left:3px solid #f5781e;border-radius:5px;padding:10px 12px;margin:12px 0}
+ .gf-action,.gf-back{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:48px;padding:10px;border:0;border-radius:9px;text-decoration:none;font:700 16px "Noto Sans",sans-serif;text-align:center;cursor:pointer}.gf-action{margin:14px 0 0;background:#f5781e;color:#141414}.gf-action:hover{background:#ff852a}.gf-action svg{width:18px;height:18px}.gf-back{margin:8px 0 0;background:transparent;color:#54564e;font-size:13px;text-decoration:underline}.gf-how{margin:9px auto 0;max-width:52ch;text-align:center;font-size:13px;color:#54564e}.gf-dialog :is(button,a):focus-visible{outline:3px solid #914100;outline-offset:3px}
+ @media(max-width:600px){.gf-dialog{padding:18px 17px 10px;border-radius:17px}.gf-art{width:calc(100% + 16px);height:clamp(125px,36vw,165px);margin:-9px -8px 14px}.gf-intro{margin-bottom:12px}.gf-note{margin-bottom:7px}}
+ @media(prefers-reduced-motion:reduce){.gf-track>span,.gf-note:before,.gf-track>span:after{animation:none;transition:none}}
+`;
  document.head.append(style);
  const referrer=document.createElement('meta');referrer.name='referrer';referrer.content='no-referrer';document.head.append(referrer);
  function element(tag,value,parent,cls=''){const node=document.createElement(tag);node.textContent=value;if(cls)node.className=cls;parent.append(node);return node;}
@@ -61,30 +80,118 @@
   card.focus();return {screen,card};
  }
  function back(card,screen){const button=element('button','Повернутися до форми',card,'gf-back');button.type='button';button.addEventListener('click',()=>{screen.gfClose();opener?.focus();});return button;}
- function progress(){
-  const {screen,card}=overlay();element('div','TOP MARKETING / AI GROWTH FORECAST',card,'gf-kicker');const heading=element('h2','Готуємо ваш аналіз',card);heading.id='gf-title';
-  const value=element('div','0%',card,'gf-percent');value.id='gf-percent';value.setAttribute('aria-hidden','true');
-  const track=element('div','',card,'gf-track');track.setAttribute('role','progressbar');track.setAttribute('aria-label','Підготовка аналізу');track.setAttribute('aria-valuemin','0');track.setAttribute('aria-valuemax','100');const fill=element('span','',track);
-  const stage=element('p','Перевіряємо введені дані…',card);stage.id='gf-stage';stage.setAttribute('role','status');
-  element('small','Відсоток показує завершені етапи підготовки. Поки сайт відповідає, значення може залишатися незмінним.',card);
-  return {screen,card,update(percent,message){value.textContent=percent+'%';fill.style.width=percent+'%';track.setAttribute('aria-valuenow',String(percent));stage.textContent=message;}};
+ function cardTitle(card, title, image) {
+  card.replaceChildren();
+  if (image) {
+   const art = element('img', '', card, 'gf-art');
+   art.alt = '';
+   art.src = new URL(image, artBase).href;
+  }
+  const heading = element('h2', title, card);
+  heading.id = 'gf-title';
+  return heading;
  }
- function ready(data,screen,card){
-  const siteRead=data.preview.analysisAvailable!==false;
-  card.replaceChildren();element('div','TOP MARKETING / ПРОГНОЗ',card,'gf-kicker');const heading=element('h2',siteRead?'Ваш аналіз готовий':'Загальний прогноз готовий',card);heading.id='gf-title';
-  element('p',data.preview.clinic+' · '+data.preview.region,card);
-  element('p',siteRead?'Підготували прогноз результатів і стратегію просування.':'Підготували прогноз за обраною сферою.',card);
-  const ecommerce=data.preview.industry==='E-commerce';
-  const list=element('ul','',card);for(const line of [ecommerce?'Прогноз можливого обороту, ROAS і сценарії рекламного бюджету':'Прогноз можливих звернень і сценарії рекламного бюджету','Стратегія Google Ads і Meta',ecommerce?'Повний PDF зі схемами та планом дій':'Повний PDF-звіт зі стратегією і планом дій'])element('li',line,list);
-  const found=data.preview.foundServices??(siteRead?data.preview.services:[]);
-  if(found.length)element('p','Знайдені напрями: '+found.join(', '),card);
-  const diagnosis=data.preview.siteDiagnostic;
-  if(diagnosis)element('p',diagnosis.message+' '+diagnosis.hint+' Код: '+diagnosis.code+(diagnosis.httpStatus?' · HTTP '+diagnosis.httpStatus:'')+'.',card,'gf-error');
-  else if(data.preview.warning)element('p',data.preview.warning,card,'gf-error');
-  else if(data.preview.partial)element('p','Частину сторінок не вдалося прочитати. У звіті враховано доступні матеріали.',card,'gf-error');
-  element('p','Перейдіть у Telegram, натисніть Start і поділіться контактом у боті, щоб отримати ваш звіт.',card);
-  const link=element('a','Отримати звіт у Telegram →',card,'gf-action');link.id='gf-telegram-link';link.href=data.telegramUrl;link.rel='noopener noreferrer';
-  element('small','Контакт передається в боті Top Marketing для видачі звіту та зв’язку щодо вашого запиту.',card);back(card,screen);link.focus();
+ function progress() {
+  const {screen, card} = overlay();
+  cardTitle(card, 'Готуємо ваш аналіз', 'analysis-progress.webp');
+  const intro = element('p', 'Зазвичай це займає до хвилини. Залиште сторінку відкритою.', card, 'gf-intro');
+  const head = element('div', '', card, 'gf-head');
+  const active = element('div', '', head);
+  element('span', 'Поточний етап', active, 'gf-label');
+  const stage = element('div', '', active);
+  stage.id = 'gf-stage';
+  stage.setAttribute('role', 'status');
+  const estimate = element('div', '', head, 'gf-estimate');
+  estimate.setAttribute('aria-hidden','true');
+  element('span', 'Орієнтовно', estimate, 'gf-label');
+  const value = element('div', '', estimate, 'gf-percent');
+  value.id = 'gf-percent';
+  const track = element('div', '', card, 'gf-track');
+  track.setAttribute('role','progressbar');
+  track.setAttribute('aria-label','Підготовка аналізу');
+  track.setAttribute('aria-valuemin','0');
+  track.setAttribute('aria-valuemax','100');
+  const fill = element('span', '', track);
+  const note = element('div', '', card, 'gf-note');
+  const detail = element('span', '', note);
+  const clock = element('time', '', note);
+  clock.setAttribute('aria-hidden','true');
+  const list = element('ol', '', card, 'gf-steps');
+  list.setAttribute('aria-label','Етапи аналізу');
+  const steps = ['Перевірка даних','Аналіз сайту','Розрахунок прогнозу','Підготовка PDF'].map(label => element('li', label, list));
+  const start = performance.now();
+  let milestone = 5, updated = start, shown = 0;
+  function tick() {
+   const now = performance.now();
+   const seconds = Math.floor((now - start) / 1000);
+   clock.textContent = Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
+   // Only interpolate within a confirmed stage. The server advances the checklist.
+   const waiting = now - updated;
+   let percent = milestone;
+   if (milestone === 5) percent += Math.min(4, Math.floor(waiting / 1900));
+   if (milestone === 10) percent += Math.min(24, Math.floor(waiting / 1700));
+   if (percent !== shown) {
+    shown = percent;
+    value.textContent = percent + '%';
+    fill.style.width = percent + '%';
+    track.setAttribute('aria-valuenow', String(percent));
+    track.setAttribute('aria-valuetext', 'Орієнтовно ' + percent + '%. ' + stage.textContent);
+   }
+   if (milestone === 5 && seconds >= 7) detail.textContent = 'Запит уже надіслано. Очікуємо відповіді сервісу.';
+   if (seconds >= 60) intro.textContent = 'Цього разу підготовка триває довше ніж хвилину. Залиште сторінку відкритою.';
+  }
+  function update(percent, message) {
+   milestone = percent;
+   updated = performance.now();
+   const step = percent < 40 ? 1 : percent < 50 ? 2 : percent < 100 ? 3 : 4;
+   const label = percent < 10 ? 'З’єднуємося із сервісом' : percent < 40 ? 'Читаємо сайт' : percent < 50 ? 'Розраховуємо прогноз' : percent < 95 ? 'Формуємо PDF' : percent < 100 ? 'Зберігаємо звіт' : 'Звіт готовий';
+   if (stage.textContent !== label) stage.textContent = label;
+   detail.textContent = message;
+   steps.forEach((item, index) => {
+    item.classList.toggle('gf-done', index < step);
+    if (index === step) item.setAttribute('aria-current', 'step');
+    else item.removeAttribute('aria-current');
+    item.setAttribute('aria-label', item.textContent + ' — ' + (index < step ? 'завершено' : index === step ? 'триває' : 'попереду'));
+   });
+   tick();
+  }
+  update(5, 'Дані форми перевірено. Надсилаємо сайт, сферу та регіон.');
+  const timer = setInterval(tick, 250);
+  return {screen, card, update, stop: () => clearInterval(timer)};
+ }
+ function ready(data, screen, card) {
+  const preview = data.preview;
+  const siteRead = preview.analysisAvailable !== false;
+  cardTitle(card, siteRead ? 'Ваш аналіз готовий' : 'Загальний прогноз готовий', 'analysis-ready.webp');
+  element('p', [preview.clinic, preview.region].filter(Boolean).join(' · '), card, 'gf-intro');
+  const ecommerce = preview.industry === 'E-commerce';
+  const list = element('ul', '', card, 'gf-benefits');
+  const benefits = [ecommerce ? 'Прогноз обороту, ROAS' : 'Прогноз звернень', 'Сценарії рекламного бюджету', 'План дій на 90 днів'];
+  benefits.forEach((label, index) => {
+   const item = element('li', '', list);
+   item.innerHTML = benefitIcons[index]; // Static brand artwork only.
+   element('span', label, item);
+  });
+  const found = preview.foundServices ?? (siteRead ? preview.services : []);
+  if (found.length) {
+   const text = element('p', '', card, 'gf-found');
+   element('strong', ecommerce ? 'Категорії товарів. ' : 'Знайдені напрями. ', text);
+   text.append(found.join(', '));
+  }
+  const diagnosis = preview.siteDiagnostic;
+  if (diagnosis) element('p', diagnosis.message+' '+diagnosis.hint+' Код: '+diagnosis.code+(diagnosis.httpStatus?' · HTTP '+diagnosis.httpStatus:'')+'.', card, 'gf-error');
+  else if (preview.warning) element('p', preview.warning, card, 'gf-error');
+  else if (preview.partial) element('p', 'Частину сторінок не вдалося прочитати. У звіті враховано доступні матеріали.', card, 'gf-error');
+  const link = element('a', 'Отримати звіт у Telegram', card, 'gf-action');
+  link.insertAdjacentHTML('beforeend', arrowIcon);
+  link.id = 'gf-telegram-link';
+  link.href = data.telegramUrl;
+  link.rel = 'noopener noreferrer';
+  element('p', 'У боті натисніть Start і поділіться контактом, щоб отримати PDF.', card, 'gf-how');
+  element('p', 'Команда Top Marketing використовує контакт для видачі звіту та зв’язку щодо вашого запиту.', card, 'gf-how');
+  back(card, screen);
+  screen.scrollTop = 0;
+  link.focus({preventScroll:true});
  }
  const designedLanding = form.hasAttribute('data-telegram-landing');
  let margin, route, marginField, routeField, hint;
@@ -146,7 +253,7 @@
    let data;
    if((response.headers.get('content-type')||'').includes('application/x-ndjson')){
     const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='',lastPercent=0;
-    const receive=line=>{if(!line.trim())return;const packet=JSON.parse(line);if(packet.type==='error')throw Error(packet.error||'Не вдалося підготувати аналіз');if(packet.type==='ready')data=packet.data;else if(packet.type==='progress'&&Number.isInteger(packet.percent)&&packet.percent>=lastPercent&&packet.percent<=100){lastPercent=packet.percent;view.update(packet.percent,String(packet.message||''));}};
+    const receive=line=>{if(!line.trim())return;const packet=JSON.parse(line);if(packet.type==='error')throw Error(packet.error||'Не вдалося підготувати аналіз');if(packet.type==='ready')data=packet.data;else if(packet.type==='progress'&&Number.isInteger(packet.percent)&&packet.percent>=lastPercent&&packet.percent<100){lastPercent=packet.percent;view.update(packet.percent,String(packet.message||''));}};
     try{for(;;){const part=await reader.read();buffer+=decoder.decode(part.value,{stream:!part.done});if(buffer.length>65536)throw Error('Некоректна відповідь сервісу');const lines=buffer.split('\n');buffer=lines.pop();lines.forEach(receive);if(part.done){receive(buffer);break;}}}finally{reader.releaseLock();}
    }else data=await response.json();
    if(!response.ok)throw Error(data?.error||'Не вдалося підготувати аналіз');
@@ -155,15 +262,14 @@
    const link=new URL(data.telegramUrl);if(link.protocol!=='https:'||link.hostname!=='tg.pulse.is'||link.username||link.password||link.port||!link.searchParams.get('gf_report_token'))throw Error('Не вдалося підготувати перехід у Telegram');
    view.update(100,'Аналіз готовий');ready(data,view.screen,view.card);
   }catch(error){view.card.replaceChildren();const title=element('h2','Не вдалося завершити підготовку',view.card);title.id='gf-title';element('p',error.name==='TimeoutError'?'Сервіс відповідає довше, ніж очікувалося. Повторіть спробу.':error.message,view.card,'gf-error');back(view.card,view.screen).focus();}
-  finally{button.disabled=false;}
+  finally{view.stop();button.disabled=false;}
  },true);
  if (designedLanding) form.querySelector('.action').disabled = false;
  if(query.has('report'))(async()=>{
-  const view=progress();view.update(25,'Відкриваємо ваш звіт…');
+  const view=overlay();cardTitle(view.card, 'Відкриваємо ваш звіт…', 'analysis-ready.webp');
   try{
    const token=query.get('report');if(!/^[a-f0-9]{48}$/.test(token))throw Error('Некоректне посилання на звіт');
    const response=await fetch(api+'/'+token,{cache:'no-store',signal:AbortSignal.timeout(90000)}),data=await response.json();if(!response.ok)throw Error(data.error||'Не вдалося відкрити звіт');
-   view.update(100,'Звіт завантажено');
    window.openForecastReport({clinic:data.form.clinic,site:data.form.site,city:data.form.city,specialty:data.form.specialty,service:data.form.service,monthlyBudget:data.form.monthlyBudget,avgTicket:data.form.avgTicket,saleRate:data.form.saleRate,analysisMethod:data.meta.method,analysisConfidence:data.meta.confidence,analysisWarning:data.meta.warning,delivery:{refinementEnabled:data.refinementEnabled,telegramUrl:data.telegramUrl,pdfUrl:data.pdfUrl,version:data.version},policy:data.meta.benchmarkPolicy,model:data.form});
   }catch(error){view.card.replaceChildren();const title=element('h2','Не вдалося відкрити звіт',view.card);title.id='gf-title';element('p',error.message,view.card,'gf-error');const link=element('a','Повернутися до калькулятора',view.card,'gf-action');link.href=location.pathname;link.focus();}
  })();
