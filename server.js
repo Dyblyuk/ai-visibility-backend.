@@ -1571,7 +1571,7 @@ app.get('/api/health', (req, res) => {
     queryPlannerVersion: 5,
     recommendationPromptVersion: 4, knowledgeVersion: 7,
     performanceVersion:3,
-    reportLayoutVersion:8,discoveryQueryCount:DISCOVERY_QUERY_COUNT,
+    reportLayoutVersion:9,discoveryQueryCount:DISCOVERY_QUERY_COUNT,
     models:{chatgpt:OPENAI_MODEL,gemini:GEMINI_MODEL,perplexity:"sonar",claude:CLAUDE_MODEL,analysis:ANALYSIS_MODEL},
     deadlinesMs:{provider:PROVIDER_TIMEOUT_MS,analysis:ANALYSIS_TIMEOUT_MS,queryPlan:PLAN_TIMEOUT_MS},
     reportStorage: { kind: reportStore.kind, durable: reportStore.durable },
