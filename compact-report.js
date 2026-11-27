@@ -53,8 +53,8 @@ export function buildCompactReport(data) {
    const W=doc.page.width-80;
    const panel=(x,y,w,h,dark=false)=>{doc.roundedRect(x,y,w,h,8).fill(dark?INK:WHITE);};
    const rule=y=>doc.moveTo(40,y).lineTo(40+W,y).lineWidth(.5).stroke('#C7C7BC');
-   const page=(number,label)=>{if(number>1)doc.addPage();doc.rect(0,0,doc.page.width,doc.page.height).fill(BG);text('TOP MARKETING',40,27,240,{size:12,style:'Head'});text(`AI VISIBILITY / ${label}`,290,31,W-250,{size:8,color:DIM});doc.rect(40,55,34,4).fill(ORANGE);};
-   const report=buildReportInsights(data),zones=data.zoneOfInvisibility||[],detail=data.reportUrl;
+   const page=(number,label)=>{if(number>1)doc.addPage();doc.rect(0,0,doc.page.width,doc.page.height).fill(BG);text('TOP MARKETING',40,27,240,{size:12,style:'Head'});text(`AI VISIBILITY / ${data.isDemo?'ДЕМО / ':''}${label}`,290,31,W-250,{size:8,color:DIM});doc.rect(40,55,34,4).fill(ORANGE);};
+   const report=buildReportInsights(data),zones=data.zoneOfInvisibility||[],detail=data.isDemo?undefined:data.reportUrl;
    const detailLink=(id)=>detail?`${detail}#${id}`:undefined;
    const evidence=(refs,x,y,w)=>text(refs.map(ref=>ref.startsWith('knowledge-')?`Знання: ${ENGINE_LABELS[ref.slice(10)]}`:ref.replace(/^query-(\d+)-(.*)$/,(m,n,key)=>`Q${n} ${ENGINE_LABELS[key]}`)).join(' · '),x,y,w,{size:7.5,color:DIM,maxLines:2,link:refs[0]?detailLink(refs[0]):detail});
 
@@ -77,7 +77,7 @@ export function buildCompactReport(data) {
 
    page(2,'ЗАПИТИ ТА КОНКУРЕНТИ');
    text('ДЕ ВАС РЕКОМЕНДУЮТЬ',40,81,W,{size:18,style:'Head'});
-   text('Кожна клітинка веде до повної відповіді за приватним посиланням.',40,112,W,{size:9,color:DIM});
+   text(detail?'Кожна клітинка веде до повної відповіді за приватним посиланням.':'Зіставлення п’яти запитів і відповідей чотирьох AI-систем.',40,112,W,{size:9,color:DIM});
    const qW=235,cellW=(W-qW)/4,top=145;
    text('Запит потенційного клієнта',48,top,qW-12,{size:9,style:'Bold'});
    Object.entries(ENGINE_LABELS).forEach(([key,label],j)=>text(label,40+qW+j*cellW+4,top,cellW-6,{size:7.6,style:'Bold'}));
