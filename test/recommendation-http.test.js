@@ -40,6 +40,9 @@ test('discovery -> stored report -> SendPulse summary/PDF preserves per-AI evide
   assert.equal(report.score,100);assert.equal(report.recommendations.byEngine.claude.websiteScore,100);
   assert.match(report.reportSummary,/Рекомендації: 100\/100/);assert.match(report.reportSummary,/Знання бренду: 100\/100/);assert.equal(report.recommendationScore,100);assert.ok(!report.reportSummary.includes('ChatGPT: 100'));assert.ok(report.reportSummary.length<1024);
   const pdf=await realFetch(base+new URL(report.pdfUrl).pathname);assert.equal(pdf.status,200);
+  assert.equal(pdf.headers.get('x-robots-tag'),'noindex, nofollow, noarchive');
+  assert.equal(pdf.headers.get('cache-control'),'private, no-store');
+  assert.equal(pdf.headers.get('referrer-policy'),'no-referrer');
   const bytes=Buffer.from(await pdf.arrayBuffer());assert.equal(bytes.subarray(0,4).toString(),'%PDF');
   const again=await post('/api/sendpulse-report',{token:saved.token});assert.equal(report.pdfUrl,again.pdfUrl);
   assert.equal(again.conversionStatus,'no_contact');
