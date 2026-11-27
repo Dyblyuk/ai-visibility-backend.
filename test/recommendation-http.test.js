@@ -9,7 +9,7 @@ app.locals.validateBusinessWebsite=async()=>({website:'https://acme.ua',brand:'A
 const realFetch=globalThis.fetch;
 const raw='Раджу Acme (https://acme.ua) для SEO. Також рекомендую Beta (https://beta.ua) для реклами.';
 const extracted={complete:true,companies:[{name:'Acme',website:'https://acme.ua',stance:'recommended',evidence:'Раджу Acme (https://acme.ua) для SEO.'},{name:'Beta',website:'https://beta.ua',stance:'recommended',evidence:'Також рекомендую Beta (https://beta.ua) для реклами.'}]};
-const queryPlan={verified:true,niche:'SEO, Київ',services:['SEO','Google Ads','Аналітика'],queries:['Кого обрати для SEO магазину в Києві?','Де замовити Google Ads для магазину?','Хто налаштовує аналітику GA4 для магазину?']};
+const queryPlan={verified:true,niche:'SEO, Київ',services:['SEO','Google Ads','Аналітика'],queries:['Кого обрати для SEO магазину в Києві?','Де замовити Google Ads для магазину?','Хто налаштовує аналітику GA4 для магазину?','Де замовити підтримку рекламної аналітики?','Хто проводить SEO аудит інтернет-магазину?']};
 const calls=[];
 globalThis.fetch=async(url,options)=>{
  if(String(url).startsWith('http://127.0.0.1:')) return realFetch(url,options);
@@ -26,7 +26,7 @@ test('discovery -> stored report -> SendPulse summary/PDF preserves per-AI evide
  const post=async(path,body)=>{const r=await fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});assert.equal(r.status,200);return r.json();};
  try {
   const plan=await post('/api/discovery-queries',{brand:'Acme',website:'127.0.0.1',niche:'SEO, Київ'});
-  assert.equal(plan.querySource,'company_profile');assert.equal(plan.queries.length,2);
+  assert.equal(plan.querySource,'company_profile');assert.equal(plan.queries.length,5);
   const query=plan.queries[0];
   const zone=await post('/api/zone-query',{brand:'Acme',website:'acme.ua',query});
   assert.equal(zone.analysisVersion,2);assert.match(zone.requestPrompt,/Порадь до 3 конкретних компаній/);assert.ok(!zone.requestPrompt.includes('Acme'));assert.deepEqual(zone.competitors,['Beta']);

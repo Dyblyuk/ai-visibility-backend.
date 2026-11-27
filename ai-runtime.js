@@ -31,3 +31,11 @@ export function singleFlight() {
     pending.set(key,promise);return promise;
   };
 }
+
+// Shared across scans, so a five-query scan cannot fan out into twenty
+// simultaneous paid provider calls. Rejections release their slot as well.
+export function concurrencyLimit(limit=8) {
+  let active=0;const queue=[];
+  const next=()=>{while(active<limit&&queue.length){const {work,resolve,reject}=queue.shift();active++;Promise.resolve().then(work).then(resolve,reject).finally(()=>{active--;next();});}};
+  return work=>new Promise((resolve,reject)=>{queue.push({work,resolve,reject});next();});
+}

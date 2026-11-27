@@ -6,7 +6,7 @@ const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const mainScript = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
 const tick = () => new Promise(resolve=>setTimeout(resolve,10));
 async function waitUntil(fn) { for(let n=0;n<100;n++) { if(fn()) return; await tick(); } throw new Error('UI did not settle'); }
-function setup({saveFails=false, enginesFail=false, badUrl=false,classifiersFail=false,invalidWebsite=false}={}) {
+function setup({saveFails=false, enginesFail=false, badUrl=false,classifiersFail=false,invalidWebsite=false,planFails=false}={}) {
  const dom = new JSDOM(html,{runScripts:'outside-only',url:'https://services.topmarketing.com.ua/'});
  const w=dom.window;let saveCount=0,engineCount=0;
  w.scrollTo=()=>{};w.HTMLElement.prototype.scrollIntoView=()=>{};
@@ -15,7 +15,8 @@ function setup({saveFails=false, enginesFail=false, badUrl=false,classifiersFail
  w.fetch=async(url,opts)=>{
   if(url.endsWith('/api/validate-website')) return {ok:!invalidWebsite,json:async()=>invalidWebsite?{error:'Вкажіть адресу сайту'}:{ok:true,brand:'qa.example.com',website:'https://qa.example.com'}};
   if(url.endsWith('/api/scan-engine')) {engineCount++;return {ok:true,json:async()=>enginesFail?{error:'Offline'}:classifiersFail?{verdict:'unavailable',classifierError:'timeout',score:null}:{verdict:'know',score:63,snippet:'Test'}};}
-  if(url.endsWith('/api/discovery-queries')) return {ok:true,json:async()=>({queries:[]})};
+  if(url.endsWith('/api/discovery-queries')) return {ok:true,json:async()=>({queries:planFails?[]:Array.from({length:5},(_,i)=>`Запит потенційного клієнта ${i+1}`)})};
+  if(url.endsWith('/api/zone-query'))return {ok:true,json:async()=>({analysisVersion:2,query:JSON.parse(opts.body).query,engines:{}})};
   if(url.endsWith('/api/save-report')) {
    saveCount++;
    if(saveFails&&saveCount===1)return {ok:false,json:async()=>({error:'temporary'})};
@@ -86,3 +87,5 @@ test('invalid website never starts AI scans or report creation',async()=>{
  assert.equal(t.w.document.getElementById('scanBtn').disabled,false);
  }finally{t.dom.window.close();}
 });
+
+test('failed five-query planning cannot appear as a completed scan',async()=>{const t=setup({planFails:true});try{t.submit();await waitUntil(()=>!t.w.document.getElementById('gateRetry').hidden);assert.equal(t.counts().saveCount,0);assert.match(t.w.document.getElementById('reportGate').textContent,/5 різних запитів/);}finally{t.dom.window.close();}});

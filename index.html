@@ -779,7 +779,7 @@ oaiq("init",{pixelId:"13yVDCfoMVdBGt918mtSms",debug:true});
     </form>
     <div class="hero-helper">Перевірка безкоштовна, платіжна картка не потрібна. Для отримання PDF-звіту перейдіть у Telegram-бот, натисніть «Старт» і поділіться номером телефону через кнопку.</div>
 
-    <div class="hero-meta">Коротка вибірка тестових запитів · до 4 AI-систем · час залежить від доступності відповідей</div>
+    <div class="hero-meta">5 сценаріїв пошуку · до 4 AI-систем · час залежить від доступності відповідей</div>
     <p class="service-note">Незалежний сервіс Top Marketing. Перевірка виконується через API; результати можуть відрізнятися від відповідей у застосунках AI. <a href="#methodology">Методика й обмеження</a> · <a href="#privacy">Використання даних</a>.</p>
   </section>
 
@@ -861,7 +861,7 @@ oaiq("init",{pixelId:"13yVDCfoMVdBGt918mtSms",debug:true});
       </div>
       <div class="method-card">
         <h3>Рекомендації у вибірці</h3>
-        <p>Формуємо два тестові запити без назви бренду. Бал = кількість відповідей із позитивною рекомендацією бренду або його сайту ÷ кількість успішно перевірених відповідей × 100. Нейтральна згадка не зараховується як рекомендація. Відповіді з помилками виключаємо; за відсутності даних показуємо «немає даних».</p>
+        <p>Формуємо п’ять різних тестових запитів без назви бренду. Бал = кількість відповідей із позитивною рекомендацією бренду або його сайту ÷ кількість успішно перевірених відповідей × 100. Нейтральна згадка не зараховується як рекомендація. Відповіді з помилками виключаємо; за відсутності даних показуємо «немає даних».</p>
       </div>
     </div>
     <p class="method-limit">Перевірка відображає конкретну вибірку відповідей API на дату аналізу; можливе кешування до 24 годин. Доступність провайдерів, моделі, веб-пошук і персоналізація впливають на результат, тому відповіді у застосунках ChatGPT, Claude, Gemini та Perplexity можуть відрізнятися. Це внутрішні оцінки Top Marketing, а не офіційні показники AI-платформ чи вимірювання всіх запитів користувачів. Відповіді AI не підтверджують факти про бізнес. Перевірка та запропоновані кроки не гарантують рекомендацій AI, звернень або продажів. Top Marketing не представляє зазначені AI-платформи.</p>
@@ -1136,6 +1136,10 @@ async function runLiveScan(name, niche, website){
   setRowActive('st-zone');
   const discoveryData = await discoveryQueriesPromise;
   const discoveryQueries = discoveryData.queries || [];
+  if(discoveryQueries.length !== 5) {
+    await Promise.all(enginePromises);
+    throw new Error('Не вдалося сформувати 5 різних запитів. Уточніть нішу й географію та повторіть перевірку.');
+  }
   const effectiveNiche = discoveryData.niche || niche;
   const nicheWasInferred = Boolean(discoveryData.inferred);
 
@@ -1238,6 +1242,7 @@ form.addEventListener('submit', async function(e){
 
   let engines;
   let usedReal = false;
+  let scanError = '';
   let zoneOfInvisibility = [];
   let nicheWasInferred = false;
   let queryPlan = null;
@@ -1254,12 +1259,13 @@ form.addEventListener('submit', async function(e){
         nicheWasInferred = true;
       }
     } catch(err){
+      scanError = err.message || '';
       console.warn('Перевірка недоступна:', err);
     }
   }
 
   if (!usedReal || engines.every(engine => engine.error || engine.classifierError || engine.verdict==='unavailable')) {
-    showGateError('AI-системи тимчасово недоступні. Спробуйте повторити перевірку трохи пізніше.', true);
+    showGateError(scanError || 'AI-системи тимчасово недоступні. Спробуйте повторити перевірку трохи пізніше.', true);
     btn.disabled = false;
     return;
   }
