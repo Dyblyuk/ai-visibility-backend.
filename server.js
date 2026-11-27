@@ -58,6 +58,7 @@ app.use(['/api/scan','/api/scan-engine','/api/discovery-queries','/api/zone-quer
 
 // A stable URL is backed by the database, not Render's ephemeral filesystem.
 app.get('/reports/:filename', async (req, res) => {
+  res.set({'Cache-Control':'private, no-store','X-Robots-Tag':'noindex, nofollow, noarchive','Referrer-Policy':'no-referrer'});
   const token = req.params.filename.replace(/\.pdf$/, '');
   if (!req.params.filename.endsWith('.pdf') || !validReportToken(token)) return res.sendStatus(404);
   try {
@@ -65,7 +66,6 @@ app.get('/reports/:filename', async (req, res) => {
     if (!pdf) return res.sendStatus(404);
     const report = await reportStore.get(token);
     const brand = String(report?.brand || 'Report').replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄґҐ._-]/gu, '-').slice(0,80);
-    res.set('Cache-Control', 'private, no-store');
     res.set('Content-Disposition', `attachment; filename="Top-Marketing-AI-Visibility.pdf"; filename*=UTF-8''${encodeURIComponent('Top-Marketing-AI-Visibility-' + brand + '.pdf')}`);
     res.type('pdf').send(pdf);
   } catch (error) {
