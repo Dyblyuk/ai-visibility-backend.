@@ -9,6 +9,8 @@
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
+    "@expo-google-fonts/noto-sans": "^0.4.2",
+    "@expo-google-fonts/unbounded": "^0.4.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",

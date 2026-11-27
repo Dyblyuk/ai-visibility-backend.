@@ -20,10 +20,12 @@ import multer from 'multer';
 import { randomBytes } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import {buildCompactReport} from './compact-report.js';
+import {buildReportInsights} from './report-insights.js';
+import {renderEvidenceReport} from './evidence-report.js';
 import {queryPlanPrompt,parseQueryPlan} from './query-planner.js';
 import {fetchSiteContext} from './website-context.js';
 import {createWebsiteValidator,websiteGate} from './website-validation.js';
-import {fetchWithDeadline,singleFlight} from './ai-runtime.js';
+import {fetchWithDeadline,singleFlight,concurrencyLimit} from './ai-runtime.js';
 import {knowledgePrompt,parseKnowledge} from './knowledge-analysis.js';
 import { createReportStore, validReportToken } from './report-store.js';
 import { cleanAttribution, makeContactEvent, trustedSendPulse, ConversionOutbox, createConversionWorker, trackingStatus, isGoogleValidation } from './ad-conversions.js';
@@ -72,6 +74,16 @@ app.get('/reports/:filename', async (req, res) => {
   }
 });
 
+app.get('/report/:token', async (req, res) => {
+  if (!validReportToken(req.params.token)) return res.sendStatus(404);
+  res.set({'Cache-Control':'private, no-store','X-Robots-Tag':'noindex, nofollow, noarchive','Referrer-Policy':'no-referrer','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"});
+  try {
+    const report = await reportStore.get(req.params.token);
+    if (!report) return res.status(404).type('text').send('Звіт не знайдений. Зробіть нову перевірку на сайті.');
+    res.type('html').send(renderEvidenceReport(report));
+  } catch { res.status(503).type('text').send('Звіт тимчасово недоступний. Спробуйте пізніше.'); }
+});
+
 app.get('/', (req, res) => {
   res.json({
     ok: true,
@@ -97,6 +109,7 @@ const PROVIDER_TIMEOUT_MS = 25000;
 const ANALYSIS_TIMEOUT_MS = 12000;
 const PLAN_TIMEOUT_MS = 14000;
 const inFlight = singleFlight();
+const limitRecommendationCalls = concurrencyLimit(8);
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 // Вимкніть на 'false', якщо квота на веб-пошук Gemini постійно впирається
 // в 429 навіть із підключеним білінгом — тоді Gemini відповідатиме з
@@ -114,7 +127,7 @@ const OPENAI_WEB_SEARCH_TOOL = process.env.OPENAI_WEB_SEARCH_TOOL || 'web_search
 // робиться додатковий виклик Claude, щоб витягти імена конкурентів.
 // Тримайте це число невеликим — це прямо впливає на кількість платних
 // викликів API за один скан (queries × engines × ~2).
-const DISCOVERY_QUERY_COUNT = 2;
+const DISCOVERY_QUERY_COUNT = 5;
 const DISCOVERY_ENGINES = (process.env.DISCOVERY_ENGINES || 'chatgpt,gemini,perplexity,claude')
   .split(',').map(s => s.trim()).filter(Boolean);
 
@@ -187,12 +200,7 @@ function buildQueries(brand, niche, website = '') {
 
 // Запити без згадки бренду — так реально формулює клієнт, коли не знає,
 // кого шукає. Саме за ними видно, кого AI називає замість вас.
-function buildDiscoveryQueries(niche) {
-  const n = niche && niche.trim() ? niche.trim() : null;
-  if (!n) return [];
-  // Explicit fallback when a service-specific plan is unavailable.
-  return [`Кого порадите: ${n}?`, `Які компанії порівняти за послугами та відгуками: ${n}?`].slice(0,DISCOVERY_QUERY_COUNT);
-}
+
 
 // Проста перевірка збігу назви — потрібна лише для витягу цитати
 // (snippet), сам вердикт тепер визначає classifyMention нижче.
@@ -626,10 +634,10 @@ async function runDiscoveryQuery(query, brand, website = '') {
     const cached = engineCheckCache.get(cacheKey(key));
     if (cached) { engineResults[key] = { ...cached, cached:true }; return; }
     // No target brand or domain is injected into these customer questions.
-    const response = await caller(requestPrompt, {maxTokens:1100}).catch(error=>({error:String(error)}));
+    const response = await limitRecommendationCalls(()=>caller(requestPrompt, {maxTokens:1100})).catch(error=>({error:String(error)}));
     const raw = { ...response, model:models[key], searchMode:key === 'claude' || (key === 'gemini' && !GEMINI_USE_SEARCH) ? 'model_knowledge' : 'web_search_enabled' };
     if (raw.error || raw.truncated || !raw.text?.trim()) {
-      engineResults[key] = { error:raw.error || (raw.truncated ? 'AI повернула неповну відповідь' : 'Порожня відповідь'), analysisStatus:'unavailable', model:models[key] };
+      engineResults[key] = { error:raw.error || (raw.truncated ? 'AI повернула неповну відповідь' : 'Порожня відповідь'), analysisStatus:'unavailable', model:models[key],rawText:raw.text||'',searchMode:raw.searchMode,checkedAt:new Date().toISOString() };
     } else if (raw.text.length > 18000) {
       engineResults[key] = {...raw, rawText:raw.text, analysisStatus:'unavailable', analysisError:'Відповідь завелика для надійної перевірки'};
     } else pending[key] = raw;
@@ -698,7 +706,7 @@ app.post('/api/scan-engine',async(req,res)=>{
 // пошук.
 const queryPlanCache=makeCache(NICHE_CACHE_TTL_MS,500);
 async function planCustomerQueries(brand,niche='',website='') {
-  const key=JSON.stringify(['query-plan-v4',brand,niche,website,DISCOVERY_QUERY_COUNT]);
+  const key=JSON.stringify(['query-plan-v5',brand,niche,website,DISCOVERY_QUERY_COUNT]);
   const started=Date.now();
   const cached=queryPlanCache.get(key);
   if(cached)return {...cached,cached:true};
@@ -715,7 +723,7 @@ async function planCustomerQueries(brand,niche='',website='') {
     const data=await response.json();
     if(data.stop_reason==='max_tokens')throw Error('Incomplete query plan');
     const text=(data.content||[]).filter(item=>item.type==='text').map(item=>item.text).join(' ');
-    const plan={...parseQueryPlan(text,brand,website,DISCOVERY_QUERY_COUNT),inferred:!niche};
+    const plan={...parseQueryPlan(text,brand,website,DISCOVERY_QUERY_COUNT),inferred:!niche,expectedCount:DISCOVERY_QUERY_COUNT,status:'complete'};
     if(niche)plan.niche=niche;
     plan.siteContextUsed=!!siteContext;
     plan.durationMs=Date.now()-started;
@@ -725,7 +733,7 @@ async function planCustomerQueries(brand,niche='',website='') {
   } catch(error) {
     console.warn('Customer query planner:',error.message);
     // Fallback is explicit: never pretend generic niche prompts are a researched service list.
-    return {queries:buildDiscoveryQueries(niche),niche,inferred:false,services:[],querySource:niche?'niche_templates':'unavailable'};
+    return {queries:[],niche,inferred:false,services:[],querySource:'unavailable',status:'unavailable',expectedCount:DISCOVERY_QUERY_COUNT,message:'Не вдалося сформувати 5 різних запитів. Уточніть нішу й географію та повторіть перевірку.'};
   }
 }
 app.post('/api/discovery-queries', async (req,res)=>{
@@ -1269,7 +1277,7 @@ async function deliverTelegramReport(chatId, token, phone) {
       engines: report.engines || [],
       zoneOfInvisibility: report.zoneOfInvisibility || [],
       issues: report.issues || [],
-      website: report.website, recommendations: report.recommendations, recognitionScore: report.recognitionScore, recommendationScore:report.recommendationScore, queryPlan:report.queryPlan
+      website: report.website, recommendations: report.recommendations, recognitionScore: report.recognitionScore, recommendationScore:report.recommendationScore, queryPlan:report.queryPlan, ts:report.ts, reportUrl:`${process.env.RENDER_EXTERNAL_URL || `https://${req.get('host')}`}/report/${token}`
     });
     await telegramSendDocument(chatId, pdfBuffer, `AI-Visibility-${report.brand}.pdf`, 'Ваш повний AI-звіт');
   } catch (pdfErr) {
@@ -1501,7 +1509,7 @@ app.post('/api/sendpulse-report', async (req, res) => {
       engines: report.engines || [],
       zoneOfInvisibility: report.zoneOfInvisibility || [],
       issues: report.issues || [],
-      website: report.website, recommendations: report.recommendations, recognitionScore: report.recognitionScore, recommendationScore:report.recommendationScore, queryPlan:report.queryPlan
+      website: report.website, recommendations: report.recommendations, recognitionScore: report.recognitionScore, recommendationScore:report.recommendationScore, queryPlan:report.queryPlan, ts:report.ts, reportUrl:`${process.env.RENDER_EXTERNAL_URL || `https://${req.get('host')}`}/report/${token}`
     });
 
     const filename = `${token}.pdf`;
@@ -1536,18 +1544,11 @@ app.post('/api/sendpulse-report', async (req, res) => {
       });
     }
 
-    const interpretation = score < 30
-      ? 'У цій перевірці AI-видимість бренду низька. Почніть із відповідей окремих систем і перевірте, чи правильно вони описують ваш бізнес.'
-      : score < 60
-        ? 'Бренд уже має видимість у частині перевірених відповідей. У звіті подивіться, де AI впізнає вас, а де плутає або не згадує.'
-        : score < 85
-          ? 'У цій перевірці бренд має помітну AI-видимість. Зверніть увагу на різницю між впізнаванням назви та рекомендаціями за запитами клієнтів.'
-          : 'У цій перевірці бренд отримав високий бал AI-видимості. Перегляньте відповіді кожної системи, щоб зрозуміти, де позиції найсильніші.';
-    const details = report.recommendations ? recommendationSummary(report.recommendations) : interpretation;
-    const reportSummary = `Ваш звіт для «${String(report.brand).slice(0,100)}» готовий.\n\nЗнання бренду: ${score ?? '—'}/100 - ${assessmentStatus(score).label}\n\n${details}\n\nЗнання бренду та рекомендації оцінюються окремо. Повний розбір - у PDF.`;
-
-    const reportGuide = 'З чого почати\n\n1. Перегляньте, що кожна AI-система говорить про ваш бренд.\n2. Порівняйте впізнавання назви з рекомендаціями за нішевими запитами.\n3. Подивіться, яких конкурентів називає AI, і виберіть перші дії з рекомендацій у PDF.\n\nХочете визначити пріоритети для свого бізнесу? Напишіть «Розібрати звіт» — обговоримо результат і наступні кроки.';
-    res.json({ ok: true, score: report.score, brand: report.brand, tier, pdfUrl, reportSummary, reportGuide, conversionStatus, recognitionScore:report.recognitionScore ?? report.score, recognitionStatus:assessmentStatus(report.recognitionScore ?? report.score).label,recommendationStatus:assessmentStatus(report.recommendationScore ?? report.recommendations?.score,'recommendation').label,recommendationScore:report.recommendationScore ?? report.recommendations?.score ?? null, recommendations:report.recommendations || null });
+    const insight=buildReportInsights(report);
+    const reportUrl=`${baseUrl}/report/${token}`;
+    const reportSummary=`Ваш звіт для «${String(report.brand).slice(0,100)}» готовий.\n\nЗнання бренду: ${insight.recognitionScore ?? '—'}/100\nРекомендації: ${insight.summary.score ?? '—'}/100\nОцінено ${insight.checkedAnswers}/${insight.expectedAnswers} відповідей.\n\n${insight.topFinding}\n\nУ PDF - усі запити, конкуренти й пріоритетні дії.`;
+    const reportGuide=insight.actions.map((action,i)=>`${i+1}. ${action.title}\n${action.action}`).join('\n\n');
+    res.json({ ok: true, score: report.score, brand: report.brand, tier, pdfUrl, reportUrl, reportSummary, reportGuide, queryCount:insight.checkedQueries, expectedQueryCount:insight.expectedQueries, checkedAnswers:insight.checkedAnswers, expectedAnswers:insight.expectedAnswers, topFinding:insight.topFinding, topCompetitor:insight.topCompetitor, priorityAction:insight.priorityAction, insightConfidence:insight.confidence, conversionStatus, recognitionScore:report.recognitionScore ?? report.score, recognitionStatus:assessmentStatus(report.recognitionScore ?? report.score).label,recommendationStatus:assessmentStatus(report.recommendationScore ?? report.recommendations?.score,'recommendation').label,recommendationScore:report.recommendationScore ?? report.recommendations?.score ?? null, recommendations:report.recommendations || null });
   } catch (err) {
     console.error('Помилка /api/sendpulse-report:', err);
     res.status(500).json({ ok: false, error: 'Внутрішня помилка сервера' });
@@ -1567,10 +1568,10 @@ app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     analysisVersion: 3,
-    queryPlannerVersion: 4,
+    queryPlannerVersion: 5,
     recommendationPromptVersion: 4, knowledgeVersion: 7,
     performanceVersion:3,
-    reportLayoutVersion:7,discoveryQueryCount:DISCOVERY_QUERY_COUNT,
+    reportLayoutVersion:9,discoveryQueryCount:DISCOVERY_QUERY_COUNT,
     models:{chatgpt:OPENAI_MODEL,gemini:GEMINI_MODEL,perplexity:"sonar",claude:CLAUDE_MODEL,analysis:ANALYSIS_MODEL},
     deadlinesMs:{provider:PROVIDER_TIMEOUT_MS,analysis:ANALYSIS_TIMEOUT_MS,queryPlan:PLAN_TIMEOUT_MS},
     reportStorage: { kind: reportStore.kind, durable: reportStore.durable },

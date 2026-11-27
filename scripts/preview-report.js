@@ -1,0 +1,10 @@
+import fs from 'node:fs/promises';
+import {buildCompactReport} from '../compact-report.js';
+import {renderEvidenceReport} from '../evidence-report.js';
+const keys=['chatgpt','claude','gemini','perplexity'];
+const queries=['Де замовити SEO для інтернет-магазину в Україні?','Хто налаштовує Google Ads для B2B-компаній?','Хто допоможе перевірити якість заявок із реклами?','Яку агенцію обрати для реклами з наскрізною аналітикою?','Хто проводить аудит рекламного кабінету для малого бізнесу?'];
+const data={isDemo:true,brand:'УМОВНИЙ ПРИКЛАД / ДЕМО',niche:'Демонстраційні дані. Це не результат реального бізнесу.',ts:Date.UTC(2026,10,27,10),queryPlan:{expectedCount:5},reportUrl:'https://example.com/private-demo',engines:keys.map((key,i)=>({key,verdict:i===1?'confused':'know',snippet:i===1?'Умовна відповідь для демонстрації часткового знання.':'Умовний опис діяльності компанії для демонстрації макета.',reason:'Демонстраційна класифікація; не реальний скан.'})),zoneOfInvisibility:queries.map((query,i)=>({analysisVersion:2,query,requestPrompt:query,engines:Object.fromEntries(keys.map((key,j)=>[key,{analysisStatus:'ok',brandRecommended:j<i,targetStatus:j<i?'recommended':'not_mentioned',model:'DEMO',searchMode:'demo',rawText:`Умовна відповідь ${i+1}: це синтетичні дані для перевірки макета.`,recommendedCompanies:[{name:'Умовна альтернатива',isTarget:false,evidence:'Умовна цитата для демонстрації оформлення доказів.'}]}]))}))};
+const destination=process.argv[2];if(!destination)throw Error('Provide output path');
+await fs.writeFile(destination,await buildCompactReport(data));
+await fs.writeFile(destination.replace(/\.pdf$/,'.html'),renderEvidenceReport(data));
+console.log(destination);
