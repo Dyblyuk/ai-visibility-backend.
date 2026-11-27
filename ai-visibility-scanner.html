@@ -270,6 +270,9 @@ oaiq("init",{pixelId:"13yVDCfoMVdBGt918mtSms",debug:true});
   }
   .scan-status-title{font-size:20px; font-weight:700; margin-bottom:6px;}
   .scan-status-sub{font-size:13px; color:var(--ink-dim); margin-bottom:20px;}
+  .scan-progress-meta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;margin:0 0 10px;font-size:13px;color:var(--ink-dim);}
+  .scan-meter{height:6px;border-radius:8px;overflow:hidden;background:var(--border);margin-bottom:22px;}
+  .scan-meter-fill{height:100%;width:0;background:var(--orange);transition:width .25s ease;}
   .scan-status-head{
     font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; color:var(--ink-dim);
     text-transform:uppercase; margin-bottom:16px; display:flex; align-items:center; gap:8px;
@@ -785,7 +788,9 @@ oaiq("init",{pixelId:"13yVDCfoMVdBGt918mtSms",debug:true});
 
   <section class="scan-status" id="scanStatus" hidden>
     <div class="scan-status-title" id="scanStatusTitle">Питаю AI…</div>
-    <div class="scan-status-sub">Перевіряємо чотири AI паралельно. Час залежить від швидкості їхніх відповідей.</div>
+    <p class="scan-status-sub" id="scanWaitMessage" role="status" aria-live="polite">Аналіз у процесі. Це може зайняти близько хвилини: перевіряємо чотири AI за п’ятьма запитами. Будь ласка, не закривайте сторінку.</p>
+    <div class="scan-progress-meta"><span id="scanElapsed" aria-hidden="true">Минуло 0:00</span><span id="scanQueryProgress" role="status" aria-live="polite">Готуємо 5 запитів</span></div>
+    <div class="scan-meter" id="scanMeter" role="progressbar" aria-label="Завершені етапи перевірки" aria-valuemin="0" aria-valuemax="12" aria-valuenow="0"><div class="scan-meter-fill" id="scanProgressFill"></div></div>
     <div id="statusList"></div>
   </section>
 
@@ -961,8 +966,40 @@ const gateRetry = document.getElementById('gateRetry');
 let reportPayload = null;
 let scanFailed = false;
 let gateSaving = false;
+let scanFeedbackTimer = null;
+let scanFeedbackStarted = 0;
+const scanCompletedSteps = new Set();
+function markScanProgress(step) {
+  scanCompletedSteps.add(step);
+  const completed = Math.min(12,scanCompletedSteps.size);
+  document.getElementById('scanMeter').setAttribute('aria-valuenow',String(completed));
+  document.getElementById('scanProgressFill').style.width = `${completed / 12 * 100}%`;
+  const queries = [...scanCompletedSteps].filter(key=>key.startsWith('query-')).length;
+  if(scanCompletedSteps.has('plan'))document.getElementById('scanQueryProgress').textContent = `Опрацьовано ${queries} із 5 запитів`;
+}
+function stopScanFeedback() {
+  if(scanFeedbackTimer !== null)clearInterval(scanFeedbackTimer);
+  scanFeedbackTimer = null;
+}
+function startScanFeedback() {
+  stopScanFeedback();scanCompletedSteps.clear();scanFeedbackStarted=Date.now();
+  document.getElementById('scanStatus').hidden=false;
+  document.getElementById('scanStatusTitle').textContent='Перевіряємо сайт і готуємо аналіз';
+  document.getElementById('scanWaitMessage').textContent='Аналіз у процесі. Це може зайняти близько хвилини: перевіряємо чотири AI за п’ятьма запитами. Будь ласка, не закривайте сторінку.';
+  document.getElementById('statusList').replaceChildren();
+  document.getElementById('scanElapsed').textContent='Минуло 0:00';
+  document.getElementById('scanQueryProgress').textContent='Готуємо 5 запитів';
+  document.getElementById('scanMeter').setAttribute('aria-valuenow','0');
+  document.getElementById('scanProgressFill').style.width='0%';
+  scanFeedbackTimer=setInterval(()=>{
+    const seconds=Math.floor((Date.now()-scanFeedbackStarted)/1000);
+    document.getElementById('scanElapsed').textContent=`Минуло ${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
+    if(seconds>=60)document.getElementById('scanWaitMessage').textContent='AI відповідають довше, ніж очікували. Аналіз триває — не оновлюйте сторінку. Покажемо результат, щойно перевірка завершиться.';
+  },1000);
+}
 
 function showGateError(message, retryScan = false) {
+  stopScanFeedback();
   scanFailed = retryScan;
   document.getElementById('scanStatus').hidden = true;
   document.body.classList.add('report-ready');
@@ -1004,6 +1041,7 @@ async function saveReportAndShowGate() {
     reportGate.querySelector('.gate-note').hidden = false;
     document.getElementById('scanStatus').hidden = true;
     document.body.classList.add('report-ready');
+    markScanProgress('save');stopScanFeedback();
     reportGate.hidden = false;
     document.getElementById('gateTitle').focus({preventScroll:true});
     window.scrollTo({top:0,behavior:'smooth'});
@@ -1130,6 +1168,8 @@ async function runLiveScan(name, niche, website){
     } catch(err){
       setRowDone(id, 'done-err', 'недоступно');
       return { ...e, verdict: 'unavailable', score:null, error: String(err) };
+    } finally {
+      markScanProgress('engine-'+e.key);
     }
   });
 
@@ -1140,14 +1180,17 @@ async function runLiveScan(name, niche, website){
     await Promise.all(enginePromises);
     throw new Error('Не вдалося сформувати 5 різних запитів. Уточніть нішу й географію та повторіть перевірку.');
   }
+  markScanProgress('plan');
   const effectiveNiche = discoveryData.niche || niche;
   const nicheWasInferred = Boolean(discoveryData.inferred);
 
-  const zonePromises = discoveryQueries.map(async (q) => {
+  const zonePromises = discoveryQueries.map(async (q,index) => {
     try{
       return await fetchZoneQuery(name, q, website);
     } catch(err){
       return { query: q, engines: {}, competitors: [], competitorsSource: 'error' };
+    } finally {
+      markScanProgress('query-'+index);
     }
   });
 
@@ -1196,6 +1239,7 @@ form.addEventListener('submit', async function(e){
   let name, website;
   btn.disabled = true;
   btn.textContent = 'Перевіряємо сайт…';
+  startScanFeedback();
   try {
     const response = await fetch(API_BASE + '/api/validate-website', {
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -1206,7 +1250,9 @@ form.addEventListener('submit', async function(e){
     name = checked.brand;
     website = checked.website;
     document.getElementById('brandSite').value = website;
+    markScanProgress('website');
   } catch(error) {
+    stopScanFeedback();document.getElementById('scanStatus').hidden=true;
     websiteError.textContent = error.message === 'Failed to fetch' ? 'Сервіс перевірки тимчасово недоступний. Спробуйте ще раз.' : error.message;
     websiteError.hidden = false;
     websiteInput.setAttribute('aria-invalid','true');

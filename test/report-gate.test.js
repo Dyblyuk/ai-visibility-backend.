@@ -6,9 +6,12 @@ const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const mainScript = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];
 const tick = () => new Promise(resolve=>setTimeout(resolve,10));
 async function waitUntil(fn) { for(let n=0;n<100;n++) { if(fn()) return; await tick(); } throw new Error('UI did not settle'); }
-function setup({saveFails=false, enginesFail=false, badUrl=false,classifiersFail=false,invalidWebsite=false,planFails=false}={}) {
+function setup({saveFails=false, enginesFail=false, badUrl=false,classifiersFail=false,invalidWebsite=false,planFails=false,deferZones=false}={}) {
  const dom = new JSDOM(html,{runScripts:'outside-only',url:'https://services.topmarketing.com.ua/'});
  const w=dom.window;let saveCount=0,engineCount=0;
+ let fakeNow=1000,timerCallback=null;const zoneResolvers=[];
+ w.Date.now=()=>fakeNow;
+ w.setInterval=callback=>{timerCallback=callback;return 1;};w.clearInterval=()=>{timerCallback=null;};
  w.scrollTo=()=>{};w.HTMLElement.prototype.scrollIntoView=()=>{};
  const timeout=w.setTimeout.bind(w);w.setTimeout=(fn)=>timeout(fn,1);
  w.console.warn=()=>{};
@@ -16,7 +19,11 @@ function setup({saveFails=false, enginesFail=false, badUrl=false,classifiersFail
   if(url.endsWith('/api/validate-website')) return {ok:!invalidWebsite,json:async()=>invalidWebsite?{error:'Вкажіть адресу сайту'}:{ok:true,brand:'qa.example.com',website:'https://qa.example.com'}};
   if(url.endsWith('/api/scan-engine')) {engineCount++;return {ok:true,json:async()=>enginesFail?{error:'Offline'}:classifiersFail?{verdict:'unavailable',classifierError:'timeout',score:null}:{verdict:'know',score:63,snippet:'Test'}};}
   if(url.endsWith('/api/discovery-queries')) return {ok:true,json:async()=>({queries:planFails?[]:Array.from({length:5},(_,i)=>`Запит потенційного клієнта ${i+1}`)})};
-  if(url.endsWith('/api/zone-query'))return {ok:true,json:async()=>({analysisVersion:2,query:JSON.parse(opts.body).query,engines:{}})};
+  if(url.endsWith('/api/zone-query')){
+   const result={ok:true,json:async()=>({analysisVersion:2,query:JSON.parse(opts.body).query,engines:{}})};
+   if(deferZones)return new Promise(resolve=>zoneResolvers.push(()=>resolve(result)));
+   return result;
+  }
   if(url.endsWith('/api/save-report')) {
    saveCount++;
    if(saveFails&&saveCount===1)return {ok:false,json:async()=>({error:'temporary'})};
@@ -26,7 +33,7 @@ function setup({saveFails=false, enginesFail=false, badUrl=false,classifiersFail
  };
  w.eval(mainScript);
  const submit=()=>{w.document.getElementById('brandName').value='qa.example.com';w.document.getElementById('scanForm').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));};
- return {dom,w,submit,counts:()=>({saveCount,engineCount})};
+ return {dom,w,submit,counts:()=>({saveCount,engineCount}),zoneResolvers,advance(ms){fakeNow+=ms;timerCallback?.();},timerRunning:()=>timerCallback!==null};
 }
 
 test('result shows only report contents and Telegram CTA; no score or old forms',async()=>{
@@ -89,3 +96,23 @@ test('invalid website never starts AI scans or report creation',async()=>{
 });
 
 test('failed five-query planning cannot appear as a completed scan',async()=>{const t=setup({planFails:true});try{t.submit();await waitUntil(()=>!t.w.document.getElementById('gateRetry').hidden);assert.equal(t.counts().saveCount,0);assert.match(t.w.document.getElementById('reportGate').textContent,/5 різних запитів/);}finally{t.dom.window.close();}});
+
+test('waiting feedback tracks real query completions, warns after a minute and stops on delivery',async()=>{
+ const t=setup({deferZones:true});try{
+  t.submit();await waitUntil(()=>t.zoneResolvers.length===5);
+  const d=t.w.document;
+  assert.equal(d.getElementById('scanStatus').hidden,false);
+  assert.match(d.getElementById('scanWaitMessage').textContent,/близько хвилини/);
+  assert.equal(d.getElementById('scanQueryProgress').textContent,'Опрацьовано 0 із 5 запитів');
+  assert.equal(d.getElementById('scanMeter').getAttribute('aria-valuenow'),'6');
+  t.zoneResolvers.shift()();await waitUntil(()=>d.getElementById('scanQueryProgress').textContent==='Опрацьовано 1 із 5 запитів');
+  t.advance(61000);
+  assert.match(d.getElementById('scanWaitMessage').textContent,/Аналіз триває/);
+  assert.equal(d.getElementById('scanElapsed').textContent,'Минуло 1:01');
+  assert.equal(d.getElementById('scanMeter').getAttribute('aria-valuenow'),'7');
+  t.zoneResolvers.splice(0).forEach(resolve=>resolve());
+  await waitUntil(()=>d.getElementById('telegramLink').hasAttribute('href'));
+  assert.equal(d.getElementById('scanMeter').getAttribute('aria-valuenow'),'12');
+  assert.equal(t.timerRunning(),false);
+ }finally{t.dom.window.close();}
+});
